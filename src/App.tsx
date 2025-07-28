@@ -17,7 +17,14 @@ import Objectifs from '@/pages/Objectifs';
 import Parametres from '@/pages/Parametres';
 import NotFound from '@/pages/NotFound';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useProductionOrders } from '@/hooks/useTypedDatabase';
 import type { ProductionOrder } from '@/types/database';
 
-export const OrdresProduction = () => {
+const OrdresProduction = () => {
   const { data: orders, loading, create, update, remove } = useProductionOrders();
   const [showDialog, setShowDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(null);
@@ -134,3 +134,5 @@ export const OrdresProduction = () => {
     </div>
   );
 };
+
+export default OrdresProduction;

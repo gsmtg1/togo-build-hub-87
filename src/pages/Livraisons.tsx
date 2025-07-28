@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useDeliveries } from '@/hooks/useTypedDatabase';
 import type { Delivery } from '@/types/database';
 
-export const Livraisons = () => {
+const Livraisons = () => {
   const { data: deliveries, loading, create, update, remove } = useDeliveries();
   const [showDialog, setShowDialog] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
@@ -115,3 +115,5 @@ export const Livraisons = () => {
     </div>
   );
 };
+
+export default Livraisons;

@@ -18,7 +18,7 @@ import type {
   AppSetting
 } from '@/types/database';
 
-function useTypedTable<T>(tableName: string) {
+function useTypedTable<T extends { id: string }>(tableName: string) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -50,7 +50,7 @@ function useTypedTable<T>(tableName: string) {
     try {
       const { error } = await supabase
         .from(tableName)
-        .insert(item);
+        .insert([item as any]);
 
       if (error) throw error;
       
@@ -73,7 +73,7 @@ function useTypedTable<T>(tableName: string) {
     try {
       const { error } = await supabase
         .from(tableName)
-        .update({ ...item, updated_at: new Date().toISOString() })
+        .update({ ...item, updated_at: new Date().toISOString() } as any)
         .eq('id', id);
 
       if (error) throw error;

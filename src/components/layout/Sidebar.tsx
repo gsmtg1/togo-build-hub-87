@@ -1,62 +1,70 @@
 
-import { NavLink } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard,
-  Calculator,
-  Package,
-  Truck,
-  ShoppingCart,
-  FileText,
-  Target,
-  Users,
+import { Link, useLocation } from 'react-router-dom';
+import { 
+  Home, 
+  BarChart3, 
+  ShoppingCart, 
+  Package, 
+  Factory, 
   ClipboardList,
+  Truck,
+  Calculator, 
+  FileText, 
+  Users, 
+  Target, 
   Settings,
-  Receipt
+  Receipt,
+  FileCheck
 } from 'lucide-react';
 
-interface SidebarProps {
-  collapsed: boolean;
-}
-
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Tableau de bord', path: '/' },
-  { icon: Calculator, label: 'Comptabilité', path: '/comptabilite' },
-  { icon: ClipboardList, label: 'Ordres de production', path: '/production' },
-  { icon: Package, label: 'Stock', path: '/stock' },
-  { icon: ShoppingCart, label: 'Ventes', path: '/ventes' },
-  { icon: FileText, label: 'Devis', path: '/devis' },
-  { icon: Receipt, label: 'Factures', path: '/factures' },
-  { icon: Truck, label: 'Livraison', path: '/livraison' },
-  { icon: Target, label: 'Objectifs mensuels', path: '/objectifs' },
-  { icon: Users, label: 'Employés', path: '/employes' },
-  { icon: Settings, label: 'Paramètres', path: '/parametres' },
+const navigation = [
+  { name: 'Accueil', href: '/', icon: Home },
+  { name: 'Tableau de bord', href: '/dashboard', icon: BarChart3 },
+  { name: 'Ventes', href: '/ventes', icon: ShoppingCart },
+  { name: 'Stock', href: '/stock', icon: Package },
+  { name: 'Production', href: '/production', icon: Factory },
+  { name: 'Ordres de Production', href: '/ordres-production', icon: ClipboardList },
+  { name: 'Livraisons', href: '/livraisons', icon: Truck },
+  { name: 'Comptabilité', href: '/comptabilite', icon: Calculator },
+  { name: 'Factures', href: '/factures', icon: FileText },
+  { name: 'Devis', href: '/devis', icon: FileCheck },
+  { name: 'Employés', href: '/employes', icon: Users },
+  { name: 'Objectifs', href: '/objectifs', icon: Target },
+  { name: 'Paramètres', href: '/parametres', icon: Settings },
 ];
 
-export const Sidebar = ({ collapsed }: SidebarProps) => {
+export const Sidebar = () => {
+  const location = useLocation();
+
   return (
-    <aside className={cn(
-      "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 transition-all duration-300 z-40 overflow-y-auto",
-      collapsed ? "w-16" : "w-64"
-    )}>
-      <nav className="p-2">
-        {menuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 px-3 py-3 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-colors",
-                isActive && "bg-orange-100 text-orange-600 font-medium",
-                collapsed && "justify-center"
-              )
-            }
-          >
-            <item.icon className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span className="text-sm">{item.label}</span>}
-          </NavLink>
-        ))}
+    <div className="flex h-full w-64 flex-col bg-white shadow-lg">
+      <div className="flex h-16 items-center justify-center border-b border-gray-200">
+        <h1 className="text-xl font-bold text-gray-900">CornerstoneGESCO</h1>
+      </div>
+      
+      <nav className="flex-1 space-y-1 px-2 py-4">
+        {navigation.map((item) => {
+          const isActive = location.pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={`${
+                isActive
+                  ? 'bg-orange-50 border-r-2 border-orange-500 text-orange-700'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+              } group flex items-center px-3 py-2 text-sm font-medium rounded-l-md transition-colors`}
+            >
+              <item.icon
+                className={`${
+                  isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
+                } mr-3 h-5 w-5 flex-shrink-0`}
+              />
+              {item.name}
+            </Link>
+          );
+        })}
       </nav>
-    </aside>
+    </div>
   );
 };

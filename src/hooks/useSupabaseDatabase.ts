@@ -26,7 +26,6 @@ function useSupabaseTableBase<TTableName extends keyof Tables>(tableName: TTable
 
       if (error) throw error;
       
-      // Properly cast the result to the expected type
       setData((result as TRow[]) || []);
     } catch (error) {
       console.error(`Error loading ${tableName}:`, error);
@@ -152,3 +151,16 @@ export const useAppSettings = () =>
 
 export const useProducts = () => 
   useSupabaseTableBase('products');
+
+// Nouveaux hooks pour les ordres de production et livraisons
+export const useProductionOrders = () => 
+  useSupabaseTableBase('production_orders');
+
+export const useProductionSteps = () => 
+  useSupabaseTableBase('production_steps');
+
+export const useDeliveries = () => 
+  useSupabaseTableBase('deliveries');
+
+export const useDeliveryItems = () => 
+  useSupabaseTableBase('delivery_items');

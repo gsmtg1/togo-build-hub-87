@@ -16,7 +16,19 @@ const Livraisons = () => {
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
 
   const handleCreate = async (deliveryData: Partial<Delivery>) => {
-    await create(deliveryData);
+    // Ensure required fields have default values
+    const completeDeliveryData = {
+      ...deliveryData,
+      statut: deliveryData.statut || 'en_attente',
+      numero_livraison: deliveryData.numero_livraison || `LIV-${Date.now()}`,
+      client_nom: deliveryData.client_nom || '',
+      client_adresse: deliveryData.client_adresse || '',
+      lieu_livraison: deliveryData.lieu_livraison || '',
+      date_commande: deliveryData.date_commande || new Date().toISOString(),
+      montant_total: deliveryData.montant_total || 0
+    };
+    
+    await create(completeDeliveryData);
     setShowDialog(false);
   };
 

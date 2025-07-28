@@ -96,7 +96,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
     }
   };
 
-  const create = async (item: Omit<T, 'id' | 'created_at' | 'updated_at'>) => {
+  const create = async (item: Partial<T>) => {
     try {
       const newItem = {
         ...item,

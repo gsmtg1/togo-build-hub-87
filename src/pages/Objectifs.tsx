@@ -46,7 +46,18 @@ const Objectifs = () => {
     if (isEditing && selectedGoal) {
       await update(selectedGoal.id, goalData);
     } else {
-      await create(goalData);
+      // Ensure required fields have default values
+      const completeGoalData = {
+        ...goalData,
+        statut: goalData.statut || 'actif',
+        titre: goalData.titre || '',
+        mois: goalData.mois || new Date().getMonth() + 1,
+        annee: goalData.annee || new Date().getFullYear(),
+        objectif_montant: goalData.objectif_montant || 0,
+        montant_realise: goalData.montant_realise || 0
+      };
+      
+      await create(completeGoalData);
     }
     setDialogOpen(false);
   };

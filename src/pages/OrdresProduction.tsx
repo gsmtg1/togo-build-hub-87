@@ -17,7 +17,17 @@ const OrdresProduction = () => {
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(null);
 
   const handleCreate = async (orderData: Partial<ProductionOrder>) => {
-    await create(orderData);
+    // Ensure required fields have default values
+    const completeOrderData = {
+      ...orderData,
+      numero_ordre: orderData.numero_ordre || `OP-${Date.now()}`,
+      statut: orderData.statut || 'en_attente',
+      product_id: orderData.product_id || '',
+      quantite: orderData.quantite || 0,
+      date_demande: orderData.date_demande || new Date().toISOString()
+    };
+    
+    await create(completeOrderData);
     setShowDialog(false);
   };
 

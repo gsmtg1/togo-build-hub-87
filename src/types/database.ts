@@ -1,4 +1,3 @@
-
 // Types pour la base de données Supabase
 export interface Product {
   id: string;
@@ -202,4 +201,60 @@ export interface AccountingCategory {
   id: string;
   name: string;
   description?: string;
+}
+
+export interface ProductionStep {
+  id: string;
+  production_order_id: string;
+  step_name: string;
+  step_order: number;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  start_date?: string;
+  end_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BrickType {
+  id: string;
+  nom: string;
+  description?: string;
+  longueur_cm: number;
+  largeur_cm: number;
+  hauteur_cm: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionMaterial {
+  id: string;
+  nom: string;
+  description?: string;
+  unite: string;
+  prix_unitaire: number;
+  stock_actuel: number;
+  stock_minimum: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionRecipe {
+  id: string;
+  product_id: string;
+  material_id: string;
+  quantite_necessaire: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionCost {
+  id: string;
+  production_order_id: string;
+  material_id: string;
+  quantite_utilisee: number;
+  cout_unitaire: number;
+  cout_total: number;
+  created_at: string;
+  updated_at: string;
 }

@@ -215,7 +215,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
         id: Date.now().toString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      } as T;
+      } as unknown as T;
       
       setData(prev => [newItem, ...prev]);
       toast({

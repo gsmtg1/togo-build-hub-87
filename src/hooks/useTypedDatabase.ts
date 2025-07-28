@@ -26,7 +26,7 @@ function useTypedTable<T extends { id: string }>(tableName: string) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const { data: result, error } = await supabase
+      const { data: result, error } = await (supabase as any)
         .from(tableName)
         .select('*')
         .order('created_at', { ascending: false });
@@ -48,9 +48,9 @@ function useTypedTable<T extends { id: string }>(tableName: string) {
 
   const create = async (item: Partial<T>) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from(tableName)
-        .insert([item as any]);
+        .insert([item]);
 
       if (error) throw error;
       
@@ -71,9 +71,9 @@ function useTypedTable<T extends { id: string }>(tableName: string) {
 
   const update = async (id: string, item: Partial<T>) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from(tableName)
-        .update({ ...item, updated_at: new Date().toISOString() } as any)
+        .update({ ...item, updated_at: new Date().toISOString() })
         .eq('id', id);
 
       if (error) throw error;
@@ -95,7 +95,7 @@ function useTypedTable<T extends { id: string }>(tableName: string) {
 
   const remove = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from(tableName)
         .delete()
         .eq('id', id);

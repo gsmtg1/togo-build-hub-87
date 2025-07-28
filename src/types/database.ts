@@ -1,61 +1,53 @@
 
-export interface ProductionOrder {
+// Types pour la base de données Supabase
+export interface Product {
   id: string;
-  order_number: string;
-  status: 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'cancelled';
-  product_id: string | null;
-  quantity: number;
-  unit_price: number | null;
-  total_amount: number | null;
-  requested_date: string | null;
-  start_date: string | null;
-  completion_date: string | null;
-  initiator_name: string;
-  notes: string | null;
-  approval_date: string | null;
-  approved_by: string | null;
-  rejection_reason: string | null;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  progress_percentage: number;
-  created_at: string;
-  updated_at: string;
+  nom: string;
+  categorie: string;
+  longueur_cm: number;
+  largeur_cm: number;
+  hauteur_cm: number;
+  prix_unitaire: number;
+  stock_actuel: number;
+  stock_minimum: number;
+  actif: boolean;
+  date_creation: string;
+  date_modification: string;
 }
 
-export interface ProductionStep {
+export interface ProductionOrder {
   id: string;
-  production_order_id: string;
-  step_name: string;
-  step_order: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'blocked';
-  start_date: string | null;
-  completion_date: string | null;
-  responsible_person: string | null;
-  estimated_duration: number | null;
-  actual_duration: number | null;
-  notes: string | null;
+  numero_ordre: string;
+  product_id: string;
+  quantite: number;
+  date_demande: string;
+  date_prevue?: string;
+  date_completion?: string;
+  statut: 'en_attente' | 'approuve' | 'rejete' | 'en_cours' | 'termine' | 'annule';
+  demandeur_id?: string;
+  approbateur_id?: string;
+  commentaires?: string;
+  cout_prevu?: number;
+  cout_reel?: number;
   created_at: string;
   updated_at: string;
 }
 
 export interface Delivery {
   id: string;
-  delivery_number: string;
-  production_order_id: string | null;
-  status: 'pending' | 'confirmed' | 'in_transit' | 'delivered' | 'cancelled';
-  customer_name: string;
-  customer_phone: string | null;
-  customer_address: string;
-  delivery_date: string | null;
-  delivery_time: string | null;
-  transport_method: string | null;
-  transport_company: string | null;
-  driver_name: string | null;
-  driver_phone: string | null;
-  vehicle_number: string | null;
-  quantity_delivered: number;
-  delivery_notes: string | null;
-  received_by: string | null;
-  delivery_confirmation_date: string | null;
+  numero_livraison: string;
+  client_nom: string;
+  client_telephone?: string;
+  client_adresse: string;
+  lieu_livraison: string;
+  date_commande: string;
+  date_livraison_prevue?: string;
+  date_livraison_reelle?: string;
+  statut: 'en_attente' | 'approuve' | 'en_cours' | 'livre' | 'annule';
+  responsable_id?: string;
+  signature_client?: string;
+  commentaires?: string;
+  montant_total: number;
   created_at: string;
   updated_at: string;
 }
@@ -63,99 +55,144 @@ export interface Delivery {
 export interface DeliveryItem {
   id: string;
   delivery_id: string;
-  product_id: string | null;
-  quantity: number;
-  unit_price: number | null;
-  total_price: number | null;
+  product_id: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
   created_at: string;
 }
 
-export interface Product {
+export interface Sale {
   id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  brick_type_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface BrickType {
-  id: string;
-  name: string;
-  dimensions: string;
-  description: string | null;
+  numero_vente: string;
+  client_nom: string;
+  client_telephone?: string;
+  client_adresse?: string;
+  date_vente: string;
+  statut: 'en_attente' | 'confirmee' | 'annulee';
+  montant_total: number;
+  vendeur_id?: string;
+  commentaires?: string;
   created_at: string;
   updated_at: string;
 }
 
-export interface ProductionMaterial {
+export interface SaleItem {
   id: string;
-  name: string;
-  unit: string;
-  unit_cost: number;
-  description: string | null;
+  sale_id: string;
+  product_id: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
+  created_at: string;
+}
+
+export interface Quote {
+  id: string;
+  numero_devis: string;
+  client_nom: string;
+  client_telephone?: string;
+  client_adresse?: string;
+  date_devis: string;
+  date_validite?: string;
+  statut: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'expire';
+  montant_total: number;
+  vendeur_id?: string;
+  commentaires?: string;
   created_at: string;
   updated_at: string;
 }
 
-export interface ProductionRecipe {
+export interface QuoteItem {
   id: string;
-  brick_type_id: string | null;
-  material_id: string | null;
-  quantity: number;
+  quote_id: string;
+  product_id?: string;
+  description?: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
+  created_at: string;
+}
+
+export interface Invoice {
+  id: string;
+  numero_facture: string;
+  client_nom: string;
+  client_telephone?: string;
+  client_adresse?: string;
+  date_facture: string;
+  date_echeance?: string;
+  statut: 'brouillon' | 'envoyee' | 'payee' | 'en_retard' | 'annulee';
+  montant_total: number;
+  montant_paye: number;
+  vendeur_id?: string;
+  sale_id?: string;
+  delivery_id?: string;
+  commentaires?: string;
   created_at: string;
   updated_at: string;
 }
 
-export interface ProductionCost {
+export interface InvoiceItem {
   id: string;
-  brick_type_id: string | null;
-  calculated_cost: number;
-  notes: string | null;
+  invoice_id: string;
+  product_id?: string;
+  description?: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
   created_at: string;
-  updated_at: string;
 }
 
-export interface MonthlyGoal {
+export interface Employee {
   id: string;
-  title: string;
-  description: string | null;
-  target_quantity: number;
-  current_quantity: number;
-  target_amount: number;
-  current_amount: number;
-  month: number;
-  year: number;
-  brick_type_id: string | null;
-  status: 'active' | 'completed' | 'cancelled';
-  created_at: string;
-  updated_at: string;
-}
-
-export interface AccountingCategory {
-  id: string;
-  name: string;
-  description: string | null;
+  nom: string;
+  prenom: string;
+  email?: string;
+  telephone?: string;
+  adresse?: string;
+  document_identite?: string;
+  role: 'admin' | 'manager' | 'vendeur' | 'production' | 'livraison' | 'employe';
+  salaire: number;
+  date_embauche: string;
+  actif: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export interface AccountingEntry {
   id: string;
+  type: 'recette' | 'depense' | 'salaire' | 'charge';
+  categorie: string;
   description: string;
-  amount: number;
-  date: string;
-  category_id: string | null;
-  payment_method: 'cash' | 'bank_transfer' | 'check' | 'mobile_money' | null;
+  montant: number;
+  date_operation: string;
+  methode_paiement?: 'especes' | 'virement' | 'cheque' | 'mobile_money';
+  reference_externe?: string;
+  employee_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MonthlyGoal {
+  id: string;
+  titre: string;
+  description?: string;
+  mois: number;
+  annee: number;
+  objectif_montant: number;
+  montant_realise: number;
+  statut: 'actif' | 'termine' | 'annule';
+  employee_id?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface AppSetting {
   id: string;
-  setting_key: string;
-  setting_value: string;
+  cle: string;
+  valeur: any;
+  description?: string;
   created_at: string;
   updated_at: string;
 }

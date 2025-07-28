@@ -1,80 +1,129 @@
 
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home, 
   Package, 
+  Factory, 
+  Truck, 
   ShoppingCart, 
   FileText, 
+  Receipt, 
   Users, 
   Calculator, 
   Target, 
-  Settings, 
-  TrendingUp,
-  ClipboardList,
-  Truck
+  Settings,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Production', href: '/production', icon: Package },
-  { name: 'Ordres de Production', href: '/ordres-production', icon: ClipboardList },
-  { name: 'Livraisons', href: '/livraisons', icon: Truck },
-  { name: 'Stock', href: '/stock', icon: Package },
-  { name: 'Ventes', href: '/ventes', icon: ShoppingCart },
-  { name: 'Devis', href: '/devis', icon: FileText },
-  { name: 'Factures', href: '/factures', icon: FileText },
-  { name: 'Employés', href: '/employes', icon: Users },
-  { name: 'Comptabilité', href: '/comptabilite', icon: Calculator },
-  { name: 'Objectifs', href: '/objectifs', icon: Target },
-  { name: 'Paramètres', href: '/parametres', icon: Settings },
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const menuItems = [
+  { icon: Home, label: 'Tableau de bord', path: '/dashboard' },
+  { icon: Package, label: 'Produits', path: '/stock' },
+  { icon: Factory, label: 'Ordres de production', path: '/ordres-production' },
+  { icon: Truck, label: 'Livraisons', path: '/livraisons' },
+  { icon: ShoppingCart, label: 'Ventes', path: '/ventes' },
+  { icon: FileText, label: 'Devis', path: '/devis' },
+  { icon: Receipt, label: 'Factures', path: '/factures' },
+  { icon: Users, label: 'Employés', path: '/employes' },
+  { icon: Calculator, label: 'Comptabilité', path: '/comptabilite' },
+  { icon: Target, label: 'Objectifs', path: '/objectifs' },
+  { icon: Settings, label: 'Paramètres', path: '/parametres' },
 ];
 
-export const Sidebar = () => {
+export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className={cn(
-      "bg-card border-r border-border transition-all duration-300",
-      collapsed ? "w-16" : "w-64"
-    )}>
-      <div className="flex h-full flex-col">
-        <div className="flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <Package className="h-8 w-8 text-primary" />
-            {!collapsed && <span className="text-xl font-bold">BriqueApp</span>}
+    <>
+      {/* Overlay pour mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside 
+        className={cn(
+          "fixed left-0 top-0 h-full bg-white border-r border-gray-200 z-30 transition-all duration-300",
+          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          isCollapsed ? "w-16" : "w-64"
+        )}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            {!isCollapsed && (
+              <div className="flex items-center gap-2">
+                <img 
+                  src="/lovable-uploads/88a45ebe-a412-4b63-9bc9-9ac71a9120cf.png" 
+                  alt="Cornerstone Briques" 
+                  className="h-8 w-8"
+                />
+                <span className="font-bold text-orange-600">Cornerstone</span>
+              </div>
+            )}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="hidden md:flex"
+            >
+              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
           </div>
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-2 hover:bg-accent rounded-lg"
-          >
-            <TrendingUp className="h-4 w-4" />
-          </button>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-4">
+            <ul className="space-y-2">
+              {menuItems.map((item) => (
+                <li key={item.path}>
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+                        isActive 
+                          ? "bg-orange-100 text-orange-700" 
+                          : "text-gray-700 hover:bg-gray-100",
+                        isCollapsed && "justify-center"
+                      )
+                    }
+                    onClick={() => {
+                      if (window.innerWidth < 768) {
+                        onClose();
+                      }
+                    }}
+                  >
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    {!isCollapsed && <span>{item.label}</span>}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-200">
+            {!isCollapsed && (
+              <div className="text-xs text-gray-500 text-center">
+                © 2024 Cornerstone Briques
+              </div>
+            )}
+          </div>
         </div>
-        
-        <nav className="flex-1 space-y-1 px-2 py-4">
-          {navigation.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                  isActive 
-                    ? "bg-primary text-primary-foreground" 
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                {!collapsed && <span>{item.name}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-    </div>
+      </aside>
+    </>
   );
 };

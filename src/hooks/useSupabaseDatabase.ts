@@ -15,19 +15,131 @@ import type {
   Employee,
   AccountingEntry,
   MonthlyGoal,
-  AppSetting
+  AppSetting,
+  BrickType,
+  ProductionMaterial,
+  ProductionRecipe,
+  ProductionCost
 } from '@/types/database';
 
-// Mock data for development
+// Mock data pour les types de briques
+const mockBrickTypes: BrickType[] = [
+  {
+    id: '1',
+    nom: 'Brique standard',
+    description: 'Brique standard pour construction',
+    longueur_cm: 30,
+    largeur_cm: 20,
+    hauteur_cm: 15,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '2',
+    nom: 'Brique creuse',
+    description: 'Brique creuse pour isolation',
+    longueur_cm: 30,
+    largeur_cm: 20,
+    hauteur_cm: 10,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
+// Mock data pour les matériaux de production
+const mockProductionMaterials: ProductionMaterial[] = [
+  {
+    id: '1',
+    nom: 'Sable',
+    description: 'Sable fin pour construction',
+    unite: 'kg',
+    prix_unitaire: 50,
+    stock_actuel: 1000,
+    stock_minimum: 100,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '2',
+    nom: 'Ciment',
+    description: 'Ciment Portland',
+    unite: 'kg',
+    prix_unitaire: 150,
+    stock_actuel: 500,
+    stock_minimum: 50,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '3',
+    nom: 'Eau',
+    description: 'Eau pour mélange',
+    unite: 'litre',
+    prix_unitaire: 5,
+    stock_actuel: 2000,
+    stock_minimum: 200,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '4',
+    nom: 'Électricité',
+    description: 'Énergie électrique',
+    unite: 'kWh',
+    prix_unitaire: 100,
+    stock_actuel: 1000,
+    stock_minimum: 100,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
+// Mock data pour les recettes de production
+const mockProductionRecipes: ProductionRecipe[] = [
+  {
+    id: '1',
+    product_id: '1',
+    material_id: '1',
+    quantite_necessaire: 2,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '2',
+    product_id: '1',
+    material_id: '2',
+    quantite_necessaire: 0.5,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '3',
+    product_id: '1',
+    material_id: '3',
+    quantite_necessaire: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '4',
+    product_id: '1',
+    material_id: '4',
+    quantite_necessaire: 0.1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
+// Mock data pour les produits sans prix
 const mockProducts: Product[] = [
   {
     id: '1',
     nom: 'Brique standard 15x20x30',
-    categorie: 'Briques',
+    categorie: 'standard',
     longueur_cm: 30,
     largeur_cm: 20,
     hauteur_cm: 15,
-    prix_unitaire: 250,
+    prix_unitaire: 0,
     stock_actuel: 1000,
     stock_minimum: 100,
     actif: true,
@@ -37,11 +149,11 @@ const mockProducts: Product[] = [
   {
     id: '2',
     nom: 'Brique creuse 10x20x30',
-    categorie: 'Briques',
+    categorie: 'creuse',
     longueur_cm: 30,
     largeur_cm: 20,
     hauteur_cm: 10,
-    prix_unitaire: 200,
+    prix_unitaire: 0,
     stock_actuel: 500,
     stock_minimum: 50,
     actif: true,
@@ -60,7 +172,7 @@ const mockProductionOrders: ProductionOrder[] = [
     date_prevue: new Date().toISOString(),
     statut: 'en_attente',
     demandeur_id: 'Jean Dupont',
-    cout_prevu: 250000,
+    cout_prevu: 0,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }
@@ -103,7 +215,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
         id: Date.now().toString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      } as unknown as T;
+      } as T;
       
       setData(prev => [newItem, ...prev]);
       toast({
@@ -197,6 +309,10 @@ export const useEmployees = () => useSupabaseTable<Employee>('employees', []);
 export const useAccountingEntries = () => useSupabaseTable<AccountingEntry>('accounting_entries', []);
 export const useMonthlyGoals = () => useSupabaseTable<MonthlyGoal>('monthly_goals', []);
 export const useAppSettings = () => useSupabaseTable<AppSetting>('app_settings', []);
+export const useBrickTypes = () => useSupabaseTable<BrickType>('brick_types', mockBrickTypes);
+export const useProductionMaterials = () => useSupabaseTable<ProductionMaterial>('production_materials', mockProductionMaterials);
+export const useProductionRecipes = () => useSupabaseTable<ProductionRecipe>('production_recipes', mockProductionRecipes);
+export const useProductionCosts = () => useSupabaseTable<ProductionCost>('production_costs', []);
 
 // Hook pour les catégories comptables
 export const useAccountingCategories = () => {

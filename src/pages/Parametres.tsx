@@ -1,256 +1,229 @@
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Save, Settings, Database } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useAppSettings } from '@/hooks/useSupabaseDatabase';
-import { Save, Settings, Bell, Database, Shield, Globe } from 'lucide-react';
 
 export default function Parametres() {
-  const { data: settings, create, update } = useAppSettings();
-  
+  const { data: settings, create: createSetting, update: updateSetting } = useAppSettings();
   const [formData, setFormData] = useState({
-    company_name: '',
-    company_address: '',
-    company_phone: '',
-    company_email: '',
-    notifications_enabled: true,
-    auto_backup: false,
-    backup_frequency: 'daily',
-    currency: 'XOF',
-    language: 'fr',
-    timezone: 'GMT'
+    nom_entreprise: 'Briqueterie Moderne',
+    adresse: '123 Rue des Artisans',
+    telephone: '+221 77 123 45 67',
+    email: 'contact@briqueterie.sn',
+    devise: 'XOF',
+    taux_tva: '18',
+    stock_minimum_global: '50',
+    notification_stock: true,
+    sauvegarde_auto: true,
+    theme_sombre: false
   });
 
-  useEffect(() => {
-    // Load settings from the database
-    if (settings) {
-      const settingsMap = settings.reduce((acc, setting) => {
-        acc[setting.cle] = setting.valeur;
-        return acc;
-      }, {} as Record<string, any>);
-      
-      setFormData(prev => ({
-        ...prev,
-        ...settingsMap
-      }));
-    }
-  }, [settings]);
-
-  const handleSave = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     try {
-      // Save or update each setting
-      for (const [key, value] of Object.entries(formData)) {
-        const existingSetting = settings.find(s => s.cle === key);
-        
+      // Mise à jour ou création des paramètres
+      const settingsToSave = Object.entries(formData).map(([key, value]) => ({
+        cle: key,
+        valeur: value,
+        description: `Configuration ${key}`
+      }));
+
+      for (const setting of settingsToSave) {
+        const existingSetting = settings.find(s => s.cle === setting.cle);
         if (existingSetting) {
-          await update(existingSetting.id, { valeur: value });
+          await updateSetting(existingSetting.id, setting);
         } else {
-          await create({
-            cle: key,
-            valeur: value,
-            description: `Paramètre ${key}`
-          });
+          await createSetting(setting);
         }
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error('Erreur lors de la sauvegarde:', error);
     }
   };
 
-  const handleChange = (field: string, value: any) => {
+  const handleInputChange = (key: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [key]: value
     }));
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Paramètres</h1>
-        <Button onClick={handleSave}>
+        <Button onClick={handleSubmit}>
           <Save className="mr-2 h-4 w-4" />
           Sauvegarder
         </Button>
       </div>
 
-      {/* Informations de l'entreprise */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Informations de l'entreprise
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Informations de l'entreprise
+            </CardTitle>
+            <CardDescription>
+              Configurez les informations de base de votre entreprise
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="nom_entreprise">Nom de l'entreprise</Label>
+                <Input
+                  id="nom_entreprise"
+                  value={formData.nom_entreprise}
+                  onChange={(e) => handleInputChange('nom_entreprise', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="telephone">Téléphone</Label>
+                <Input
+                  id="telephone"
+                  value={formData.telephone}
+                  onChange={(e) => handleInputChange('telephone', e.target.value)}
+                />
+              </div>
+            </div>
+
             <div>
-              <Label htmlFor="company_name">Nom de l'entreprise</Label>
+              <Label htmlFor="adresse">Adresse</Label>
               <Input
-                id="company_name"
-                value={formData.company_name}
-                onChange={(e) => handleChange('company_name', e.target.value)}
-                placeholder="Nom de votre entreprise"
+                id="adresse"
+                value={formData.adresse}
+                onChange={(e) => handleInputChange('adresse', e.target.value)}
               />
             </div>
+
             <div>
-              <Label htmlFor="company_phone">Téléphone</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="company_phone"
-                value={formData.company_phone}
-                onChange={(e) => handleChange('company_phone', e.target.value)}
-                placeholder="+225 XX XX XX XX"
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
               />
             </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="company_address">Adresse</Label>
-            <Textarea
-              id="company_address"
-              value={formData.company_address}
-              onChange={(e) => handleChange('company_address', e.target.value)}
-              placeholder="Adresse complète de l'entreprise"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="company_email">Email</Label>
-            <Input
-              id="company_email"
-              type="email"
-              value={formData.company_email}
-              onChange={(e) => handleChange('company_email', e.target.value)}
-              placeholder="contact@entreprise.com"
-            />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Notifications */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notifications
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="notifications_enabled">Notifications activées</Label>
-              <p className="text-sm text-muted-foreground">
-                Recevoir des notifications pour les événements importants
-              </p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Paramètres financiers</CardTitle>
+            <CardDescription>
+              Configurez les paramètres liés à la facturation et aux finances
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="devise">Devise</Label>
+                <Input
+                  id="devise"
+                  value={formData.devise}
+                  onChange={(e) => handleInputChange('devise', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="taux_tva">Taux TVA (%)</Label>
+                <Input
+                  id="taux_tva"
+                  type="number"
+                  value={formData.taux_tva}
+                  onChange={(e) => handleInputChange('taux_tva', e.target.value)}
+                />
+              </div>
             </div>
-            <Switch
-              id="notifications_enabled"
-              checked={formData.notifications_enabled}
-              onCheckedChange={(checked) => handleChange('notifications_enabled', checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Sauvegarde */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Sauvegarde
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+        <Card>
+          <CardHeader>
+            <CardTitle>Paramètres de stock</CardTitle>
+            <CardDescription>
+              Configurez la gestion des stocks et des alertes
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="auto_backup">Sauvegarde automatique</Label>
-              <p className="text-sm text-muted-foreground">
-                Sauvegarder automatiquement les données
-              </p>
+              <Label htmlFor="stock_minimum_global">Stock minimum global</Label>
+              <Input
+                id="stock_minimum_global"
+                type="number"
+                value={formData.stock_minimum_global}
+                onChange={(e) => handleInputChange('stock_minimum_global', e.target.value)}
+              />
             </div>
-            <Switch
-              id="auto_backup"
-              checked={formData.auto_backup}
-              onCheckedChange={(checked) => handleChange('auto_backup', checked)}
-            />
-          </div>
-          
-          {formData.auto_backup && (
-            <div>
-              <Label htmlFor="backup_frequency">Fréquence de sauvegarde</Label>
-              <select
-                id="backup_frequency"
-                value={formData.backup_frequency}
-                onChange={(e) => handleChange('backup_frequency', e.target.value)}
-                className="w-full mt-1 p-2 border rounded"
-              >
-                <option value="daily">Quotidienne</option>
-                <option value="weekly">Hebdomadaire</option>
-                <option value="monthly">Mensuelle</option>
-              </select>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Paramètres régionaux */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            Paramètres régionaux
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="currency">Devise</Label>
-              <select
-                id="currency"
-                value={formData.currency}
-                onChange={(e) => handleChange('currency', e.target.value)}
-                className="w-full mt-1 p-2 border rounded"
-              >
-                <option value="XOF">FCFA (XOF)</option>
-                <option value="EUR">Euro (EUR)</option>
-                <option value="USD">Dollar US (USD)</option>
-              </select>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="notification_stock">Notifications de stock</Label>
+                <p className="text-sm text-muted-foreground">
+                  Recevoir des alertes quand le stock est faible
+                </p>
+              </div>
+              <Switch
+                id="notification_stock"
+                checked={formData.notification_stock}
+                onCheckedChange={(checked) => handleInputChange('notification_stock', checked)}
+              />
             </div>
-            
-            <div>
-              <Label htmlFor="language">Langue</Label>
-              <select
-                id="language"
-                value={formData.language}
-                onChange={(e) => handleChange('language', e.target.value)}
-                className="w-full mt-1 p-2 border rounded"
-              >
-                <option value="fr">Français</option>
-                <option value="en">English</option>
-              </select>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Paramètres système
+            </CardTitle>
+            <CardDescription>
+              Configurez les paramètres généraux du système
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="sauvegarde_auto">Sauvegarde automatique</Label>
+                <p className="text-sm text-muted-foreground">
+                  Sauvegarder automatiquement les données
+                </p>
+              </div>
+              <Switch
+                id="sauvegarde_auto"
+                checked={formData.sauvegarde_auto}
+                onCheckedChange={(checked) => handleInputChange('sauvegarde_auto', checked)}
+              />
             </div>
-            
-            <div>
-              <Label htmlFor="timezone">Fuseau horaire</Label>
-              <select
-                id="timezone"
-                value={formData.timezone}
-                onChange={(e) => handleChange('timezone', e.target.value)}
-                className="w-full mt-1 p-2 border rounded"
-              >
-                <option value="GMT">GMT</option>
-                <option value="GMT+1">GMT+1</option>
-                <option value="GMT-1">GMT-1</option>
-              </select>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="theme_sombre">Thème sombre</Label>
+                <p className="text-sm text-muted-foreground">
+                  Activer le mode sombre de l'interface
+                </p>
+              </div>
+              <Switch
+                id="theme_sombre"
+                checked={formData.theme_sombre}
+                onCheckedChange={(checked) => handleInputChange('theme_sombre', checked)}
+              />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </form>
     </div>
   );
 }

@@ -6,10 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useBrickTypes } from '@/hooks/useSupabaseDatabase';
-import type { Database } from '@/integrations/supabase/types';
+import { useBrickTypes } from '@/hooks/useTypedDatabase';
+import type { MonthlyGoal } from '@/types/database';
 
-type MonthlyGoal = Database['public']['Tables']['monthly_goals']['Row'];
 type GoalStatus = 'active' | 'completed' | 'cancelled';
 
 interface GoalDialogProps {

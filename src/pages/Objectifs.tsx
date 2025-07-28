@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Plus, Edit, Trash2, TrendingUp, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,12 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useMonthlyGoals } from '@/hooks/useSupabaseDatabase';
+import { useMonthlyGoals } from '@/hooks/useTypedDatabase';
 import { GoalDialog } from '@/components/goals/GoalDialog';
-import type { Database } from '@/integrations/supabase/types';
-
-type MonthlyGoal = Database['public']['Tables']['monthly_goals']['Row'];
-type MonthlyGoalInsert = Database['public']['Tables']['monthly_goals']['Insert'];
+import type { MonthlyGoal } from '@/types/database';
 
 const Objectifs = () => {
   const { data: goals, loading, create, update, remove } = useMonthlyGoals();
@@ -48,7 +46,7 @@ const Objectifs = () => {
     if (isEditing && selectedGoal) {
       await update(selectedGoal.id, goalData);
     } else {
-      await create(goalData as MonthlyGoalInsert);
+      await create(goalData);
     }
     setDialogOpen(false);
   };

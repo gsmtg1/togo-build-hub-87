@@ -196,3 +196,10 @@ export interface AppSetting {
   created_at: string;
   updated_at: string;
 }
+
+// Types pour la comptabilité
+export interface AccountingCategory {
+  id: string;
+  name: string;
+  description?: string;
+}

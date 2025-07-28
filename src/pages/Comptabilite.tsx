@@ -12,10 +12,19 @@ const Comptabilite = () => {
   const { data: entries, loading, create, update, remove } = useAccountingEntries();
 
   const handleCreateExpense = (data: any) => {
-    create(data);
+    const expenseData = {
+      type: 'depense' as const,
+      categorie: data.category,
+      description: data.description,
+      montant: parseFloat(data.amount),
+      date_operation: data.date,
+      methode_paiement: data.payment_method,
+      reference_externe: data.reference
+    };
+    create(expenseData);
   };
 
-  const totalExpenses = entries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+  const totalExpenses = entries.reduce((sum, entry) => sum + (entry.montant || 0), 0);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -27,9 +36,9 @@ const Comptabilite = () => {
 
   const getPaymentMethodLabel = (method: string) => {
     const methods = {
-      cash: 'Espèces',
-      bank_transfer: 'Virement bancaire',
-      check: 'Chèque',
+      especes: 'Espèces',
+      virement: 'Virement bancaire',
+      cheque: 'Chèque',
       mobile_money: 'Mobile Money'
     };
     return methods[method as keyof typeof methods] || method;
@@ -81,7 +90,7 @@ const Comptabilite = () => {
                 <div key={category.id} className="flex justify-between items-center text-sm">
                   <span>{category.name}</span>
                   <span className="text-muted-foreground">
-                    {entries.filter(e => e.category_id === category.id).length}
+                    {entries.filter(e => e.categorie === category.name).length}
                   </span>
                 </div>
               ))}
@@ -131,16 +140,14 @@ const Comptabilite = () => {
                 <tbody>
                   {entries.map((entry) => (
                     <tr key={entry.id} className="border-b">
-                      <td className="py-2">{new Date(entry.date).toLocaleDateString('fr-FR')}</td>
+                      <td className="py-2">{new Date(entry.date_operation).toLocaleDateString('fr-FR')}</td>
                       <td className="py-2">{entry.description}</td>
-                      <td className="py-2">
-                        {categories.find(c => c.id === entry.category_id)?.name || 'N/A'}
-                      </td>
+                      <td className="py-2">{entry.categorie}</td>
                       <td className="py-2 text-red-600 font-medium">
-                        {formatCurrency(entry.amount)}
+                        {formatCurrency(entry.montant)}
                       </td>
                       <td className="py-2">
-                        {entry.payment_method ? getPaymentMethodLabel(entry.payment_method) : 'N/A'}
+                        {entry.methode_paiement ? getPaymentMethodLabel(entry.methode_paiement) : 'N/A'}
                       </td>
                       <td className="py-2">
                         <div className="flex gap-2">

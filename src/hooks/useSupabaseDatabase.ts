@@ -168,3 +168,23 @@ export const useEmployees = () => useSupabaseTable<Employee>('employees');
 export const useAccountingEntries = () => useSupabaseTable<AccountingEntry>('accounting_entries');
 export const useMonthlyGoals = () => useSupabaseTable<MonthlyGoal>('monthly_goals');
 export const useAppSettings = () => useSupabaseTable<AppSetting>('app_settings');
+
+// Hook pour les catégories comptables (créer une liste statique pour l'instant)
+export const useAccountingCategories = () => {
+  const [data] = useState([
+    { id: '1', name: 'Matières premières', description: 'Achat de matières premières' },
+    { id: '2', name: 'Salaires', description: 'Salaires et charges sociales' },
+    { id: '3', name: 'Transport', description: 'Frais de transport et livraison' },
+    { id: '4', name: 'Maintenance', description: 'Maintenance et réparations' },
+    { id: '5', name: 'Utilities', description: 'Électricité, eau, téléphone' },
+    { id: '6', name: 'Marketing', description: 'Publicité et marketing' },
+    { id: '7', name: 'Administration', description: 'Frais administratifs' },
+    { id: '8', name: 'Autres', description: 'Autres dépenses' }
+  ]);
+  
+  return {
+    data,
+    loading: false,
+    error: null
+  };
+};

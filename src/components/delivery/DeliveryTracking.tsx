@@ -3,15 +3,12 @@ import { useState } from 'react';
 import { Truck, CheckCircle, Phone, MapPin, Clock, Package } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useProductionOrders } from '@/hooks/useSupabaseDatabase';
-import type { Database } from '@/integrations/supabase/types';
-
-type Delivery = Database['public']['Tables']['deliveries']['Row'];
+import { useProductionOrders } from '@/hooks/useTypedDatabase';
+import type { Delivery } from '@/types/database';
 
 interface DeliveryTrackingProps {
   deliveries: Delivery[];
@@ -215,7 +212,6 @@ export const DeliveryTracking = ({ deliveries, onUpdate, getStatusBadge }: Deliv
         })}
       </div>
 
-      {/* Dialog de finalisation de livraison */}
       <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
         <DialogContent>
           <DialogHeader>

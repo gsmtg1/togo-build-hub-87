@@ -1,213 +1,136 @@
 
 import { useState } from 'react';
-import { Plus, Filter, Search, CheckCircle, XCircle } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { useProductionOrders } from '@/hooks/useSupabaseDatabase';
-import { ProductionOrderDialog } from '@/components/production/ProductionOrderDialog';
-import { ProductionOrdersList } from '@/components/production/ProductionOrdersList';
 import { ProductionOrderApproval } from '@/components/production/ProductionOrderApproval';
 import { ProductionOrderTracking } from '@/components/production/ProductionOrderTracking';
-import type { Database } from '@/integrations/supabase/types';
+import { ProductionOrdersList } from '@/components/production/ProductionOrdersList';
+import { ProductionOrderDialog } from '@/components/production/ProductionOrderDialog';
+import { Badge } from '@/components/ui/badge';
+import { useProductionOrders } from '@/hooks/useTypedDatabase';
+import type { ProductionOrder } from '@/types/database';
 
-type ProductionOrder = Database['public']['Tables']['production_orders']['Row'];
-
-const OrdresProduction = () => {
+export const OrdresProduction = () => {
   const { data: orders, loading, create, update, remove } = useProductionOrders();
+  const [showDialog, setShowDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const handleCreateOrder = () => {
-    setSelectedOrder(null);
-    setDialogOpen(true);
+  const handleCreate = async (orderData: Partial<ProductionOrder>) => {
+    await create(orderData);
+    setShowDialog(false);
   };
 
-  const handleEditOrder = (order: ProductionOrder) => {
+  const handleUpdate = async (orderData: Partial<ProductionOrder>) => {
+    if (selectedOrder) {
+      await update(selectedOrder.id, orderData);
+      setShowDialog(false);
+      setSelectedOrder(null);
+    }
+  };
+
+  const handleEdit = (order: ProductionOrder) => {
     setSelectedOrder(order);
-    setDialogOpen(true);
+    setShowDialog(true);
   };
 
-  const handleDeleteOrder = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet ordre de production ?')) {
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet ordre ?')) {
       await remove(id);
     }
   };
 
-  const handleApproveOrder = async (order: ProductionOrder) => {
-    await update(order.id, {
-      status: 'approved',
-      approval_date: new Date().toISOString(),
-      approved_by: 'Responsable Production'
-    });
-  };
-
-  const handleRejectOrder = async (order: ProductionOrder, reason: string) => {
-    await update(order.id, {
-      status: 'rejected',
-      rejection_reason: reason
-    });
-  };
-
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.initiator_name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const pendingOrders = filteredOrders.filter(order => order.status === 'pending');
-  const approvedOrders = filteredOrders.filter(order => order.status === 'approved');
-  const inProgressOrders = filteredOrders.filter(order => order.status === 'in_progress');
-  const completedOrders = filteredOrders.filter(order => order.status === 'completed');
-
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'En attente', variant: 'secondary' as const },
-      approved: { label: 'Approuvé', variant: 'default' as const },
-      rejected: { label: 'Rejeté', variant: 'destructive' as const },
-      in_progress: { label: 'En cours', variant: 'default' as const },
-      completed: { label: 'Terminé', variant: 'default' as const },
-      cancelled: { label: 'Annulé', variant: 'destructive' as const }
+      pending: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
+      approved: { label: 'Approuvé', color: 'bg-green-100 text-green-800' },
+      rejected: { label: 'Rejeté', color: 'bg-red-100 text-red-800' },
+      in_progress: { label: 'En cours', color: 'bg-blue-100 text-blue-800' },
+      completed: { label: 'Terminé', color: 'bg-purple-100 text-purple-800' },
+      cancelled: { label: 'Annulé', color: 'bg-gray-100 text-gray-800' }
     };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || { label: status, variant: 'default' as const };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    return <Badge className={config.color}>{config.label}</Badge>;
   };
 
+  const pendingOrders = orders.filter(order => order.status === 'pending');
+  const activeOrders = orders.filter(order => 
+    ['approved', 'in_progress'].includes(order.status)
+  );
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Chargement des ordres de production...</div>
-      </div>
-    );
+    return <div className="flex justify-center items-center h-64">Chargement...</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Ordres de Production</h1>
-        <Button onClick={handleCreateOrder} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nouvel Ordre
+        <div>
+          <h1 className="text-3xl font-bold">Ordres de production</h1>
+          <p className="text-muted-foreground">
+            Gérez tous vos ordres de production et suivez leur progression
+          </p>
+        </div>
+        <Button onClick={() => setShowDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvel ordre
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">En attente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingOrders.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Approuvés</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{approvedOrders.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">En cours</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inProgressOrders.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Terminés</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedOrders.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher par numéro ou initiateur..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border rounded-lg"
-        >
-          <option value="all">Tous les statuts</option>
-          <option value="pending">En attente</option>
-          <option value="approved">Approuvés</option>
-          <option value="in_progress">En cours</option>
-          <option value="completed">Terminés</option>
-          <option value="rejected">Rejetés</option>
-        </select>
-      </div>
-
-      <Tabs defaultValue="approval" className="space-y-4">
+      <Tabs defaultValue="approval" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="approval">Approbation</TabsTrigger>
-          <TabsTrigger value="tracking">Suivi</TabsTrigger>
-          <TabsTrigger value="all">Tous les ordres</TabsTrigger>
+          <TabsTrigger value="approval" className="flex items-center gap-2">
+            Approbation
+            {pendingOrders.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {pendingOrders.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="tracking" className="flex items-center gap-2">
+            Suivi production
+            {activeOrders.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {activeOrders.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="list">Liste complète</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="approval">
+        <TabsContent value="approval" className="space-y-4">
           <ProductionOrderApproval
             orders={pendingOrders}
-            onApprove={handleApproveOrder}
-            onReject={handleRejectOrder}
-            getStatusBadge={getStatusBadge}
-          />
-        </TabsContent>
-
-        <TabsContent value="tracking">
-          <ProductionOrderTracking
-            orders={filteredOrders.filter(order => order.status === 'approved' || order.status === 'in_progress')}
             onUpdate={update}
             getStatusBadge={getStatusBadge}
           />
         </TabsContent>
 
-        <TabsContent value="all">
+        <TabsContent value="tracking" className="space-y-4">
+          <ProductionOrderTracking
+            orders={activeOrders}
+            onUpdate={update}
+            getStatusBadge={getStatusBadge}
+          />
+        </TabsContent>
+
+        <TabsContent value="list" className="space-y-4">
           <ProductionOrdersList
-            orders={filteredOrders}
-            onEdit={handleEditOrder}
-            onDelete={handleDeleteOrder}
+            orders={orders}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
             getStatusBadge={getStatusBadge}
           />
         </TabsContent>
       </Tabs>
 
       <ProductionOrderDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        open={showDialog}
+        onOpenChange={setShowDialog}
         order={selectedOrder}
-        onSubmit={async (orderData) => {
-          if (selectedOrder) {
-            await update(selectedOrder.id, orderData);
-          } else {
-            await create(orderData);
-          }
-          setDialogOpen(false);
-        }}
+        onSubmit={selectedOrder ? handleUpdate : handleCreate}
       />
     </div>
   );
 };
-
-export default OrdresProduction;

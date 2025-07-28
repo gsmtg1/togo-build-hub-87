@@ -1,34 +1,39 @@
 
 import { useState } from 'react';
-import { Plus, Truck, Package, CheckCircle, Clock } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { useDeliveries } from '@/hooks/useSupabaseDatabase';
-import { DeliveryDialog } from '@/components/delivery/DeliveryDialog';
 import { DeliveryTracking } from '@/components/delivery/DeliveryTracking';
 import { DeliveryList } from '@/components/delivery/DeliveryList';
-import type { Database } from '@/integrations/supabase/types';
+import { DeliveryDialog } from '@/components/delivery/DeliveryDialog';
+import { Badge } from '@/components/ui/badge';
+import { useDeliveries } from '@/hooks/useTypedDatabase';
+import type { Delivery } from '@/types/database';
 
-type Delivery = Database['public']['Tables']['deliveries']['Row'];
-
-const Livraisons = () => {
+export const Livraisons = () => {
   const { data: deliveries, loading, create, update, remove } = useDeliveries();
+  const [showDialog, setShowDialog] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleCreateDelivery = () => {
-    setSelectedDelivery(null);
-    setDialogOpen(true);
+  const handleCreate = async (deliveryData: Partial<Delivery>) => {
+    await create(deliveryData);
+    setShowDialog(false);
   };
 
-  const handleEditDelivery = (delivery: Delivery) => {
+  const handleUpdate = async (deliveryData: Partial<Delivery>) => {
+    if (selectedDelivery) {
+      await update(selectedDelivery.id, deliveryData);
+      setShowDialog(false);
+      setSelectedDelivery(null);
+    }
+  };
+
+  const handleEdit = (delivery: Delivery) => {
     setSelectedDelivery(delivery);
-    setDialogOpen(true);
+    setShowDialog(true);
   };
 
-  const handleDeleteDelivery = async (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette livraison ?')) {
       await remove(id);
     }
@@ -36,129 +41,77 @@ const Livraisons = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'En attente', variant: 'secondary' as const },
-      confirmed: { label: 'Confirmée', variant: 'default' as const },
-      in_transit: { label: 'En transit', variant: 'default' as const },
-      delivered: { label: 'Livrée', variant: 'default' as const },
-      cancelled: { label: 'Annulée', variant: 'destructive' as const }
+      pending: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
+      confirmed: { label: 'Confirmée', color: 'bg-blue-100 text-blue-800' },
+      in_transit: { label: 'En transit', color: 'bg-orange-100 text-orange-800' },
+      delivered: { label: 'Livrée', color: 'bg-green-100 text-green-800' },
+      cancelled: { label: 'Annulée', color: 'bg-red-100 text-red-800' }
     };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || { label: status, variant: 'default' as const };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    return <Badge className={config.color}>{config.label}</Badge>;
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Chargement des livraisons...</div>
-      </div>
-    );
-  }
+  const activeDeliveries = deliveries.filter(delivery => 
+    ['pending', 'confirmed', 'in_transit'].includes(delivery.status)
+  );
 
-  const pendingDeliveries = deliveries.filter(delivery => delivery.status === 'pending');
-  const confirmedDeliveries = deliveries.filter(delivery => delivery.status === 'confirmed');
-  const inTransitDeliveries = deliveries.filter(delivery => delivery.status === 'in_transit');
-  const deliveredDeliveries = deliveries.filter(delivery => delivery.status === 'delivered');
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Chargement...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gestion des Livraisons</h1>
-        <Button onClick={handleCreateDelivery} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nouvelle Livraison
+        <div>
+          <h1 className="text-3xl font-bold">Livraisons</h1>
+          <p className="text-muted-foreground">
+            Gérez et suivez toutes vos livraisons en temps réel
+          </p>
+        </div>
+        <Button onClick={() => setShowDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle livraison
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              En attente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingDeliveries.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CheckCircle className="h-4 w-4" />
-              Confirmées
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{confirmedDeliveries.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Truck className="h-4 w-4" />
-              En transit
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inTransitDeliveries.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Livrées
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{deliveredDeliveries.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="tracking" className="space-y-4">
+      <Tabs defaultValue="tracking" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="tracking">Suivi des livraisons</TabsTrigger>
-          <TabsTrigger value="all">Toutes les livraisons</TabsTrigger>
+          <TabsTrigger value="tracking" className="flex items-center gap-2">
+            Suivi en temps réel
+            {activeDeliveries.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {activeDeliveries.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="list">Liste complète</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tracking">
+        <TabsContent value="tracking" className="space-y-4">
           <DeliveryTracking
-            deliveries={deliveries.filter(d => d.status !== 'delivered' && d.status !== 'cancelled')}
+            deliveries={activeDeliveries}
             onUpdate={update}
             getStatusBadge={getStatusBadge}
           />
         </TabsContent>
 
-        <TabsContent value="all">
+        <TabsContent value="list" className="space-y-4">
           <DeliveryList
             deliveries={deliveries}
-            onEdit={handleEditDelivery}
-            onDelete={handleDeleteDelivery}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
             getStatusBadge={getStatusBadge}
           />
         </TabsContent>
       </Tabs>
 
       <DeliveryDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        open={showDialog}
+        onOpenChange={setShowDialog}
         delivery={selectedDelivery}
-        onSubmit={async (deliveryData) => {
-          if (selectedDelivery) {
-            await update(selectedDelivery.id, deliveryData);
-          } else {
-            await create(deliveryData);
-          }
-          setDialogOpen(false);
-        }}
+        onSubmit={selectedDelivery ? handleUpdate : handleCreate}
       />
     </div>
   );
 };
-
-export default Livraisons;

@@ -3,10 +3,8 @@ import { Edit, Trash2, Package, MapPin, Phone, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useProductionOrders } from '@/hooks/useSupabaseDatabase';
-import type { Database } from '@/integrations/supabase/types';
-
-type Delivery = Database['public']['Tables']['deliveries']['Row'];
+import { useProductionOrders } from '@/hooks/useTypedDatabase';
+import type { Delivery } from '@/types/database';
 
 interface DeliveryListProps {
   deliveries: Delivery[];

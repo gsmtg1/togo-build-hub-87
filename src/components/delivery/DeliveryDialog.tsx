@@ -6,17 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useProductionOrders } from '@/hooks/useSupabaseDatabase';
-import type { Database } from '@/integrations/supabase/types';
-
-type Delivery = Database['public']['Tables']['deliveries']['Row'];
-type DeliveryInsert = Database['public']['Tables']['deliveries']['Insert'];
+import { useProductionOrders } from '@/hooks/useTypedDatabase';
+import type { Delivery } from '@/types/database';
 
 interface DeliveryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   delivery: Delivery | null;
-  onSubmit: (deliveryData: DeliveryInsert) => Promise<void>;
+  onSubmit: (deliveryData: Partial<Delivery>) => Promise<void>;
 }
 
 export const DeliveryDialog = ({ open, onOpenChange, delivery, onSubmit }: DeliveryDialogProps) => {
@@ -76,7 +73,7 @@ export const DeliveryDialog = ({ open, onOpenChange, delivery, onSubmit }: Deliv
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const deliveryData: DeliveryInsert = {
+    const deliveryData: Partial<Delivery> = {
       production_order_id: formData.production_order_id || null,
       customer_name: formData.customer_name,
       customer_phone: formData.customer_phone || null,

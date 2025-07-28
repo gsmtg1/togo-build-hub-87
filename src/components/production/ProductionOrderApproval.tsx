@@ -1,58 +1,58 @@
 
-import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CheckCircle, XCircle, Clock, Package } from 'lucide-react';
-import { useProductionOrders, useProducts } from '@/hooks/useTypedDatabase';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { useState } from 'react';
+import { useProducts } from '@/hooks/useTypedDatabase';
 import type { ProductionOrder } from '@/types/database';
 
-export const ProductionOrderApproval = () => {
-  const { data: orders, update: updateOrder } = useProductionOrders();
+interface ProductionOrderApprovalProps {
+  orders: ProductionOrder[];
+  onUpdate: (id: string, item: Partial<ProductionOrder>) => Promise<void>;
+  getStatusBadge: (status: string) => React.ReactNode;
+}
+
+export const ProductionOrderApproval = ({ orders, onUpdate, getStatusBadge }: ProductionOrderApprovalProps) => {
   const { data: products } = useProducts();
+  const [rejectionReason, setRejectionReason] = useState<{ [key: string]: string }>({});
 
-  const pendingOrders = orders.filter(order => order.status === 'pending');
-
-  const approveOrder = async (orderId: string) => {
-    await updateOrder(orderId, {
-      status: 'approved',
-      approval_date: new Date().toISOString(),
-      approved_by: 'Manager' // In a real app, this would be the current user
-    });
-  };
-
-  const rejectOrder = async (orderId: string) => {
-    await updateOrder(orderId, {
-      status: 'rejected',
-      rejection_reason: 'Capacité de production insuffisante'
-    });
-  };
-
-  const getProduct = (productId: string | null) => {
-    if (!productId) return null;
+  const getProduct = (productId: string) => {
     return products.find(p => p.id === productId);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />En attente</Badge>;
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Approuvé</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Rejeté</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
+  const handleApprove = async (orderId: string) => {
+    await onUpdate(orderId, {
+      status: 'approved',
+      approval_date: new Date().toISOString(),
+      approved_by: 'Utilisateur actuel' // In a real app, this would come from auth
+    });
   };
 
-  if (pendingOrders.length === 0) {
+  const handleReject = async (orderId: string) => {
+    const reason = rejectionReason[orderId];
+    if (!reason) {
+      alert('Veuillez fournir une raison pour le rejet');
+      return;
+    }
+
+    await onUpdate(orderId, {
+      status: 'rejected',
+      rejection_reason: reason,
+      approval_date: new Date().toISOString(),
+      approved_by: 'Utilisateur actuel'
+    });
+
+    setRejectionReason({ ...rejectionReason, [orderId]: '' });
+  };
+
+  if (orders.length === 0) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
           <div className="text-center">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <p className="text-lg font-medium">Aucun ordre en attente d'approbation</p>
             <p className="text-muted-foreground">Tous les ordres ont été traités</p>
           </div>
@@ -62,90 +62,95 @@ export const ProductionOrderApproval = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Approbation des ordres</h2>
-        <Badge variant="outline">
-          {pendingOrders.length} ordre(s) en attente
-        </Badge>
-      </div>
+    <div className="space-y-4">
+      {orders.map((order) => {
+        const product = getProduct(order.product_id || '');
+        
+        return (
+          <Card key={order.id}>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Ordre #{order.order_number}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Demandé par {order.initiator_name} le {' '}
+                    {order.requested_date 
+                      ? new Date(order.requested_date).toLocaleDateString('fr-FR')
+                      : 'N/A'
+                    }
+                  </p>
+                </div>
+                {getStatusBadge(order.status || 'pending')}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="font-medium">Produit</p>
+                  <p className="text-muted-foreground">{product?.name || 'Produit inconnu'}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Quantité</p>
+                  <p className="text-muted-foreground">{order.quantity?.toLocaleString()} unités</p>
+                </div>
+                <div>
+                  <p className="font-medium">Montant total</p>
+                  <p className="text-muted-foreground">{order.total_amount?.toLocaleString()} FCFA</p>
+                </div>
+                <div>
+                  <p className="font-medium">Priorité</p>
+                  <Badge variant="outline">
+                    {order.priority === 'urgent' ? 'Urgente' : 
+                     order.priority === 'high' ? 'Élevée' : 
+                     order.priority === 'normal' ? 'Normale' : 'Basse'}
+                  </Badge>
+                </div>
+              </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ordres en attente d'approbation</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Numéro</TableHead>
-                <TableHead>Produit</TableHead>
-                <TableHead>Quantité</TableHead>
-                <TableHead>Montant</TableHead>
-                <TableHead>Initiateur</TableHead>
-                <TableHead>Date demande</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pendingOrders.map((order) => {
-                const product = getProduct(order.product_id);
-                
-                return (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.order_number}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{product?.name || 'Produit inconnu'}</p>
-                        <p className="text-sm text-muted-foreground">{product?.description}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{order.quantity?.toLocaleString()} unités</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{order.total_amount?.toLocaleString()} FCFA</p>
-                        <p className="text-sm text-muted-foreground">
-                          {order.unit_price?.toLocaleString()} FCFA/unité
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{order.initiator_name}</TableCell>
-                    <TableCell>
-                      {order.requested_date 
-                        ? new Date(order.requested_date).toLocaleDateString('fr-FR')
-                        : 'N/A'
-                      }
-                    </TableCell>
-                    <TableCell>{getStatusBadge(order.status || 'pending')}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => approveOrder(order.id)}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approuver
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => rejectOrder(order.id)}
-                          className="text-red-600 border-red-600 hover:bg-red-50"
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Rejeter
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              {order.notes && (
+                <div>
+                  <p className="font-medium mb-2">Notes</p>
+                  <p className="text-muted-foreground text-sm bg-gray-50 p-2 rounded">
+                    {order.notes}
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Textarea
+                  placeholder="Raison du rejet (optionnel pour approbation, obligatoire pour rejet)"
+                  value={rejectionReason[order.id] || ''}
+                  onChange={(e) => setRejectionReason({
+                    ...rejectionReason,
+                    [order.id]: e.target.value
+                  })}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleApprove(order.id)}
+                  className="flex items-center gap-2"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Approuver
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleReject(order.id)}
+                  className="flex items-center gap-2"
+                >
+                  <XCircle className="h-4 w-4" />
+                  Rejeter
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

@@ -22,23 +22,15 @@ export const ProductionOrderTracking = ({ orders, onUpdate, getStatusBadge }: Pr
 
   const handleStartProduction = async (orderId: string) => {
     await onUpdate(orderId, {
-      status: 'in_progress',
-      start_date: new Date().toISOString(),
-      progress_percentage: 0
+      statut: 'en_cours',
+      date_prevue: new Date().toISOString()
     });
   };
 
   const handleCompleteProduction = async (orderId: string) => {
     await onUpdate(orderId, {
-      status: 'completed',
-      completion_date: new Date().toISOString(),
-      progress_percentage: 100
-    });
-  };
-
-  const handleUpdateProgress = async (orderId: string, progress: number) => {
-    await onUpdate(orderId, {
-      progress_percentage: progress
+      statut: 'termine',
+      date_completion: new Date().toISOString()
     });
   };
 
@@ -60,7 +52,6 @@ export const ProductionOrderTracking = ({ orders, onUpdate, getStatusBadge }: Pr
     <div className="space-y-4">
       {orders.map((order) => {
         const product = getProduct(order.product_id || '');
-        const progress = order.progress_percentage || 0;
         
         return (
           <Card key={order.id}>
@@ -69,54 +60,55 @@ export const ProductionOrderTracking = ({ orders, onUpdate, getStatusBadge }: Pr
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5" />
-                    Ordre #{order.order_number}
+                    Ordre #{order.numero_ordre}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    {product?.name || 'Produit inconnu'} - {order.quantity?.toLocaleString()} unités
+                    {product?.nom || 'Produit inconnu'} - {order.quantite?.toLocaleString()} unités
                   </p>
                 </div>
-                {getStatusBadge(order.status || 'approved')}
+                {getStatusBadge(order.statut || 'approuve')}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="font-medium">Initiateur</p>
-                  <p className="text-muted-foreground">{order.initiator_name}</p>
+                  <p className="font-medium">Demandeur</p>
+                  <p className="text-muted-foreground">{order.demandeur_id}</p>
                 </div>
                 <div>
                   <p className="font-medium">Montant</p>
-                  <p className="text-muted-foreground">{order.total_amount?.toLocaleString()} FCFA</p>
+                  <p className="text-muted-foreground">{order.cout_prevu?.toLocaleString()} FCFA</p>
                 </div>
                 <div>
                   <p className="font-medium">Date de début</p>
                   <p className="text-muted-foreground">
-                    {order.start_date 
-                      ? new Date(order.start_date).toLocaleDateString('fr-FR')
+                    {order.date_prevue 
+                      ? new Date(order.date_prevue).toLocaleDateString('fr-FR')
                       : 'Non commencé'
                     }
                   </p>
                 </div>
                 <div>
                   <p className="font-medium">Priorité</p>
-                  <Badge variant="outline">
-                    {order.priority === 'urgent' ? 'Urgente' : 
-                     order.priority === 'high' ? 'Élevée' : 
-                     order.priority === 'normal' ? 'Normale' : 'Basse'}
-                  </Badge>
+                  <Badge variant="outline">Normal</Badge>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <p className="font-medium">Progression</p>
-                  <span className="text-sm text-muted-foreground">{progress}%</span>
+                  <span className="text-sm text-muted-foreground">
+                    {order.statut === 'termine' ? '100' : order.statut === 'en_cours' ? '50' : '0'}%
+                  </span>
                 </div>
-                <Progress value={progress} className="w-full" />
+                <Progress 
+                  value={order.statut === 'termine' ? 100 : order.statut === 'en_cours' ? 50 : 0} 
+                  className="w-full" 
+                />
               </div>
 
               <div className="flex gap-2">
-                {order.status === 'approved' && (
+                {order.statut === 'approuve' && (
                   <Button
                     onClick={() => handleStartProduction(order.id)}
                     className="flex items-center gap-2"
@@ -126,27 +118,14 @@ export const ProductionOrderTracking = ({ orders, onUpdate, getStatusBadge }: Pr
                   </Button>
                 )}
                 
-                {order.status === 'in_progress' && (
-                  <>
-                    <Button
-                      onClick={() => handleUpdateProgress(order.id, Math.min(progress + 25, 100))}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <Play className="h-4 w-4" />
-                      +25% progression
-                    </Button>
-                    
-                    {progress >= 100 && (
-                      <Button
-                        onClick={() => handleCompleteProduction(order.id)}
-                        className="flex items-center gap-2"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        Marquer comme terminé
-                      </Button>
-                    )}
-                  </>
+                {order.statut === 'en_cours' && (
+                  <Button
+                    onClick={() => handleCompleteProduction(order.id)}
+                    className="flex items-center gap-2"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Marquer comme terminé
+                  </Button>
                 )}
               </div>
             </CardContent>

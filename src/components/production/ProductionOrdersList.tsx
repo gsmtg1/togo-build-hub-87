@@ -21,26 +21,6 @@ export const ProductionOrdersList = ({ orders, onEdit, onDelete, getStatusBadge 
     return products.find(p => p.id === productId);
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'text-red-600';
-      case 'high': return 'text-orange-600';
-      case 'normal': return 'text-blue-600';
-      case 'low': return 'text-gray-600';
-      default: return 'text-gray-600';
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'Urgente';
-      case 'high': return 'Élevée';
-      case 'normal': return 'Normale';
-      case 'low': return 'Basse';
-      default: return priority;
-    }
-  };
-
   if (orders.length === 0) {
     return (
       <Card>
@@ -68,11 +48,9 @@ export const ProductionOrdersList = ({ orders, onEdit, onDelete, getStatusBadge 
               <TableHead>Produit</TableHead>
               <TableHead>Quantité</TableHead>
               <TableHead>Montant</TableHead>
-              <TableHead>Initiateur</TableHead>
+              <TableHead>Demandeur</TableHead>
               <TableHead>Date demande</TableHead>
-              <TableHead>Priorité</TableHead>
               <TableHead>Statut</TableHead>
-              <TableHead>Progression</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -82,56 +60,40 @@ export const ProductionOrdersList = ({ orders, onEdit, onDelete, getStatusBadge 
               
               return (
                 <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.order_number}</TableCell>
+                  <TableCell className="font-medium">{order.numero_ordre}</TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{product?.name || 'Produit inconnu'}</p>
-                      <p className="text-sm text-muted-foreground">{product?.description}</p>
+                      <p className="font-medium">{product?.nom || 'Produit inconnu'}</p>
+                      <p className="text-sm text-muted-foreground">{product?.categorie}</p>
                     </div>
                   </TableCell>
-                  <TableCell>{order.quantity?.toLocaleString()} unités</TableCell>
+                  <TableCell>{order.quantite?.toLocaleString()} unités</TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{order.total_amount?.toLocaleString()} FCFA</p>
+                      <p className="font-medium">{order.cout_prevu?.toLocaleString()} FCFA</p>
                       <p className="text-sm text-muted-foreground">
-                        {order.unit_price?.toLocaleString()} FCFA/unité
+                        {product?.prix_unitaire?.toLocaleString()} FCFA/unité
                       </p>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      <span>{order.initiator_name}</span>
+                      <span>{order.demandeur_id}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       <span>
-                        {order.requested_date 
-                          ? new Date(order.requested_date).toLocaleDateString('fr-FR')
+                        {order.date_demande 
+                          ? new Date(order.date_demande).toLocaleDateString('fr-FR')
                           : 'N/A'
                         }
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge className={getPriorityColor(order.priority || 'normal')}>
-                      {getPriorityLabel(order.priority || 'normal')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(order.status || 'pending')}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${order.progress_percentage || 0}%` }}
-                        />
-                      </div>
-                      <span className="text-sm">{order.progress_percentage || 0}%</span>
-                    </div>
-                  </TableCell>
+                  <TableCell>{getStatusBadge(order.statut || 'en_attente')}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button

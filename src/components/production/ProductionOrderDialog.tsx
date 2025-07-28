@@ -20,34 +20,31 @@ export const ProductionOrderDialog = ({ open, onOpenChange, order, onSubmit }: P
   const { data: products } = useProducts();
   const [formData, setFormData] = useState({
     product_id: '',
-    quantity: '',
-    unit_price: '',
-    requested_date: '',
-    initiator_name: '',
-    notes: '',
-    priority: 'normal'
+    quantite: '',
+    cout_prevu: '',
+    date_demande: '',
+    demandeur_id: '',
+    commentaires: ''
   });
 
   useEffect(() => {
     if (order) {
       setFormData({
         product_id: order.product_id || '',
-        quantity: order.quantity?.toString() || '',
-        unit_price: order.unit_price?.toString() || '',
-        requested_date: order.requested_date || '',
-        initiator_name: order.initiator_name || '',
-        notes: order.notes || '',
-        priority: order.priority || 'normal'
+        quantite: order.quantite?.toString() || '',
+        cout_prevu: order.cout_prevu?.toString() || '',
+        date_demande: order.date_demande || '',
+        demandeur_id: order.demandeur_id || '',
+        commentaires: order.commentaires || ''
       });
     } else {
       setFormData({
         product_id: '',
-        quantity: '',
-        unit_price: '',
-        requested_date: '',
-        initiator_name: '',
-        notes: '',
-        priority: 'normal'
+        quantite: '',
+        cout_prevu: '',
+        date_demande: '',
+        demandeur_id: '',
+        commentaires: ''
       });
     }
   }, [order]);
@@ -57,13 +54,11 @@ export const ProductionOrderDialog = ({ open, onOpenChange, order, onSubmit }: P
     
     const orderData: Partial<ProductionOrder> = {
       product_id: formData.product_id,
-      quantity: parseInt(formData.quantity),
-      unit_price: parseFloat(formData.unit_price),
-      total_amount: parseInt(formData.quantity) * parseFloat(formData.unit_price),
-      requested_date: formData.requested_date,
-      initiator_name: formData.initiator_name,
-      notes: formData.notes,
-      priority: formData.priority as 'low' | 'normal' | 'high' | 'urgent'
+      quantite: parseInt(formData.quantite),
+      cout_prevu: parseFloat(formData.cout_prevu),
+      date_demande: formData.date_demande,
+      demandeur_id: formData.demandeur_id,
+      commentaires: formData.commentaires
     };
 
     await onSubmit(orderData);
@@ -92,7 +87,7 @@ export const ProductionOrderDialog = ({ open, onOpenChange, order, onSubmit }: P
                 <SelectContent>
                   {products.map((product) => (
                     <SelectItem key={product.id} value={product.id}>
-                      {product.name} - {product.price} FCFA
+                      {product.nom} - {product.prix_unitaire} FCFA
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -100,12 +95,12 @@ export const ProductionOrderDialog = ({ open, onOpenChange, order, onSubmit }: P
             </div>
 
             <div>
-              <Label htmlFor="quantity">Quantité</Label>
+              <Label htmlFor="quantite">Quantité</Label>
               <Input
-                id="quantity"
+                id="quantite"
                 type="number"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                value={formData.quantite}
+                onChange={(e) => setFormData({ ...formData, quantite: e.target.value })}
                 required
               />
             </div>
@@ -113,64 +108,44 @@ export const ProductionOrderDialog = ({ open, onOpenChange, order, onSubmit }: P
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="unit_price">Prix unitaire (FCFA)</Label>
+              <Label htmlFor="cout_prevu">Coût prévu (FCFA)</Label>
               <Input
-                id="unit_price"
+                id="cout_prevu"
                 type="number"
                 step="0.01"
-                value={formData.unit_price}
-                onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
+                value={formData.cout_prevu}
+                onChange={(e) => setFormData({ ...formData, cout_prevu: e.target.value })}
                 required
               />
             </div>
 
             <div>
-              <Label htmlFor="requested_date">Date de demande</Label>
+              <Label htmlFor="date_demande">Date de demande</Label>
               <Input
-                id="requested_date"
+                id="date_demande"
                 type="date"
-                value={formData.requested_date}
-                onChange={(e) => setFormData({ ...formData, requested_date: e.target.value })}
+                value={formData.date_demande}
+                onChange={(e) => setFormData({ ...formData, date_demande: e.target.value })}
               />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="initiator_name">Initiateur</Label>
-              <Input
-                id="initiator_name"
-                value={formData.initiator_name}
-                onChange={(e) => setFormData({ ...formData, initiator_name: e.target.value })}
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="priority">Priorité</Label>
-              <Select
-                value={formData.priority}
-                onValueChange={(value) => setFormData({ ...formData, priority: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Basse</SelectItem>
-                  <SelectItem value="normal">Normale</SelectItem>
-                  <SelectItem value="high">Élevée</SelectItem>
-                  <SelectItem value="urgent">Urgente</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
           <div>
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="demandeur_id">Demandeur</Label>
+            <Input
+              id="demandeur_id"
+              value={formData.demandeur_id}
+              onChange={(e) => setFormData({ ...formData, demandeur_id: e.target.value })}
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="commentaires">Commentaires</Label>
             <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              id="commentaires"
+              value={formData.commentaires}
+              onChange={(e) => setFormData({ ...formData, commentaires: e.target.value })}
               rows={3}
             />
           </div>

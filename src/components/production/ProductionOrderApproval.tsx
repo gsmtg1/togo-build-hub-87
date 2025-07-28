@@ -24,9 +24,9 @@ export const ProductionOrderApproval = ({ orders, onUpdate, getStatusBadge }: Pr
 
   const handleApprove = async (orderId: string) => {
     await onUpdate(orderId, {
-      status: 'approved',
-      approval_date: new Date().toISOString(),
-      approved_by: 'Utilisateur actuel' // In a real app, this would come from auth
+      statut: 'approuve',
+      date_prevue: new Date().toISOString(),
+      approbateur_id: 'Utilisateur actuel' // In a real app, this would come from auth
     });
   };
 
@@ -38,10 +38,10 @@ export const ProductionOrderApproval = ({ orders, onUpdate, getStatusBadge }: Pr
     }
 
     await onUpdate(orderId, {
-      status: 'rejected',
-      rejection_reason: reason,
-      approval_date: new Date().toISOString(),
-      approved_by: 'Utilisateur actuel'
+      statut: 'rejete',
+      commentaires: reason,
+      date_prevue: new Date().toISOString(),
+      approbateur_id: 'Utilisateur actuel'
     });
 
     setRejectionReason({ ...rejectionReason, [orderId]: '' });
@@ -73,48 +73,44 @@ export const ProductionOrderApproval = ({ orders, onUpdate, getStatusBadge }: Pr
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Clock className="h-5 w-5" />
-                    Ordre #{order.order_number}
+                    Ordre #{order.numero_ordre}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Demandé par {order.initiator_name} le {' '}
-                    {order.requested_date 
-                      ? new Date(order.requested_date).toLocaleDateString('fr-FR')
+                    Demandé par {order.demandeur_id} le {' '}
+                    {order.date_demande 
+                      ? new Date(order.date_demande).toLocaleDateString('fr-FR')
                       : 'N/A'
                     }
                   </p>
                 </div>
-                {getStatusBadge(order.status || 'pending')}
+                {getStatusBadge(order.statut || 'en_attente')}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="font-medium">Produit</p>
-                  <p className="text-muted-foreground">{product?.name || 'Produit inconnu'}</p>
+                  <p className="text-muted-foreground">{product?.nom || 'Produit inconnu'}</p>
                 </div>
                 <div>
                   <p className="font-medium">Quantité</p>
-                  <p className="text-muted-foreground">{order.quantity?.toLocaleString()} unités</p>
+                  <p className="text-muted-foreground">{order.quantite?.toLocaleString()} unités</p>
                 </div>
                 <div>
                   <p className="font-medium">Montant total</p>
-                  <p className="text-muted-foreground">{order.total_amount?.toLocaleString()} FCFA</p>
+                  <p className="text-muted-foreground">{order.cout_prevu?.toLocaleString()} FCFA</p>
                 </div>
                 <div>
                   <p className="font-medium">Priorité</p>
-                  <Badge variant="outline">
-                    {order.priority === 'urgent' ? 'Urgente' : 
-                     order.priority === 'high' ? 'Élevée' : 
-                     order.priority === 'normal' ? 'Normale' : 'Basse'}
-                  </Badge>
+                  <Badge variant="outline">Normal</Badge>
                 </div>
               </div>
 
-              {order.notes && (
+              {order.commentaires && (
                 <div>
                   <p className="font-medium mb-2">Notes</p>
                   <p className="text-muted-foreground text-sm bg-gray-50 p-2 rounded">
-                    {order.notes}
+                    {order.commentaires}
                   </p>
                 </div>
               )}

@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type {
   Product,
@@ -19,10 +18,58 @@ import type {
   AppSetting
 } from '@/types/database';
 
+// Mock data for development
+const mockProducts: Product[] = [
+  {
+    id: '1',
+    nom: 'Brique standard 15x20x30',
+    categorie: 'Briques',
+    longueur_cm: 30,
+    largeur_cm: 20,
+    hauteur_cm: 15,
+    prix_unitaire: 250,
+    stock_actuel: 1000,
+    stock_minimum: 100,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  },
+  {
+    id: '2',
+    nom: 'Brique creuse 10x20x30',
+    categorie: 'Briques',
+    longueur_cm: 30,
+    largeur_cm: 20,
+    hauteur_cm: 10,
+    prix_unitaire: 200,
+    stock_actuel: 500,
+    stock_minimum: 50,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  }
+];
+
+const mockProductionOrders: ProductionOrder[] = [
+  {
+    id: '1',
+    numero_ordre: 'OP-001',
+    product_id: '1',
+    quantite: 1000,
+    date_demande: new Date().toISOString(),
+    date_prevue: new Date().toISOString(),
+    statut: 'en_attente',
+    demandeur_id: 'Jean Dupont',
+    cout_prevu: 250000,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
 // Hook générique pour les opérations CRUD
-function useSupabaseTable<T extends { id: string }>(tableName: string) {
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
+function useSupabaseTable<T extends { id: string }>(tableName: string, mockData: T[]) {
+  const [data, setData] = useState<T[]>(mockData);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -31,14 +78,10 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
       setLoading(true);
       setError(null);
       
-      const { data: result, error } = await supabase
-        .from(tableName)
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      setData(result || []);
+      setData(mockData);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);
@@ -55,21 +98,20 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
 
   const create = async (item: Omit<T, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const { data: result, error } = await supabase
-        .from(tableName)
-        .insert([item])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const newItem = {
+        ...item,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      } as T;
       
-      await loadData();
+      setData(prev => [newItem, ...prev]);
       toast({
         title: "Succès",
         description: "Élément créé avec succès",
       });
       
-      return result;
+      return newItem;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       console.error(`Erreur lors de la création dans ${tableName}:`, err);
@@ -84,22 +126,16 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
 
   const update = async (id: string, updates: Partial<T>) => {
     try {
-      const { data: result, error } = await supabase
-        .from(tableName)
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      setData(prev => prev.map(item => 
+        item.id === id 
+          ? { ...item, ...updates, updated_at: new Date().toISOString() }
+          : item
+      ));
       
-      await loadData();
       toast({
         title: "Succès",
         description: "Élément mis à jour avec succès",
       });
-      
-      return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       console.error(`Erreur lors de la mise à jour dans ${tableName}:`, err);
@@ -114,14 +150,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
 
   const remove = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from(tableName)
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      await loadData();
+      setData(prev => prev.filter(item => item.id !== id));
       toast({
         title: "Succès",
         description: "Élément supprimé avec succès",
@@ -154,22 +183,22 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
 }
 
 // Hooks spécifiques pour chaque table
-export const useProducts = () => useSupabaseTable<Product>('products');
-export const useProductionOrders = () => useSupabaseTable<ProductionOrder>('production_orders');
-export const useDeliveries = () => useSupabaseTable<Delivery>('deliveries');
-export const useDeliveryItems = () => useSupabaseTable<DeliveryItem>('delivery_items');
-export const useSales = () => useSupabaseTable<Sale>('sales');
-export const useSaleItems = () => useSupabaseTable<SaleItem>('sale_items');
-export const useQuotes = () => useSupabaseTable<Quote>('quotes');
-export const useQuoteItems = () => useSupabaseTable<QuoteItem>('quote_items');
-export const useInvoices = () => useSupabaseTable<Invoice>('invoices');
-export const useInvoiceItems = () => useSupabaseTable<InvoiceItem>('invoice_items');
-export const useEmployees = () => useSupabaseTable<Employee>('employees');
-export const useAccountingEntries = () => useSupabaseTable<AccountingEntry>('accounting_entries');
-export const useMonthlyGoals = () => useSupabaseTable<MonthlyGoal>('monthly_goals');
-export const useAppSettings = () => useSupabaseTable<AppSetting>('app_settings');
+export const useProducts = () => useSupabaseTable<Product>('products', mockProducts);
+export const useProductionOrders = () => useSupabaseTable<ProductionOrder>('production_orders', mockProductionOrders);
+export const useDeliveries = () => useSupabaseTable<Delivery>('deliveries', []);
+export const useDeliveryItems = () => useSupabaseTable<DeliveryItem>('delivery_items', []);
+export const useSales = () => useSupabaseTable<Sale>('sales', []);
+export const useSaleItems = () => useSupabaseTable<SaleItem>('sale_items', []);
+export const useQuotes = () => useSupabaseTable<Quote>('quotes', []);
+export const useQuoteItems = () => useSupabaseTable<QuoteItem>('quote_items', []);
+export const useInvoices = () => useSupabaseTable<Invoice>('invoices', []);
+export const useInvoiceItems = () => useSupabaseTable<InvoiceItem>('invoice_items', []);
+export const useEmployees = () => useSupabaseTable<Employee>('employees', []);
+export const useAccountingEntries = () => useSupabaseTable<AccountingEntry>('accounting_entries', []);
+export const useMonthlyGoals = () => useSupabaseTable<MonthlyGoal>('monthly_goals', []);
+export const useAppSettings = () => useSupabaseTable<AppSetting>('app_settings', []);
 
-// Hook pour les catégories comptables (créer une liste statique pour l'instant)
+// Hook pour les catégories comptables
 export const useAccountingCategories = () => {
   const [data] = useState([
     { id: '1', name: 'Matières premières', description: 'Achat de matières premières' },

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Play, Pause, CheckCircle, Clock, User, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useProducts, useProductionSteps } from '@/hooks/useSupabaseDatabase';
+import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
 type ProductionOrder = Database['public']['Tables']['production_orders']['Row'];

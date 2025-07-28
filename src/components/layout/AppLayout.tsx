@@ -1,33 +1,20 @@
 
-import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { cn } from '@/lib/utils';
+import { Toaster } from '@/components/ui/toaster';
 
-interface AppLayoutProps {
-  children: React.ReactNode;
-}
-
-export const AppLayout = ({ children }: AppLayoutProps) => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
+export const AppLayout = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header 
-        onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-        sidebarCollapsed={sidebarCollapsed}
-      />
-      <div className="flex">
-        <Sidebar collapsed={sidebarCollapsed} />
-        <main className={cn(
-          "flex-1 transition-all duration-300 pt-16",
-          sidebarCollapsed ? "ml-16" : "ml-64"
-        )}>
-          <div className="p-6">
-            {children}
-          </div>
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto p-6">
+          <Outlet />
         </main>
       </div>
+      <Toaster />
     </div>
   );
 };

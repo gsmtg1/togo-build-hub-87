@@ -20,7 +20,7 @@ export const ProductionCostCalculator = () => {
 
   useEffect(() => {
     if (selectedBrickType) {
-      const brickRecipes = productionRecipes.filter(r => r.brick_type_id === selectedBrickType);
+      const brickRecipes = productionRecipes.filter(r => r.product_id === selectedBrickType);
       setRecipes(brickRecipes);
     }
   }, [selectedBrickType, productionRecipes]);
@@ -31,7 +31,7 @@ export const ProductionCostCalculator = () => {
     recipes.forEach(recipe => {
       const material = materials.find(m => m.id === recipe.material_id);
       if (material) {
-        totalCost += recipe.quantity * material.unit_cost;
+        totalCost += recipe.quantite_necessaire * material.prix_unitaire;
       }
     });
     
@@ -41,9 +41,11 @@ export const ProductionCostCalculator = () => {
   const saveCost = async () => {
     if (selectedBrickType && calculatedCost > 0) {
       await createCost({
-        brick_type_id: selectedBrickType,
-        calculated_cost: calculatedCost,
-        notes: `Coût calculé automatiquement`
+        production_order_id: selectedBrickType,
+        material_id: '',
+        quantite_utilisee: 0,
+        cout_unitaire: calculatedCost,
+        cout_total: calculatedCost
       });
     }
   };
@@ -72,7 +74,7 @@ export const ProductionCostCalculator = () => {
               <SelectContent>
                 {brickTypes.map((type) => (
                   <SelectItem key={type.id} value={type.id}>
-                    {type.name} - {type.dimensions}
+                    {type.nom} - {type.longueur_cm}x{type.largeur_cm}x{type.hauteur_cm}cm
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -87,9 +89,9 @@ export const ProductionCostCalculator = () => {
                   const material = materials.find(m => m.id === recipe.material_id);
                   return (
                     <div key={recipe.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <span>{material?.name || 'Matériau inconnu'}</span>
-                      <span>{recipe.quantity} {material?.unit}</span>
-                      <span>{formatCurrency((recipe.quantity * (material?.unit_cost || 0)))}</span>
+                      <span>{material?.nom || 'Matériau inconnu'}</span>
+                      <span>{recipe.quantite_necessaire} {material?.unite}</span>
+                      <span>{formatCurrency((recipe.quantite_necessaire * (material?.prix_unitaire || 0)))}</span>
                     </div>
                   );
                 })}

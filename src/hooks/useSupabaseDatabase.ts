@@ -103,7 +103,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
         id: Date.now().toString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      } as T;
+      } as unknown as T;
       
       setData(prev => [newItem, ...prev]);
       toast({
@@ -128,7 +128,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
     try {
       setData(prev => prev.map(item => 
         item.id === id 
-          ? { ...item, ...updates, updated_at: new Date().toISOString() }
+          ? { ...item, ...updates, updated_at: new Date().toISOString() } as T
           : item
       ));
       

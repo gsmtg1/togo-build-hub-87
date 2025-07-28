@@ -6,10 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useBrickTypes } from '@/hooks/useTypedDatabase';
 import type { MonthlyGoal } from '@/types/database';
 
-type GoalStatus = 'active' | 'completed' | 'cancelled';
+type GoalStatus = 'actif' | 'termine' | 'annule';
 
 interface GoalDialogProps {
   open: boolean;
@@ -20,56 +19,43 @@ interface GoalDialogProps {
 }
 
 export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing }: GoalDialogProps) => {
-  const { data: brickTypes } = useBrickTypes();
   const [formData, setFormData] = useState({
-    title: '',
+    titre: '',
     description: '',
-    target_quantity: 0,
-    current_quantity: 0,
-    target_amount: 0,
-    current_amount: 0,
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
-    brick_type_id: '',
-    status: 'active' as GoalStatus,
+    objectif_montant: 0,
+    montant_realise: 0,
+    mois: new Date().getMonth() + 1,
+    annee: new Date().getFullYear(),
+    statut: 'actif' as GoalStatus,
   });
 
   useEffect(() => {
     if (goal && isEditing) {
       setFormData({
-        title: goal.title,
+        titre: goal.titre,
         description: goal.description || '',
-        target_quantity: goal.target_quantity,
-        current_quantity: goal.current_quantity || 0,
-        target_amount: Number(goal.target_amount || 0),
-        current_amount: Number(goal.current_amount || 0),
-        month: goal.month,
-        year: goal.year,
-        brick_type_id: goal.brick_type_id || '',
-        status: (goal.status as GoalStatus) || 'active',
+        objectif_montant: Number(goal.objectif_montant || 0),
+        montant_realise: Number(goal.montant_realise || 0),
+        mois: goal.mois,
+        annee: goal.annee,
+        statut: (goal.statut as GoalStatus) || 'actif',
       });
     } else if (!isEditing) {
       setFormData({
-        title: '',
+        titre: '',
         description: '',
-        target_quantity: 0,
-        current_quantity: 0,
-        target_amount: 0,
-        current_amount: 0,
-        month: new Date().getMonth() + 1,
-        year: new Date().getFullYear(),
-        brick_type_id: '',
-        status: 'active',
+        objectif_montant: 0,
+        montant_realise: 0,
+        mois: new Date().getMonth() + 1,
+        annee: new Date().getFullYear(),
+        statut: 'actif',
       });
     }
   }, [goal, isEditing, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      brick_type_id: formData.brick_type_id || null,
-    });
+    onSubmit(formData);
     onOpenChange(false);
   };
 
@@ -84,11 +70,11 @@ export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing }: Go
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="title">Titre</Label>
+            <Label htmlFor="titre">Titre</Label>
             <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              id="titre"
+              value={formData.titre}
+              onChange={(e) => setFormData(prev => ({ ...prev, titre: e.target.value }))}
               required
             />
           </div>
@@ -99,51 +85,27 @@ export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing }: Go
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              required
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="target_quantity">Objectif quantité</Label>
+              <Label htmlFor="objectif_montant">Objectif montant (FCFA)</Label>
               <Input
-                id="target_quantity"
+                id="objectif_montant"
                 type="number"
-                value={formData.target_quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, target_quantity: parseInt(e.target.value) || 0 }))}
+                value={formData.objectif_montant}
+                onChange={(e) => setFormData(prev => ({ ...prev, objectif_montant: parseFloat(e.target.value) || 0 }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="current_quantity">Réalisé quantité</Label>
+              <Label htmlFor="montant_realise">Réalisé montant (FCFA)</Label>
               <Input
-                id="current_quantity"
+                id="montant_realise"
                 type="number"
-                value={formData.current_quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, current_quantity: parseInt(e.target.value) || 0 }))}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="target_amount">Objectif montant (FCFA)</Label>
-              <Input
-                id="target_amount"
-                type="number"
-                value={formData.target_amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, target_amount: parseFloat(e.target.value) || 0 }))}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="current_amount">Réalisé montant (FCFA)</Label>
-              <Input
-                id="current_amount"
-                type="number"
-                value={formData.current_amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, current_amount: parseFloat(e.target.value) || 0 }))}
+                value={formData.montant_realise}
+                onChange={(e) => setFormData(prev => ({ ...prev, montant_realise: parseFloat(e.target.value) || 0 }))}
                 required
               />
             </div>
@@ -151,8 +113,8 @@ export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing }: Go
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="month">Mois</Label>
-              <Select value={formData.month.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, month: parseInt(value) }))}>
+              <Label htmlFor="mois">Mois</Label>
+              <Select value={formData.mois.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, mois: parseInt(value) }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -166,47 +128,29 @@ export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing }: Go
               </Select>
             </div>
             <div>
-              <Label htmlFor="year">Année</Label>
+              <Label htmlFor="annee">Année</Label>
               <Input
-                id="year"
+                id="annee"
                 type="number"
-                value={formData.year}
-                onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) || new Date().getFullYear() }))}
+                value={formData.annee}
+                onChange={(e) => setFormData(prev => ({ ...prev, annee: parseInt(e.target.value) || new Date().getFullYear() }))}
                 required
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="brick_type_id">Type de brique (optionnel)</Label>
-              <Select value={formData.brick_type_id} onValueChange={(value) => setFormData(prev => ({ ...prev, brick_type_id: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Objectif général</SelectItem>
-                  {brickTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name} - {type.dimensions}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="status">Statut</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as GoalStatus }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Actif</SelectItem>
-                  <SelectItem value="completed">Terminé</SelectItem>
-                  <SelectItem value="cancelled">Annulé</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="statut">Statut</Label>
+            <Select value={formData.statut} onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value as GoalStatus }))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="actif">Actif</SelectItem>
+                <SelectItem value="termine">Terminé</SelectItem>
+                <SelectItem value="annule">Annulé</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <DialogFooter>

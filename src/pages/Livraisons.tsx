@@ -7,7 +7,7 @@ import { DeliveryTracking } from '@/components/delivery/DeliveryTracking';
 import { DeliveryList } from '@/components/delivery/DeliveryList';
 import { DeliveryDialog } from '@/components/delivery/DeliveryDialog';
 import { Badge } from '@/components/ui/badge';
-import { useDeliveries } from '@/hooks/useTypedDatabase';
+import { useDeliveries } from '@/hooks/useSupabaseDatabase';
 import type { Delivery } from '@/types/database';
 
 const Livraisons = () => {
@@ -41,19 +41,19 @@ const Livraisons = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
-      confirmed: { label: 'Confirmée', color: 'bg-blue-100 text-blue-800' },
-      in_transit: { label: 'En transit', color: 'bg-orange-100 text-orange-800' },
-      delivered: { label: 'Livrée', color: 'bg-green-100 text-green-800' },
-      cancelled: { label: 'Annulée', color: 'bg-red-100 text-red-800' }
+      en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
+      approuve: { label: 'Approuvée', color: 'bg-blue-100 text-blue-800' },
+      en_cours: { label: 'En cours', color: 'bg-orange-100 text-orange-800' },
+      livre: { label: 'Livrée', color: 'bg-green-100 text-green-800' },
+      annule: { label: 'Annulée', color: 'bg-red-100 text-red-800' }
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.en_attente;
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
   const activeDeliveries = deliveries.filter(delivery => 
-    ['pending', 'confirmed', 'in_transit'].includes(delivery.status)
+    ['en_attente', 'approuve', 'en_cours'].includes(delivery.statut)
   );
 
   if (loading) {

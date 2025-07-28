@@ -8,7 +8,7 @@ import { ProductionOrderTracking } from '@/components/production/ProductionOrder
 import { ProductionOrdersList } from '@/components/production/ProductionOrdersList';
 import { ProductionOrderDialog } from '@/components/production/ProductionOrderDialog';
 import { Badge } from '@/components/ui/badge';
-import { useProductionOrders } from '@/hooks/useTypedDatabase';
+import { useProductionOrders } from '@/hooks/useSupabaseDatabase';
 import type { ProductionOrder } from '@/types/database';
 
 const OrdresProduction = () => {
@@ -42,21 +42,21 @@ const OrdresProduction = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
-      approved: { label: 'Approuvé', color: 'bg-green-100 text-green-800' },
-      rejected: { label: 'Rejeté', color: 'bg-red-100 text-red-800' },
-      in_progress: { label: 'En cours', color: 'bg-blue-100 text-blue-800' },
-      completed: { label: 'Terminé', color: 'bg-purple-100 text-purple-800' },
-      cancelled: { label: 'Annulé', color: 'bg-gray-100 text-gray-800' }
+      en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
+      approuve: { label: 'Approuvé', color: 'bg-green-100 text-green-800' },
+      rejete: { label: 'Rejeté', color: 'bg-red-100 text-red-800' },
+      en_cours: { label: 'En cours', color: 'bg-blue-100 text-blue-800' },
+      termine: { label: 'Terminé', color: 'bg-purple-100 text-purple-800' },
+      annule: { label: 'Annulé', color: 'bg-gray-100 text-gray-800' }
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.en_attente;
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
-  const pendingOrders = orders.filter(order => order.status === 'pending');
+  const pendingOrders = orders.filter(order => order.statut === 'en_attente');
   const activeOrders = orders.filter(order => 
-    ['approved', 'in_progress'].includes(order.status)
+    ['approuve', 'en_cours'].includes(order.statut)
   );
 
   if (loading) {

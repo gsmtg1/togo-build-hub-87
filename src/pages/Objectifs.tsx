@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useMonthlyGoals } from '@/hooks/useTypedDatabase';
+import { useMonthlyGoals } from '@/hooks/useSupabaseDatabase';
 import { GoalDialog } from '@/components/goals/GoalDialog';
 import type { MonthlyGoal } from '@/types/database';
 
@@ -53,15 +53,15 @@ const Objectifs = () => {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      active: 'default',
-      completed: 'default',
-      cancelled: 'destructive',
+      actif: 'default',
+      termine: 'default',
+      annule: 'destructive',
     };
     
     const labels: Record<string, string> = {
-      active: 'Actif',
-      completed: 'Terminé',
-      cancelled: 'Annulé',
+      actif: 'Actif',
+      termine: 'Terminé',
+      annule: 'Annulé',
     };
 
     return <Badge variant={variants[status] || 'default'}>{labels[status] || status}</Badge>;
@@ -73,10 +73,10 @@ const Objectifs = () => {
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
-  const currentMonthGoals = goals.filter(goal => goal.month === currentMonth && goal.year === currentYear);
-  const totalTarget = currentMonthGoals.reduce((sum, goal) => sum + (goal.target_amount || 0), 0);
-  const totalCurrent = currentMonthGoals.reduce((sum, goal) => sum + (goal.current_amount || 0), 0);
-  const completedGoals = goals.filter(goal => goal.status === 'completed').length;
+  const currentMonthGoals = goals.filter(goal => goal.mois === currentMonth && goal.annee === currentYear);
+  const totalTarget = currentMonthGoals.reduce((sum, goal) => sum + (goal.objectif_montant || 0), 0);
+  const totalCurrent = currentMonthGoals.reduce((sum, goal) => sum + (goal.montant_realise || 0), 0);
+  const completedGoals = goals.filter(goal => goal.statut === 'termine').length;
 
   return (
     <div className="space-y-6">
@@ -156,27 +156,27 @@ const Objectifs = () => {
             <TableBody>
               {goals.map((goal) => (
                 <TableRow key={goal.id}>
-                  <TableCell>{goal.title}</TableCell>
+                  <TableCell>{goal.titre}</TableCell>
                   <TableCell>
-                    {new Date(goal.year, goal.month - 1).toLocaleDateString('fr-FR', { 
+                    {new Date(goal.annee, goal.mois - 1).toLocaleDateString('fr-FR', { 
                       month: 'long', 
                       year: 'numeric' 
                     })}
                   </TableCell>
-                  <TableCell>{(goal.target_amount || 0).toLocaleString()} FCFA</TableCell>
-                  <TableCell>{(goal.current_amount || 0).toLocaleString()} FCFA</TableCell>
+                  <TableCell>{(goal.objectif_montant || 0).toLocaleString()} FCFA</TableCell>
+                  <TableCell>{(goal.montant_realise || 0).toLocaleString()} FCFA</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Progress 
-                        value={getProgress(goal.current_amount || 0, goal.target_amount || 0)} 
+                        value={getProgress(goal.montant_realise || 0, goal.objectif_montant || 0)} 
                         className="w-16" 
                       />
                       <span className="text-sm">
-                        {Math.round(getProgress(goal.current_amount || 0, goal.target_amount || 0))}%
+                        {Math.round(getProgress(goal.montant_realise || 0, goal.objectif_montant || 0))}%
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>{getStatusBadge(goal.status || 'active')}</TableCell>
+                  <TableCell>{getStatusBadge(goal.statut || 'actif')}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button

@@ -6,17 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useProducts } from '@/hooks/useSupabaseDatabase';
-import type { Database } from '@/integrations/supabase/types';
-
-type ProductionOrder = Database['public']['Tables']['production_orders']['Row'];
-type ProductionOrderInsert = Database['public']['Tables']['production_orders']['Insert'];
+import { useProducts } from '@/hooks/useTypedDatabase';
+import type { ProductionOrder } from '@/types/database';
 
 interface ProductionOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order: ProductionOrder | null;
-  onSubmit: (orderData: ProductionOrderInsert) => Promise<void>;
+  onSubmit: (orderData: Partial<ProductionOrder>) => Promise<void>;
 }
 
 export const ProductionOrderDialog = ({ open, onOpenChange, order, onSubmit }: ProductionOrderDialogProps) => {
@@ -58,7 +55,7 @@ export const ProductionOrderDialog = ({ open, onOpenChange, order, onSubmit }: P
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const orderData: ProductionOrderInsert = {
+    const orderData: Partial<ProductionOrder> = {
       product_id: formData.product_id,
       quantity: parseInt(formData.quantity),
       unit_price: parseFloat(formData.unit_price),

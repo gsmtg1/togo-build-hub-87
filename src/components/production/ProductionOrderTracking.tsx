@@ -1,128 +1,253 @@
-import { useState } from 'react';
-import { Play, Pause, CheckCircle, Clock, User, Calendar } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { useProducts, useProductionSteps } from '@/hooks/useSupabaseDatabase';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PlayCircle, PauseCircle, CheckCircle, AlertCircle, Plus, Edit, Package } from 'lucide-react';
+import { useProductionOrders, useProductionSteps, useProducts } from '@/hooks/useTypedDatabase';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import type { ProductionOrder, ProductionStep } from '@/types/database';
 
-type ProductionOrder = Database['public']['Tables']['production_orders']['Row'];
-
-interface ProductionOrderTrackingProps {
-  orders: ProductionOrder[];
-  onUpdate: (id: string, data: any) => Promise<void>;
-  getStatusBadge: (status: string) => React.ReactNode;
-}
-
-export const ProductionOrderTracking = ({ orders, onUpdate, getStatusBadge }: ProductionOrderTrackingProps) => {
+export const ProductionOrderTracking = () => {
+  const { data: orders, update: updateOrder } = useProductionOrders();
+  const { data: steps, create: createStep, update: updateStep } = useProductionSteps();
   const { data: products } = useProducts();
-  const { data: steps } = useProductionSteps();
+  
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(null);
-  const [showStepsDialog, setShowStepsDialog] = useState(false);
-  const [selectedStep, setSelectedStep] = useState<any>(null);
   const [showStepDialog, setShowStepDialog] = useState(false);
-  const [stepNotes, setStepNotes] = useState('');
-  const [responsiblePerson, setResponsiblePerson] = useState('');
+  const [editingStep, setEditingStep] = useState<ProductionStep | null>(null);
 
-  const getProduct = (productId: string) => {
-    return products.find(p => p.id === productId);
-  };
+  const approvedOrders = orders.filter(order => order.status === 'approved' || order.status === 'in_progress');
 
   const getOrderSteps = (orderId: string) => {
     return steps.filter(step => step.production_order_id === orderId)
-                .sort((a, b) => (a.step_order || 0) - (b.step_order || 0));
+      .sort((a, b) => (a.step_order || 0) - (b.step_order || 0));
   };
 
-  const startOrder = async (order: ProductionOrder) => {
-    if (window.confirm('Démarrer la production de cet ordre ?')) {
-      await onUpdate(order.id, {
-        status: 'in_progress',
-        start_date: new Date().toISOString().split('T')[0]
-      });
-    }
-  };
-
-  const completeOrder = async (order: ProductionOrder) => {
-    if (window.confirm('Marquer cet ordre comme terminé ?')) {
-      await onUpdate(order.id, {
-        status: 'completed',
-        completion_date: new Date().toISOString().split('T')[0]
-      });
-    }
-  };
-
-  const viewOrderSteps = (order: ProductionOrder) => {
-    setSelectedOrder(order);
-    setShowStepsDialog(true);
-  };
-
-  const updateStep = async (stepId: string, newStatus: string) => {
-    const stepData: any = {
+  const updateOrderProgress = async (orderId: string) => {
+    const orderSteps = getOrderSteps(orderId);
+    const completedSteps = orderSteps.filter(step => step.status === 'completed');
+    const progressPercentage = orderSteps.length > 0 ? (completedSteps.length / orderSteps.length) * 100 : 0;
+    
+    const newStatus = progressPercentage === 100 ? 'completed' : 'in_progress';
+    
+    await updateOrder(orderId, {
+      progress_percentage: progressPercentage,
       status: newStatus,
-      updated_at: new Date().toISOString()
-    };
+      completion_date: progressPercentage === 100 ? new Date().toISOString() : null
+    });
+  };
 
-    if (newStatus === 'in_progress') {
-      stepData.start_date = new Date().toISOString();
-    } else if (newStatus === 'completed') {
-      stepData.completion_date = new Date().toISOString();
-    }
-
-    if (stepNotes) {
-      stepData.notes = stepNotes;
-    }
+  const startStep = async (stepId: string) => {
+    await updateStep(stepId, {
+      status: 'in_progress',
+      start_date: new Date().toISOString()
+    });
     
-    if (responsiblePerson) {
-      stepData.responsible_person = responsiblePerson;
+    // Update order progress
+    const step = steps.find(s => s.id === stepId);
+    if (step) {
+      await updateOrderProgress(step.production_order_id);
     }
+  };
 
-    // Mise à jour via l'API Supabase directement
-    const { error } = await supabase
-      .from('production_steps')
-      .update(stepData)
-      .eq('id', stepId);
+  const completeStep = async (stepId: string) => {
+    await updateStep(stepId, {
+      status: 'completed',
+      completion_date: new Date().toISOString()
+    });
+    
+    // Update order progress
+    const step = steps.find(s => s.id === stepId);
+    if (step) {
+      await updateOrderProgress(step.production_order_id);
+    }
+  };
 
-    if (!error) {
-      setStepNotes('');
-      setResponsiblePerson('');
+  const getProduct = (productId: string | null) => {
+    if (!productId) return null;
+    return products.find(p => p.id === productId);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge className="bg-gray-100 text-gray-800"><AlertCircle className="w-3 h-3 mr-1" />En attente</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-blue-100 text-blue-800"><PlayCircle className="w-3 h-3 mr-1" />En cours</Badge>;
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Terminé</Badge>;
+      case 'blocked':
+        return <Badge className="bg-red-100 text-red-800"><PauseCircle className="w-3 h-3 mr-1" />Bloqué</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  const StepDialog = () => {
+    const [formData, setFormData] = useState({
+      step_name: '',
+      step_order: '',
+      responsible_person: '',
+      estimated_duration: '',
+      notes: '',
+      status: 'pending'
+    });
+
+    useEffect(() => {
+      if (editingStep) {
+        setFormData({
+          step_name: editingStep.step_name || '',
+          step_order: editingStep.step_order?.toString() || '',
+          responsible_person: editingStep.responsible_person || '',
+          estimated_duration: editingStep.estimated_duration?.toString() || '',
+          notes: editingStep.notes || '',
+          status: editingStep.status || 'pending'
+        });
+      } else {
+        setFormData({
+          step_name: '',
+          step_order: '',
+          responsible_person: '',
+          estimated_duration: '',
+          notes: '',
+          status: 'pending'
+        });
+      }
+    }, [editingStep]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      
+      if (!selectedOrder) return;
+
+      const stepData = {
+        production_order_id: selectedOrder.id,
+        step_name: formData.step_name,
+        step_order: parseInt(formData.step_order),
+        responsible_person: formData.responsible_person,
+        estimated_duration: formData.estimated_duration ? parseInt(formData.estimated_duration) : null,
+        notes: formData.notes,
+        status: formData.status as 'pending' | 'in_progress' | 'completed' | 'blocked'
+      };
+
+      if (editingStep) {
+        await updateStep(editingStep.id, stepData);
+      } else {
+        await createStep(stepData);
+      }
+
       setShowStepDialog(false);
-      // Recharger les données
-      window.location.reload();
-    }
-  };
-
-  const openStepDialog = (step: any) => {
-    setSelectedStep(step);
-    setStepNotes(step.notes || '');
-    setResponsiblePerson(step.responsible_person || '');
-    setShowStepDialog(true);
-  };
-
-  const getStepStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { label: 'En attente', variant: 'secondary' as const },
-      in_progress: { label: 'En cours', variant: 'default' as const },
-      completed: { label: 'Terminé', variant: 'default' as const },
-      blocked: { label: 'Bloqué', variant: 'destructive' as const }
+      setEditingStep(null);
     };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || { label: status, variant: 'default' as const };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+
+    return (
+      <Dialog open={showStepDialog} onOpenChange={setShowStepDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingStep ? 'Modifier l\'étape' : 'Nouvelle étape'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="step_name">Nom de l'étape</Label>
+              <Input
+                id="step_name"
+                value={formData.step_name}
+                onChange={(e) => setFormData({ ...formData, step_name: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="step_order">Ordre</Label>
+                <Input
+                  id="step_order"
+                  type="number"
+                  value={formData.step_order}
+                  onChange={(e) => setFormData({ ...formData, step_order: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="responsible_person">Responsable</Label>
+                <Input
+                  id="responsible_person"
+                  value={formData.responsible_person}
+                  onChange={(e) => setFormData({ ...formData, responsible_person: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="estimated_duration">Durée estimée (heures)</Label>
+              <Input
+                id="estimated_duration"
+                type="number"
+                value={formData.estimated_duration}
+                onChange={(e) => setFormData({ ...formData, estimated_duration: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="status">Statut</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">En attente</SelectItem>
+                  <SelectItem value="in_progress">En cours</SelectItem>
+                  <SelectItem value="completed">Terminé</SelectItem>
+                  <SelectItem value="blocked">Bloqué</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setShowStepDialog(false)}>
+                Annuler
+              </Button>
+              <Button type="submit">
+                {editingStep ? 'Modifier' : 'Créer'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
-  if (orders.length === 0) {
+  if (approvedOrders.length === 0) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
           <div className="text-center">
-            <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-lg font-medium">Aucun ordre en cours de production</p>
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-lg font-medium">Aucun ordre de production approuvé</p>
             <p className="text-muted-foreground">Les ordres approuvés apparaîtront ici</p>
           </div>
         </CardContent>
@@ -131,222 +256,148 @@ export const ProductionOrderTracking = ({ orders, onUpdate, getStatusBadge }: Pr
   }
 
   return (
-    <>
-      <div className="grid gap-4">
-        {orders.map((order) => {
-          const product = getProduct(order.product_id || '');
-          const orderSteps = getOrderSteps(order.id);
-          
-          return (
-            <Card key={order.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{order.order_number}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {product?.name} • {order.quantity?.toLocaleString()} unités
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(order.status || 'pending')}
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium">Progression</span>
-                      <span className="text-sm">{order.progress_percentage || 0}%</span>
-                    </div>
-                    <Progress value={order.progress_percentage || 0} className="w-full" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>Demandé: {order.requested_date ? new Date(order.requested_date).toLocaleDateString('fr-FR') : 'N/A'}</span>
-                  </div>
-                  {order.start_date && (
-                    <div className="flex items-center gap-2">
-                      <Play className="h-4 w-4" />
-                      <span>Démarré: {new Date(order.start_date).toLocaleDateString('fr-FR')}</span>
-                    </div>
-                  )}
-                  {order.completion_date && (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Terminé: {new Date(order.completion_date).toLocaleDateString('fr-FR')}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => viewOrderSteps(order)}
-                  >
-                    Voir les étapes
-                  </Button>
-                  
-                  {order.status === 'approved' && (
-                    <Button
-                      size="sm"
-                      onClick={() => startOrder(order)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Play className="h-4 w-4 mr-1" />
-                      Démarrer
-                    </Button>
-                  )}
-                  
-                  {order.status === 'in_progress' && order.progress_percentage === 100 && (
-                    <Button
-                      size="sm"
-                      onClick={() => completeOrder(order)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Terminer
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Suivi de production</h2>
+        <Badge variant="outline">
+          {approvedOrders.length} ordre(s) en cours
+        </Badge>
       </div>
 
-      {/* Dialog des étapes */}
-      <Dialog open={showStepsDialog} onOpenChange={setShowStepsDialog}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Étapes de production - {selectedOrder?.order_number}</DialogTitle>
-          </DialogHeader>
-          
-          {selectedOrder && (
-            <div className="space-y-4">
-              {getOrderSteps(selectedOrder.id).map((step, index) => (
-                <Card key={step.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-medium">
-                            {index + 1}. {step.step_name}
-                          </span>
-                          {getStepStatusBadge(step.status || 'pending')}
+      <Card>
+        <CardHeader>
+          <CardTitle>Ordres de production</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Numéro</TableHead>
+                <TableHead>Produit</TableHead>
+                <TableHead>Quantité</TableHead>
+                <TableHead>Progression</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {approvedOrders.map((order) => {
+                const product = getProduct(order.product_id);
+                const orderSteps = getOrderSteps(order.id);
+                
+                return (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.order_number}</TableCell>
+                    <TableCell>{product?.name || 'Produit inconnu'}</TableCell>
+                    <TableCell>{order.quantity?.toLocaleString()} unités</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${order.progress_percentage || 0}%` }}
+                          />
                         </div>
-                        
-                        {step.responsible_person && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <User className="h-4 w-4" />
-                            <span>Responsable: {step.responsible_person}</span>
-                          </div>
-                        )}
-                        
-                        {step.estimated_duration && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <Clock className="h-4 w-4" />
-                            <span>Durée estimée: {step.estimated_duration}h</span>
-                          </div>
-                        )}
-                        
-                        {step.notes && (
-                          <p className="text-sm text-muted-foreground">{step.notes}</p>
-                        )}
+                        <span className="text-sm">{order.progress_percentage || 0}%</span>
                       </div>
-                      
+                    </TableCell>
+                    <TableCell>{getStatusBadge(order.status || 'pending')}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedOrder(order)}
+                      >
+                        Voir détails
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {selectedOrder && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
+              Étapes - {selectedOrder.order_number}
+            </CardTitle>
+            <Button
+              onClick={() => {
+                setEditingStep(null);
+                setShowStepDialog(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle étape
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ordre</TableHead>
+                  <TableHead>Étape</TableHead>
+                  <TableHead>Responsable</TableHead>
+                  <TableHead>Durée estimée</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {getOrderSteps(selectedOrder.id).map((step) => (
+                  <TableRow key={step.id}>
+                    <TableCell>{step.step_order}</TableCell>
+                    <TableCell>{step.step_name}</TableCell>
+                    <TableCell>{step.responsible_person || 'Non assigné'}</TableCell>
+                    <TableCell>{step.estimated_duration ? `${step.estimated_duration}h` : 'N/A'}</TableCell>
+                    <TableCell>{getStatusBadge(step.status || 'pending')}</TableCell>
+                    <TableCell>
                       <div className="flex gap-2">
                         {step.status === 'pending' && (
                           <Button
                             size="sm"
-                            onClick={() => openStepDialog(step)}
+                            onClick={() => startStep(step.id)}
                             className="bg-blue-600 hover:bg-blue-700"
                           >
-                            <Play className="h-4 w-4 mr-1" />
+                            <PlayCircle className="h-4 w-4 mr-1" />
                             Démarrer
                           </Button>
                         )}
-                        
                         {step.status === 'in_progress' && (
                           <Button
                             size="sm"
-                            onClick={() => openStepDialog(step)}
+                            onClick={() => completeStep(step.id)}
                             className="bg-green-600 hover:bg-green-700"
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
                             Terminer
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingStep(step);
+                            setShowStepDialog(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Dialog de mise à jour d'étape */}
-      <Dialog open={showStepDialog} onOpenChange={setShowStepDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {selectedStep?.status === 'pending' ? 'Démarrer l\'étape' : 'Terminer l\'étape'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedStep && (
-            <div className="space-y-4">
-              <div>
-                <Label>Étape</Label>
-                <p className="text-sm">{selectedStep.step_name}</p>
-              </div>
-              
-              <div>
-                <Label htmlFor="responsible_person">Responsable</Label>
-                <Input
-                  id="responsible_person"
-                  value={responsiblePerson}
-                  onChange={(e) => setResponsiblePerson(e.target.value)}
-                  placeholder="Nom du responsable"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="step_notes">Notes</Label>
-                <Textarea
-                  id="step_notes"
-                  value={stepNotes}
-                  onChange={(e) => setStepNotes(e.target.value)}
-                  placeholder="Ajoutez des notes sur cette étape..."
-                  rows={3}
-                />
-              </div>
-              
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowStepDialog(false)}>
-                  Annuler
-                </Button>
-                <Button 
-                  onClick={() => updateStep(
-                    selectedStep.id,
-                    selectedStep.status === 'pending' ? 'in_progress' : 'completed'
-                  )}
-                  className={selectedStep.status === 'pending' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}
-                >
-                  {selectedStep.status === 'pending' ? 'Démarrer' : 'Terminer'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+      <StepDialog />
+    </div>
   );
 };

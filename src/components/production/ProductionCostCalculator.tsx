@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calculator, Save } from 'lucide-react';
-import { useProductionMaterials, useBrickTypes, useProductionRecipes, useProductionCosts } from '@/hooks/useSupabaseDatabase';
+import { useProductionMaterials, useBrickTypes, useProductionRecipes, useProductionCosts } from '@/hooks/useTypedDatabase';
 
 export const ProductionCostCalculator = () => {
   const [selectedBrickType, setSelectedBrickType] = useState('');

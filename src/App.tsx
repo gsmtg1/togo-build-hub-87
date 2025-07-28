@@ -2,20 +2,20 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Index } from '@/pages/Index';
-import { Dashboard } from '@/pages/Dashboard';
-import { Production } from '@/pages/Production';
-import { OrdresProduction } from '@/pages/OrdresProduction';
-import { Livraisons } from '@/pages/Livraisons';
-import { Stock } from '@/pages/Stock';
-import { Ventes } from '@/pages/Ventes';
-import { Comptabilite } from '@/pages/Comptabilite';
-import { Employes } from '@/pages/Employes';
-import { Devis } from '@/pages/Devis';
-import { Factures } from '@/pages/Factures';
-import { Objectifs } from '@/pages/Objectifs';
-import { Parametres } from '@/pages/Parametres';
-import { NotFound } from '@/pages/NotFound';
+import Index from '@/pages/Index';
+import Dashboard from '@/pages/Dashboard';
+import Production from '@/pages/Production';
+import OrdresProduction from '@/pages/OrdresProduction';
+import Livraisons from '@/pages/Livraisons';
+import Stock from '@/pages/Stock';
+import Ventes from '@/pages/Ventes';
+import Comptabilite from '@/pages/Comptabilite';
+import Employes from '@/pages/Employes';
+import Devis from '@/pages/Devis';
+import Factures from '@/pages/Factures';
+import Objectifs from '@/pages/Objectifs';
+import Parametres from '@/pages/Parametres';
+import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
 

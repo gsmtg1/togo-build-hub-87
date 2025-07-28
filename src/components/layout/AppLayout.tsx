@@ -14,7 +14,7 @@ export const AppLayout = () => {
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar collapsed={sidebarCollapsed} />
+      <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header onToggleSidebar={toggleSidebar} sidebarCollapsed={sidebarCollapsed} />
         <main className="flex-1 overflow-y-auto p-6">

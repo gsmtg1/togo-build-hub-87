@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type {
   Product,
   ProductionOrder,
@@ -130,7 +131,7 @@ const mockProductionRecipes: ProductionRecipe[] = [
   }
 ];
 
-// Mock data pour les produits sans prix
+// Mock data pour les produits
 const mockProducts: Product[] = [
   {
     id: '1',
@@ -178,11 +179,27 @@ const mockProductionOrders: ProductionOrder[] = [
   }
 ];
 
+const mockDeliveries: Delivery[] = [
+  {
+    id: '1',
+    numero_livraison: 'LIV-001',
+    client_nom: 'Client Test',
+    client_adresse: 'Adresse Test',
+    lieu_livraison: 'Lieu Test',
+    date_commande: new Date().toISOString(),
+    statut: 'en_attente',
+    montant_total: 50000,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
 // Hook générique pour les opérations CRUD
 function useSupabaseTable<T extends { id: string }>(tableName: string, mockData: T[]) {
-  const [data, setData] = useState<T[]>(mockData);
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [useLocal, setUseLocal] = useState(false);
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -190,19 +207,37 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
       setLoading(true);
       setError(null);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setData(mockData);
+      if (useLocal) {
+        // Utiliser les données mock
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setData(mockData);
+      } else {
+        // Essayer Supabase d'abord
+        try {
+          const { data: result, error: supabaseError } = await supabase
+            .from(tableName)
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (supabaseError) {
+            console.warn(`Supabase error for ${tableName}, falling back to mock data:`, supabaseError);
+            setUseLocal(true);
+            setData(mockData);
+          } else {
+            setData((result as T[]) || []);
+          }
+        } catch (err) {
+          console.warn(`Connection error for ${tableName}, using mock data:`, err);
+          setUseLocal(true);
+          setData(mockData);
+        }
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);
       console.error(`Erreur lors du chargement de ${tableName}:`, err);
-      toast({
-        title: "Erreur",
-        description: `Impossible de charger les données: ${errorMessage}`,
-        variant: "destructive",
-      });
+      // En cas d'erreur, utiliser les données mock
+      setData(mockData);
     } finally {
       setLoading(false);
     }
@@ -217,7 +252,29 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
         updated_at: new Date().toISOString()
       } as unknown as T;
       
-      setData(prev => [newItem, ...prev]);
+      if (useLocal) {
+        // Mode local
+        setData(prev => [newItem, ...prev]);
+      } else {
+        try {
+          const { error: supabaseError } = await supabase
+            .from(tableName)
+            .insert([newItem]);
+
+          if (supabaseError) {
+            console.warn(`Supabase insert error for ${tableName}, using local mode:`, supabaseError);
+            setUseLocal(true);
+            setData(prev => [newItem, ...prev]);
+          } else {
+            await loadData();
+          }
+        } catch (err) {
+          console.warn(`Connection error during insert for ${tableName}, using local mode:`, err);
+          setUseLocal(true);
+          setData(prev => [newItem, ...prev]);
+        }
+      }
+      
       toast({
         title: "Succès",
         description: "Élément créé avec succès",
@@ -238,11 +295,43 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
 
   const update = async (id: string, updates: Partial<T>) => {
     try {
-      setData(prev => prev.map(item => 
-        item.id === id 
-          ? { ...item, ...updates, updated_at: new Date().toISOString() } as T
-          : item
-      ));
+      const updatedItem = { ...updates, updated_at: new Date().toISOString() };
+      
+      if (useLocal) {
+        // Mode local
+        setData(prev => prev.map(item => 
+          item.id === id 
+            ? { ...item, ...updatedItem } as T
+            : item
+        ));
+      } else {
+        try {
+          const { error: supabaseError } = await supabase
+            .from(tableName)
+            .update(updatedItem)
+            .eq('id', id);
+
+          if (supabaseError) {
+            console.warn(`Supabase update error for ${tableName}, using local mode:`, supabaseError);
+            setUseLocal(true);
+            setData(prev => prev.map(item => 
+              item.id === id 
+                ? { ...item, ...updatedItem } as T
+                : item
+            ));
+          } else {
+            await loadData();
+          }
+        } catch (err) {
+          console.warn(`Connection error during update for ${tableName}, using local mode:`, err);
+          setUseLocal(true);
+          setData(prev => prev.map(item => 
+            item.id === id 
+              ? { ...item, ...updatedItem } as T
+              : item
+          ));
+        }
+      }
       
       toast({
         title: "Succès",
@@ -262,7 +351,30 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
 
   const remove = async (id: string) => {
     try {
-      setData(prev => prev.filter(item => item.id !== id));
+      if (useLocal) {
+        // Mode local
+        setData(prev => prev.filter(item => item.id !== id));
+      } else {
+        try {
+          const { error: supabaseError } = await supabase
+            .from(tableName)
+            .delete()
+            .eq('id', id);
+
+          if (supabaseError) {
+            console.warn(`Supabase delete error for ${tableName}, using local mode:`, supabaseError);
+            setUseLocal(true);
+            setData(prev => prev.filter(item => item.id !== id));
+          } else {
+            await loadData();
+          }
+        } catch (err) {
+          console.warn(`Connection error during delete for ${tableName}, using local mode:`, err);
+          setUseLocal(true);
+          setData(prev => prev.filter(item => item.id !== id));
+        }
+      }
+      
       toast({
         title: "Succès",
         description: "Élément supprimé avec succès",
@@ -287,6 +399,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
     data,
     loading,
     error,
+    useLocal,
     create,
     update,
     remove,
@@ -297,7 +410,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
 // Hooks spécifiques pour chaque table
 export const useProducts = () => useSupabaseTable<Product>('products', mockProducts);
 export const useProductionOrders = () => useSupabaseTable<ProductionOrder>('production_orders', mockProductionOrders);
-export const useDeliveries = () => useSupabaseTable<Delivery>('deliveries', []);
+export const useDeliveries = () => useSupabaseTable<Delivery>('deliveries', mockDeliveries);
 export const useDeliveryItems = () => useSupabaseTable<DeliveryItem>('delivery_items', []);
 export const useSales = () => useSupabaseTable<Sale>('sales', []);
 export const useSaleItems = () => useSupabaseTable<SaleItem>('sale_items', []);

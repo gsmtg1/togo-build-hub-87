@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DeliveryTracking } from '@/components/delivery/DeliveryTracking';
 import { DeliveryList } from '@/components/delivery/DeliveryList';
 import { DeliveryDialog } from '@/components/delivery/DeliveryDialog';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { useDeliveries } from '@/hooks/useSupabaseDatabase';
 import type { Delivery } from '@/types/database';
@@ -14,29 +15,38 @@ const Livraisons = () => {
   const { data: deliveries, loading, create, update, remove } = useDeliveries();
   const [showDialog, setShowDialog] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleCreate = async (deliveryData: Partial<Delivery>) => {
-    // Ensure required fields have default values
-    const completeDeliveryData = {
-      ...deliveryData,
-      statut: deliveryData.statut || 'en_attente',
-      numero_livraison: deliveryData.numero_livraison || `LIV-${Date.now()}`,
-      client_nom: deliveryData.client_nom || '',
-      client_adresse: deliveryData.client_adresse || '',
-      lieu_livraison: deliveryData.lieu_livraison || '',
-      date_commande: deliveryData.date_commande || new Date().toISOString(),
-      montant_total: deliveryData.montant_total || 0
-    };
-    
-    await create(completeDeliveryData);
-    setShowDialog(false);
+    try {
+      // Ensure required fields have default values
+      const completeDeliveryData = {
+        ...deliveryData,
+        statut: deliveryData.statut || 'en_attente',
+        numero_livraison: deliveryData.numero_livraison || `LIV-${Date.now()}`,
+        client_nom: deliveryData.client_nom || '',
+        client_adresse: deliveryData.client_adresse || '',
+        lieu_livraison: deliveryData.lieu_livraison || '',
+        date_commande: deliveryData.date_commande || new Date().toISOString(),
+        montant_total: deliveryData.montant_total || 0
+      };
+      
+      await create(completeDeliveryData);
+      setShowDialog(false);
+    } catch (error) {
+      console.error('Error creating delivery:', error);
+    }
   };
 
   const handleUpdate = async (deliveryData: Partial<Delivery>) => {
     if (selectedDelivery) {
-      await update(selectedDelivery.id, deliveryData);
-      setShowDialog(false);
-      setSelectedDelivery(null);
+      try {
+        await update(selectedDelivery.id, deliveryData);
+        setShowDialog(false);
+        setSelectedDelivery(null);
+      } catch (error) {
+        console.error('Error updating delivery:', error);
+      }
     }
   };
 
@@ -45,9 +55,18 @@ const Livraisons = () => {
     setShowDialog(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette livraison ?')) {
-      await remove(id);
+  const handleDeleteRequest = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteId) {
+      try {
+        await remove(deleteId);
+        setDeleteId(null);
+      } catch (error) {
+        console.error('Error deleting delivery:', error);
+      }
     }
   };
 
@@ -69,19 +88,23 @@ const Livraisons = () => {
   );
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Chargement...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Livraisons</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Livraisons</h1>
+          <p className="text-muted-foreground mt-1">
             Gérez et suivez toutes vos livraisons en temps réel
           </p>
         </div>
-        <Button onClick={() => setShowDialog(true)}>
+        <Button onClick={() => setShowDialog(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle livraison
         </Button>
@@ -90,17 +113,21 @@ const Livraisons = () => {
       <Tabs defaultValue="tracking" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="tracking" className="flex items-center gap-2">
-            Suivi en temps réel
+            <span className="hidden sm:inline">Suivi en temps réel</span>
+            <span className="sm:hidden">Suivi</span>
             {activeDeliveries.length > 0 && (
               <Badge variant="secondary" className="ml-2">
                 {activeDeliveries.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="list">Liste complète</TabsTrigger>
+          <TabsTrigger value="list">
+            <span className="hidden sm:inline">Liste complète</span>
+            <span className="sm:hidden">Liste</span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tracking" className="space-y-4">
+        <TabsContent value="tracking" className="space-y-4 mt-6">
           <DeliveryTracking
             deliveries={activeDeliveries}
             onUpdate={update}
@@ -108,11 +135,11 @@ const Livraisons = () => {
           />
         </TabsContent>
 
-        <TabsContent value="list" className="space-y-4">
+        <TabsContent value="list" className="space-y-4 mt-6">
           <DeliveryList
             deliveries={deliveries}
             onEdit={handleEdit}
-            onDelete={handleDelete}
+            onDelete={handleDeleteRequest}
             getStatusBadge={getStatusBadge}
           />
         </TabsContent>
@@ -123,6 +150,16 @@ const Livraisons = () => {
         onOpenChange={setShowDialog}
         delivery={selectedDelivery}
         onSubmit={selectedDelivery ? handleUpdate : handleCreate}
+      />
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        title="Supprimer la livraison"
+        description="Êtes-vous sûr de vouloir supprimer cette livraison ? Cette action est irréversible."
+        onConfirm={handleDeleteConfirm}
+        confirmText="Supprimer"
+        variant="destructive"
       />
     </div>
   );

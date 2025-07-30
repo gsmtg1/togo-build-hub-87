@@ -5,20 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useDatabase, useLocalStorage } from '@/hooks/useDatabase';
-import { Sale } from '@/lib/database';
+import { useSales } from '@/hooks/useSupabaseDatabase';
+import type { Sale } from '@/types/database';
 import { SaleDialog } from '@/components/sales/SaleDialog';
 import { SaleViewDialog } from '@/components/sales/SaleViewDialog';
+import { COMPANY_INFO } from '@/config/company';
 
 const Ventes = () => {
-  const { isInitialized } = useDatabase();
-  const { data: sales, loading, create, update, remove } = useLocalStorage<Sale>('sales');
+  const { data: sales, loading, create, update, remove } = useSales();
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  if (!isInitialized || loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-lg">Chargement des ventes...</div>
@@ -51,48 +51,50 @@ const Ventes = () => {
 
   const handleSubmit = async (saleData: Partial<Sale>) => {
     if (isEditing && selectedSale) {
-      await update({ ...selectedSale, ...saleData, updatedAt: new Date().toISOString() });
+      await update(selectedSale.id, { ...saleData, updated_at: new Date().toISOString() });
     } else {
-      const newSale: Sale = {
-        id: crypto.randomUUID(),
-        customerName: saleData.customerName || '',
-        customerPhone: saleData.customerPhone || '',
-        customerAddress: saleData.customerAddress || '',
-        products: saleData.products || [],
-        totalAmount: saleData.totalAmount || 0,
-        date: saleData.date || new Date().toISOString().split('T')[0],
-        status: saleData.status || 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const newSale: Partial<Sale> = {
+        numero_vente: `VTE-${Date.now().toString().slice(-6)}`,
+        client_nom: saleData.client_nom || '',
+        client_telephone: saleData.client_telephone || '',
+        client_adresse: saleData.client_adresse || '',
+        date_vente: saleData.date_vente || new Date().toISOString(),
+        statut: saleData.statut || 'en_attente',
+        montant_total: saleData.montant_total || 0,
+        vendeur_id: saleData.vendeur_id || '',
+        commentaires: saleData.commentaires || ''
       };
       await create(newSale);
     }
     setDialogOpen(false);
   };
 
-  const getStatusBadge = (status: Sale['status']) => {
-    const variants: Record<Sale['status'], 'default' | 'secondary' | 'destructive'> = {
-      pending: 'secondary',
-      completed: 'default',
-      cancelled: 'destructive',
+  const getStatusBadge = (status: Sale['statut']) => {
+    const variants: Record<Sale['statut'], 'default' | 'secondary' | 'destructive'> = {
+      en_attente: 'secondary',
+      confirmee: 'default',
+      annulee: 'destructive',
     };
     
-    const labels: Record<Sale['status'], string> = {
-      pending: 'En attente',
-      completed: 'Terminée',
-      cancelled: 'Annulée',
+    const labels: Record<Sale['statut'], string> = {
+      en_attente: 'En attente',
+      confirmee: 'Confirmée',
+      annulee: 'Annulée',
     };
 
     return <Badge variant={variants[status]}>{labels[status]}</Badge>;
   };
 
-  const totalSales = sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
-  const completedSales = sales.filter(sale => sale.status === 'completed').length;
+  const totalSales = sales.reduce((sum, sale) => sum + sale.montant_total, 0);
+  const confirmedSales = sales.filter(sale => sale.statut === 'confirmee').length;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gestion des Ventes</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Gestion des Ventes</h1>
+          <p className="text-muted-foreground">{COMPANY_INFO.name} - {COMPANY_INFO.slogan}</p>
+        </div>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="h-4 w-4" />
           Nouvelle Vente
@@ -120,10 +122,10 @@ const Ventes = () => {
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Ventes Terminées</CardTitle>
+            <CardTitle className="text-sm font-medium">Ventes Confirmées</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completedSales}</div>
+            <div className="text-2xl font-bold">{confirmedSales}</div>
           </CardContent>
         </Card>
       </div>
@@ -136,6 +138,7 @@ const Ventes = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>N° Vente</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Téléphone</TableHead>
@@ -147,11 +150,12 @@ const Ventes = () => {
             <TableBody>
               {sales.map((sale) => (
                 <TableRow key={sale.id}>
-                  <TableCell>{new Date(sale.date).toLocaleDateString()}</TableCell>
-                  <TableCell>{sale.customerName}</TableCell>
-                  <TableCell>{sale.customerPhone}</TableCell>
-                  <TableCell>{sale.totalAmount.toLocaleString()} FCFA</TableCell>
-                  <TableCell>{getStatusBadge(sale.status)}</TableCell>
+                  <TableCell className="font-medium">{sale.numero_vente}</TableCell>
+                  <TableCell>{new Date(sale.date_vente).toLocaleDateString('fr-FR')}</TableCell>
+                  <TableCell>{sale.client_nom}</TableCell>
+                  <TableCell>{sale.client_telephone}</TableCell>
+                  <TableCell className="font-medium">{sale.montant_total.toLocaleString()} FCFA</TableCell>
+                  <TableCell>{getStatusBadge(sale.statut)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button
@@ -179,6 +183,17 @@ const Ventes = () => {
                   </TableCell>
                 </TableRow>
               ))}
+              {sales.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <div className="text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Aucune vente enregistrée.</p>
+                      <p className="text-sm">Cliquez sur "Nouvelle Vente" pour commencer.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

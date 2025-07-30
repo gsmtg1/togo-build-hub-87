@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type {
@@ -22,25 +21,252 @@ import type {
   ProductionCost
 } from '@/types/database';
 
-// Mock data pour les types de briques
+// Produits réels de Cornerstone Briques
+const mockProducts: Product[] = [
+  // Briques creuses
+  {
+    id: '1',
+    nom: '10 Creux',
+    categorie: 'creuse',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 10,
+    prix_unitaire: 150,
+    stock_actuel: 500,
+    stock_minimum: 100,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  },
+  {
+    id: '2',
+    nom: '12 Creux',
+    categorie: 'creuse',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 12,
+    prix_unitaire: 175,
+    stock_actuel: 450,
+    stock_minimum: 100,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  },
+  {
+    id: '3',
+    nom: '15 Creux',
+    categorie: 'creuse',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 15,
+    prix_unitaire: 200,
+    stock_actuel: 400,
+    stock_minimum: 100,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  },
+  {
+    id: '4',
+    nom: '20 Creux',
+    categorie: 'creuse',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 20,
+    prix_unitaire: 250,
+    stock_actuel: 350,
+    stock_minimum: 100,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  },
+  // Briques pleines
+  {
+    id: '5',
+    nom: '10 Plein',
+    categorie: 'pleine',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 10,
+    prix_unitaire: 180,
+    stock_actuel: 300,
+    stock_minimum: 80,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  },
+  {
+    id: '6',
+    nom: '12 Plein',
+    categorie: 'pleine',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 12,
+    prix_unitaire: 210,
+    stock_actuel: 280,
+    stock_minimum: 80,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  },
+  {
+    id: '7',
+    nom: '15 Plein',
+    categorie: 'pleine',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 15,
+    prix_unitaire: 240,
+    stock_actuel: 250,
+    stock_minimum: 80,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  },
+  {
+    id: '8',
+    nom: '20 Plein',
+    categorie: 'pleine',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 20,
+    prix_unitaire: 300,
+    stock_actuel: 200,
+    stock_minimum: 80,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  },
+  // Hourdis
+  {
+    id: '9',
+    nom: 'Hourdis 12',
+    categorie: 'hourdis',
+    longueur_cm: 60,
+    largeur_cm: 20,
+    hauteur_cm: 12,
+    prix_unitaire: 350,
+    stock_actuel: 150,
+    stock_minimum: 50,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  },
+  {
+    id: '10',
+    nom: 'Hourdis 15',
+    categorie: 'hourdis',
+    longueur_cm: 60,
+    largeur_cm: 20,
+    hauteur_cm: 15,
+    prix_unitaire: 400,
+    stock_actuel: 120,
+    stock_minimum: 50,
+    actif: true,
+    date_creation: new Date().toISOString(),
+    date_modification: new Date().toISOString()
+  }
+];
+
+// Types de briques correspondants
 const mockBrickTypes: BrickType[] = [
   {
     id: '1',
-    nom: 'Brique standard',
-    description: 'Brique standard pour construction',
-    longueur_cm: 30,
+    nom: '10 Creux',
+    description: 'Brique creuse 40x20x10cm',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 10,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '2',
+    nom: '12 Creux',
+    description: 'Brique creuse 40x20x12cm',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 12,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '3',
+    nom: '15 Creux',
+    description: 'Brique creuse 40x20x15cm',
+    longueur_cm: 40,
     largeur_cm: 20,
     hauteur_cm: 15,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
   {
-    id: '2',
-    nom: 'Brique creuse',
-    description: 'Brique creuse pour isolation',
-    longueur_cm: 30,
+    id: '4',
+    nom: '20 Creux',
+    description: 'Brique creuse 40x20x20cm',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 20,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '5',
+    nom: '10 Plein',
+    description: 'Brique pleine 40x20x10cm',
+    longueur_cm: 40,
     largeur_cm: 20,
     hauteur_cm: 10,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '6',
+    nom: '12 Plein',
+    description: 'Brique pleine 40x20x12cm',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 12,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '7',
+    nom: '15 Plein',
+    description: 'Brique pleine 40x20x15cm',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 15,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '8',
+    nom: '20 Plein',
+    description: 'Brique pleine 40x20x20cm',
+    longueur_cm: 40,
+    largeur_cm: 20,
+    hauteur_cm: 20,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '9',
+    nom: 'Hourdis 12',
+    description: 'Hourdis 60x20x12cm',
+    longueur_cm: 60,
+    largeur_cm: 20,
+    hauteur_cm: 12,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: '10',
+    nom: 'Hourdis 15',
+    description: 'Hourdis 60x20x15cm',
+    longueur_cm: 60,
+    largeur_cm: 20,
+    hauteur_cm: 15,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }
@@ -94,8 +320,8 @@ const mockProductionMaterials: ProductionMaterial[] = [
   }
 ];
 
-// Mock data pour les recettes de production
 const mockProductionRecipes: ProductionRecipe[] = [
+  // Recettes pour 10 Creux
   {
     id: '1',
     product_id: '1',
@@ -130,38 +356,6 @@ const mockProductionRecipes: ProductionRecipe[] = [
   }
 ];
 
-// Mock data pour les produits
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    nom: 'Brique standard 15x20x30',
-    categorie: 'standard',
-    longueur_cm: 30,
-    largeur_cm: 20,
-    hauteur_cm: 15,
-    prix_unitaire: 0,
-    stock_actuel: 1000,
-    stock_minimum: 100,
-    actif: true,
-    date_creation: new Date().toISOString(),
-    date_modification: new Date().toISOString()
-  },
-  {
-    id: '2',
-    nom: 'Brique creuse 10x20x30',
-    categorie: 'creuse',
-    longueur_cm: 30,
-    largeur_cm: 20,
-    hauteur_cm: 10,
-    prix_unitaire: 0,
-    stock_actuel: 500,
-    stock_minimum: 50,
-    actif: true,
-    date_creation: new Date().toISOString(),
-    date_modification: new Date().toISOString()
-  }
-];
-
 const mockProductionOrders: ProductionOrder[] = [
   {
     id: '1',
@@ -172,7 +366,7 @@ const mockProductionOrders: ProductionOrder[] = [
     date_prevue: new Date().toISOString(),
     statut: 'en_attente',
     demandeur_id: 'Jean Dupont',
-    cout_prevu: 0,
+    cout_prevu: 150000,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }
@@ -183,11 +377,29 @@ const mockDeliveries: Delivery[] = [
     id: '1',
     numero_livraison: 'LIV-001',
     client_nom: 'Client Test',
-    client_adresse: 'Adresse Test',
-    lieu_livraison: 'Lieu Test',
+    client_adresse: 'Akodessewa, Lomé',
+    lieu_livraison: 'Akodessewa, Lomé',
     date_commande: new Date().toISOString(),
     statut: 'en_attente',
     montant_total: 50000,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
+// Ventes avec les vrais produits
+const mockSales: Sale[] = [
+  {
+    id: '1',
+    numero_vente: 'VTE-001',
+    client_nom: 'Entreprise BTP Lomé',
+    client_telephone: '+228 90 12 34 56',
+    client_adresse: 'Adidogomé, Lomé',
+    date_vente: new Date().toISOString(),
+    statut: 'confirmee',
+    montant_total: 75000,
+    vendeur_id: 'Vendeur 1',
+    commentaires: 'Commande pour chantier',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }
@@ -314,7 +526,7 @@ export const useProducts = () => useLocalTable<Product>(mockProducts);
 export const useProductionOrders = () => useLocalTable<ProductionOrder>(mockProductionOrders);
 export const useDeliveries = () => useLocalTable<Delivery>(mockDeliveries);
 export const useDeliveryItems = () => useLocalTable<DeliveryItem>([]);
-export const useSales = () => useLocalTable<Sale>([]);
+export const useSales = () => useLocalTable<Sale>(mockSales);
 export const useSaleItems = () => useLocalTable<SaleItem>([]);
 export const useQuotes = () => useLocalTable<Quote>([]);
 export const useQuoteItems = () => useLocalTable<QuoteItem>([]);

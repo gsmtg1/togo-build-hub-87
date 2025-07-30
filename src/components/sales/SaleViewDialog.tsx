@@ -80,7 +80,7 @@ export const SaleViewDialog = ({ open, onOpenChange, sale }: SaleViewDialogProps
           <div className="header">
             <h2>{COMPANY_INFO.name}</h2>
             <p>{COMPANY_INFO.address}</p>
-            <p>{COMPANY_INFO.phone}</p>
+            <p>{COMPANY_INFO.phones.join(' / ')}</p>
           </div>
 
           <Card>

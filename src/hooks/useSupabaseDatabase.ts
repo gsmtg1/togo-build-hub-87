@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import type {
   Product,
   ProductionOrder,
@@ -194,12 +193,11 @@ const mockDeliveries: Delivery[] = [
   }
 ];
 
-// Hook générique pour les opérations CRUD
-function useSupabaseTable<T extends { id: string }>(tableName: string, mockData: T[]) {
+// Hook générique pour les opérations CRUD avec mock data uniquement
+function useLocalTable<T extends { id: string }>(mockData: T[]) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [useLocal, setUseLocal] = useState(false);
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -207,36 +205,13 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
       setLoading(true);
       setError(null);
       
-      if (useLocal) {
-        // Utiliser les données mock
-        await new Promise(resolve => setTimeout(resolve, 300));
-        setData(mockData);
-      } else {
-        // Essayer Supabase d'abord
-        try {
-          const { data: result, error: supabaseError } = await supabase
-            .from(tableName)
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (supabaseError) {
-            console.warn(`Supabase error for ${tableName}, falling back to mock data:`, supabaseError);
-            setUseLocal(true);
-            setData(mockData);
-          } else {
-            setData((result as T[]) || []);
-          }
-        } catch (err) {
-          console.warn(`Connection error for ${tableName}, using mock data:`, err);
-          setUseLocal(true);
-          setData(mockData);
-        }
-      }
+      // Simuler un délai de chargement
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setData(mockData);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);
-      console.error(`Erreur lors du chargement de ${tableName}:`, err);
-      // En cas d'erreur, utiliser les données mock
+      console.error('Erreur lors du chargement des données:', err);
       setData(mockData);
     } finally {
       setLoading(false);
@@ -252,28 +227,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
         updated_at: new Date().toISOString()
       } as unknown as T;
       
-      if (useLocal) {
-        // Mode local
-        setData(prev => [newItem, ...prev]);
-      } else {
-        try {
-          const { error: supabaseError } = await supabase
-            .from(tableName)
-            .insert([newItem]);
-
-          if (supabaseError) {
-            console.warn(`Supabase insert error for ${tableName}, using local mode:`, supabaseError);
-            setUseLocal(true);
-            setData(prev => [newItem, ...prev]);
-          } else {
-            await loadData();
-          }
-        } catch (err) {
-          console.warn(`Connection error during insert for ${tableName}, using local mode:`, err);
-          setUseLocal(true);
-          setData(prev => [newItem, ...prev]);
-        }
-      }
+      setData(prev => [newItem, ...prev]);
       
       toast({
         title: "Succès",
@@ -283,7 +237,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
       return newItem;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      console.error(`Erreur lors de la création dans ${tableName}:`, err);
+      console.error('Erreur lors de la création:', err);
       toast({
         title: "Erreur",
         description: `Impossible de créer l'élément: ${errorMessage}`,
@@ -297,41 +251,11 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
     try {
       const updatedItem = { ...updates, updated_at: new Date().toISOString() };
       
-      if (useLocal) {
-        // Mode local
-        setData(prev => prev.map(item => 
-          item.id === id 
-            ? { ...item, ...updatedItem } as T
-            : item
-        ));
-      } else {
-        try {
-          const { error: supabaseError } = await supabase
-            .from(tableName)
-            .update(updatedItem)
-            .eq('id', id);
-
-          if (supabaseError) {
-            console.warn(`Supabase update error for ${tableName}, using local mode:`, supabaseError);
-            setUseLocal(true);
-            setData(prev => prev.map(item => 
-              item.id === id 
-                ? { ...item, ...updatedItem } as T
-                : item
-            ));
-          } else {
-            await loadData();
-          }
-        } catch (err) {
-          console.warn(`Connection error during update for ${tableName}, using local mode:`, err);
-          setUseLocal(true);
-          setData(prev => prev.map(item => 
-            item.id === id 
-              ? { ...item, ...updatedItem } as T
-              : item
-          ));
-        }
-      }
+      setData(prev => prev.map(item => 
+        item.id === id 
+          ? { ...item, ...updatedItem } as T
+          : item
+      ));
       
       toast({
         title: "Succès",
@@ -339,7 +263,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      console.error(`Erreur lors de la mise à jour dans ${tableName}:`, err);
+      console.error('Erreur lors de la mise à jour:', err);
       toast({
         title: "Erreur",
         description: `Impossible de mettre à jour l'élément: ${errorMessage}`,
@@ -351,29 +275,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
 
   const remove = async (id: string) => {
     try {
-      if (useLocal) {
-        // Mode local
-        setData(prev => prev.filter(item => item.id !== id));
-      } else {
-        try {
-          const { error: supabaseError } = await supabase
-            .from(tableName)
-            .delete()
-            .eq('id', id);
-
-          if (supabaseError) {
-            console.warn(`Supabase delete error for ${tableName}, using local mode:`, supabaseError);
-            setUseLocal(true);
-            setData(prev => prev.filter(item => item.id !== id));
-          } else {
-            await loadData();
-          }
-        } catch (err) {
-          console.warn(`Connection error during delete for ${tableName}, using local mode:`, err);
-          setUseLocal(true);
-          setData(prev => prev.filter(item => item.id !== id));
-        }
-      }
+      setData(prev => prev.filter(item => item.id !== id));
       
       toast({
         title: "Succès",
@@ -381,7 +283,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      console.error(`Erreur lors de la suppression dans ${tableName}:`, err);
+      console.error('Erreur lors de la suppression:', err);
       toast({
         title: "Erreur",
         description: `Impossible de supprimer l'élément: ${errorMessage}`,
@@ -399,7 +301,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
     data,
     loading,
     error,
-    useLocal,
+    useLocal: true,
     create,
     update,
     remove,
@@ -408,24 +310,24 @@ function useSupabaseTable<T extends { id: string }>(tableName: string, mockData:
 }
 
 // Hooks spécifiques pour chaque table
-export const useProducts = () => useSupabaseTable<Product>('products', mockProducts);
-export const useProductionOrders = () => useSupabaseTable<ProductionOrder>('production_orders', mockProductionOrders);
-export const useDeliveries = () => useSupabaseTable<Delivery>('deliveries', mockDeliveries);
-export const useDeliveryItems = () => useSupabaseTable<DeliveryItem>('delivery_items', []);
-export const useSales = () => useSupabaseTable<Sale>('sales', []);
-export const useSaleItems = () => useSupabaseTable<SaleItem>('sale_items', []);
-export const useQuotes = () => useSupabaseTable<Quote>('quotes', []);
-export const useQuoteItems = () => useSupabaseTable<QuoteItem>('quote_items', []);
-export const useInvoices = () => useSupabaseTable<Invoice>('invoices', []);
-export const useInvoiceItems = () => useSupabaseTable<InvoiceItem>('invoice_items', []);
-export const useEmployees = () => useSupabaseTable<Employee>('employees', []);
-export const useAccountingEntries = () => useSupabaseTable<AccountingEntry>('accounting_entries', []);
-export const useMonthlyGoals = () => useSupabaseTable<MonthlyGoal>('monthly_goals', []);
-export const useAppSettings = () => useSupabaseTable<AppSetting>('app_settings', []);
-export const useBrickTypes = () => useSupabaseTable<BrickType>('brick_types', mockBrickTypes);
-export const useProductionMaterials = () => useSupabaseTable<ProductionMaterial>('production_materials', mockProductionMaterials);
-export const useProductionRecipes = () => useSupabaseTable<ProductionRecipe>('production_recipes', mockProductionRecipes);
-export const useProductionCosts = () => useSupabaseTable<ProductionCost>('production_costs', []);
+export const useProducts = () => useLocalTable<Product>(mockProducts);
+export const useProductionOrders = () => useLocalTable<ProductionOrder>(mockProductionOrders);
+export const useDeliveries = () => useLocalTable<Delivery>(mockDeliveries);
+export const useDeliveryItems = () => useLocalTable<DeliveryItem>([]);
+export const useSales = () => useLocalTable<Sale>([]);
+export const useSaleItems = () => useLocalTable<SaleItem>([]);
+export const useQuotes = () => useLocalTable<Quote>([]);
+export const useQuoteItems = () => useLocalTable<QuoteItem>([]);
+export const useInvoices = () => useLocalTable<Invoice>([]);
+export const useInvoiceItems = () => useLocalTable<InvoiceItem>([]);
+export const useEmployees = () => useLocalTable<Employee>([]);
+export const useAccountingEntries = () => useLocalTable<AccountingEntry>([]);
+export const useMonthlyGoals = () => useLocalTable<MonthlyGoal>([]);
+export const useAppSettings = () => useLocalTable<AppSetting>([]);
+export const useBrickTypes = () => useLocalTable<BrickType>(mockBrickTypes);
+export const useProductionMaterials = () => useLocalTable<ProductionMaterial>(mockProductionMaterials);
+export const useProductionRecipes = () => useLocalTable<ProductionRecipe>(mockProductionRecipes);
+export const useProductionCosts = () => useLocalTable<ProductionCost>([]);
 
 // Hook pour les catégories comptables
 export const useAccountingCategories = () => {

@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type {
   ProductionOrder,
@@ -93,37 +92,15 @@ const mockData: { [key: string]: any[] } = {
 function useTypedTable<T extends { id: string }>(tableName: string) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
-  const [useLocal, setUseLocal] = useState(false);
   const { toast } = useToast();
 
   const loadData = async () => {
     try {
       setLoading(true);
       
-      if (useLocal) {
-        // Utiliser les données mock
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setData((mockData[tableName] as T[]) || []);
-      } else {
-        try {
-          const { data: result, error } = await supabase
-            .from(tableName)
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (error) {
-            console.warn(`Supabase error for ${tableName}, falling back to mock data:`, error);
-            setUseLocal(true);
-            setData((mockData[tableName] as T[]) || []);
-          } else {
-            setData((result as T[]) || []);
-          }
-        } catch (err) {
-          console.warn(`Connection error for ${tableName}, using mock data:`, err);
-          setUseLocal(true);
-          setData((mockData[tableName] as T[]) || []);
-        }
-      }
+      // Utiliser les données mock uniquement
+      await new Promise(resolve => setTimeout(resolve, 200));
+      setData((mockData[tableName] as T[]) || []);
     } catch (error) {
       console.error(`Error loading ${tableName}:`, error);
       setData((mockData[tableName] as T[]) || []);
@@ -141,27 +118,7 @@ function useTypedTable<T extends { id: string }>(tableName: string) {
         updated_at: new Date().toISOString()
       } as unknown as T;
 
-      if (useLocal) {
-        setData(prev => [newItem, ...prev]);
-      } else {
-        try {
-          const { error } = await supabase
-            .from(tableName)
-            .insert([newItem]);
-
-          if (error) {
-            console.warn(`Supabase insert error for ${tableName}, using local mode:`, error);
-            setUseLocal(true);
-            setData(prev => [newItem, ...prev]);
-          } else {
-            await loadData();
-          }
-        } catch (err) {
-          console.warn(`Connection error during insert for ${tableName}, using local mode:`, err);
-          setUseLocal(true);
-          setData(prev => [newItem, ...prev]);
-        }
-      }
+      setData(prev => [newItem, ...prev]);
       
       toast({
         title: "Succès",
@@ -181,34 +138,9 @@ function useTypedTable<T extends { id: string }>(tableName: string) {
     try {
       const updatedItem = { ...item, updated_at: new Date().toISOString() };
 
-      if (useLocal) {
-        setData(prev => prev.map(existing => 
-          existing.id === id ? { ...existing, ...updatedItem } as T : existing
-        ));
-      } else {
-        try {
-          const { error } = await supabase
-            .from(tableName)
-            .update(updatedItem)
-            .eq('id', id);
-
-          if (error) {
-            console.warn(`Supabase update error for ${tableName}, using local mode:`, error);
-            setUseLocal(true);
-            setData(prev => prev.map(existing => 
-              existing.id === id ? { ...existing, ...updatedItem } as T : existing
-            ));
-          } else {
-            await loadData();
-          }
-        } catch (err) {
-          console.warn(`Connection error during update for ${tableName}, using local mode:`, err);
-          setUseLocal(true);
-          setData(prev => prev.map(existing => 
-            existing.id === id ? { ...existing, ...updatedItem } as T : existing
-          ));
-        }
-      }
+      setData(prev => prev.map(existing => 
+        existing.id === id ? { ...existing, ...updatedItem } as T : existing
+      ));
       
       toast({
         title: "Succès",
@@ -226,28 +158,7 @@ function useTypedTable<T extends { id: string }>(tableName: string) {
 
   const remove = async (id: string) => {
     try {
-      if (useLocal) {
-        setData(prev => prev.filter(item => item.id !== id));
-      } else {
-        try {
-          const { error } = await supabase
-            .from(tableName)
-            .delete()
-            .eq('id', id);
-
-          if (error) {
-            console.warn(`Supabase delete error for ${tableName}, using local mode:`, error);
-            setUseLocal(true);
-            setData(prev => prev.filter(item => item.id !== id));
-          } else {
-            await loadData();
-          }
-        } catch (err) {
-          console.warn(`Connection error during delete for ${tableName}, using local mode:`, err);
-          setUseLocal(true);
-          setData(prev => prev.filter(item => item.id !== id));
-        }
-      }
+      setData(prev => prev.filter(item => item.id !== id));
       
       toast({
         title: "Succès",

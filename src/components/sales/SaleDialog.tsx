@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2 } from 'lucide-react';
-import { Sale, SaleProduct } from '@/lib/database';
+import type { Sale, SaleItem } from '@/types/database';
 
 interface SaleDialogProps {
   open: boolean;
@@ -17,34 +17,45 @@ interface SaleDialogProps {
   isEditing: boolean;
 }
 
+interface SaleProductLocal {
+  id: string;
+  nom: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
+}
+
 export const SaleDialog = ({ open, onOpenChange, sale, onSubmit, isEditing }: SaleDialogProps) => {
   const [formData, setFormData] = useState({
-    customerName: '',
-    customerPhone: '',
-    customerAddress: '',
-    date: new Date().toISOString().split('T')[0],
-    status: 'pending' as Sale['status'],
-    products: [] as SaleProduct[],
+    client_nom: '',
+    client_telephone: '',
+    client_adresse: '',
+    date_vente: new Date().toISOString().split('T')[0],
+    statut: 'en_attente' as Sale['statut'],
+    products: [] as SaleProductLocal[],
+    commentaires: '',
   });
 
   useEffect(() => {
     if (sale && isEditing) {
       setFormData({
-        customerName: sale.customerName,
-        customerPhone: sale.customerPhone,
-        customerAddress: sale.customerAddress,
-        date: sale.date,
-        status: sale.status,
-        products: sale.products,
+        client_nom: sale.client_nom,
+        client_telephone: sale.client_telephone || '',
+        client_adresse: sale.client_adresse || '',
+        date_vente: sale.date_vente.split('T')[0],
+        statut: sale.statut,
+        products: [],
+        commentaires: sale.commentaires || '',
       });
     } else {
       setFormData({
-        customerName: '',
-        customerPhone: '',
-        customerAddress: '',
-        date: new Date().toISOString().split('T')[0],
-        status: 'pending',
+        client_nom: '',
+        client_telephone: '',
+        client_adresse: '',
+        date_vente: new Date().toISOString().split('T')[0],
+        statut: 'en_attente',
         products: [],
+        commentaires: '',
       });
     }
   }, [sale, isEditing, open]);
@@ -54,10 +65,10 @@ export const SaleDialog = ({ open, onOpenChange, sale, onSubmit, isEditing }: Sa
       ...prev,
       products: [...prev.products, {
         id: crypto.randomUUID(),
-        name: '',
-        quantity: 1,
-        unitPrice: 0,
-        totalPrice: 0,
+        nom: '',
+        quantite: 1,
+        prix_unitaire: 0,
+        total: 0,
       }],
     }));
   };
@@ -69,13 +80,13 @@ export const SaleDialog = ({ open, onOpenChange, sale, onSubmit, isEditing }: Sa
     }));
   };
 
-  const updateProduct = (id: string, updates: Partial<SaleProduct>) => {
+  const updateProduct = (id: string, updates: Partial<SaleProductLocal>) => {
     setFormData(prev => ({
       ...prev,
       products: prev.products.map(p => {
         if (p.id === id) {
           const updated = { ...p, ...updates };
-          updated.totalPrice = updated.quantity * updated.unitPrice;
+          updated.total = updated.quantite * updated.prix_unitaire;
           return updated;
         }
         return p;
@@ -83,13 +94,18 @@ export const SaleDialog = ({ open, onOpenChange, sale, onSubmit, isEditing }: Sa
     }));
   };
 
-  const totalAmount = formData.products.reduce((sum, product) => sum + product.totalPrice, 0);
+  const totalAmount = formData.products.reduce((sum, product) => sum + product.total, 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
-      ...formData,
-      totalAmount,
+      client_nom: formData.client_nom,
+      client_telephone: formData.client_telephone,
+      client_adresse: formData.client_adresse,
+      date_vente: formData.date_vente,
+      statut: formData.statut,
+      montant_total: totalAmount,
+      commentaires: formData.commentaires,
     });
   };
 
@@ -105,59 +121,68 @@ export const SaleDialog = ({ open, onOpenChange, sale, onSubmit, isEditing }: Sa
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="customerName">Nom du client</Label>
+              <Label htmlFor="client_nom">Nom du client</Label>
               <Input
-                id="customerName"
-                value={formData.customerName}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                id="client_nom"
+                value={formData.client_nom}
+                onChange={(e) => setFormData(prev => ({ ...prev, client_nom: e.target.value }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="customerPhone">Téléphone</Label>
+              <Label htmlFor="client_telephone">Téléphone</Label>
               <Input
-                id="customerPhone"
-                value={formData.customerPhone}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value }))}
+                id="client_telephone"
+                value={formData.client_telephone}
+                onChange={(e) => setFormData(prev => ({ ...prev, client_telephone: e.target.value }))}
                 required
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="customerAddress">Adresse</Label>
+            <Label htmlFor="client_adresse">Adresse</Label>
             <Textarea
-              id="customerAddress"
-              value={formData.customerAddress}
-              onChange={(e) => setFormData(prev => ({ ...prev, customerAddress: e.target.value }))}
+              id="client_adresse"
+              value={formData.client_adresse}
+              onChange={(e) => setFormData(prev => ({ ...prev, client_adresse: e.target.value }))}
               required
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date_vente">Date</Label>
               <Input
-                id="date"
+                id="date_vente"
                 type="date"
-                value={formData.date}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                value={formData.date_vente}
+                onChange={(e) => setFormData(prev => ({ ...prev, date_vente: e.target.value }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="status">Statut</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Sale['status'] }))}>
+              <Label htmlFor="statut">Statut</Label>
+              <Select value={formData.statut} onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value as Sale['statut'] }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">En attente</SelectItem>
-                  <SelectItem value="completed">Terminée</SelectItem>
-                  <SelectItem value="cancelled">Annulée</SelectItem>
+                  <SelectItem value="en_attente">En attente</SelectItem>
+                  <SelectItem value="confirmee">Confirmée</SelectItem>
+                  <SelectItem value="annulee">Annulée</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="commentaires">Commentaires</Label>
+            <Textarea
+              id="commentaires"
+              value={formData.commentaires}
+              onChange={(e) => setFormData(prev => ({ ...prev, commentaires: e.target.value }))}
+            />
           </div>
 
           <div>
@@ -175,31 +200,31 @@ export const SaleDialog = ({ open, onOpenChange, sale, onSubmit, isEditing }: Sa
                   <div className="col-span-4">
                     <Input
                       placeholder="Nom du produit"
-                      value={product.name}
-                      onChange={(e) => updateProduct(product.id, { name: e.target.value })}
+                      value={product.nom}
+                      onChange={(e) => updateProduct(product.id, { nom: e.target.value })}
                     />
                   </div>
                   <div className="col-span-2">
                     <Input
                       type="number"
                       placeholder="Qté"
-                      value={product.quantity}
-                      onChange={(e) => updateProduct(product.id, { quantity: parseInt(e.target.value) || 0 })}
+                      value={product.quantite}
+                      onChange={(e) => updateProduct(product.id, { quantite: parseInt(e.target.value) || 0 })}
                     />
                   </div>
                   <div className="col-span-2">
                     <Input
                       type="number"
                       placeholder="Prix unitaire"
-                      value={product.unitPrice}
-                      onChange={(e) => updateProduct(product.id, { unitPrice: parseFloat(e.target.value) || 0 })}
+                      value={product.prix_unitaire}
+                      onChange={(e) => updateProduct(product.id, { prix_unitaire: parseFloat(e.target.value) || 0 })}
                     />
                   </div>
                   <div className="col-span-2">
                     <Input
                       type="number"
                       placeholder="Total"
-                      value={product.totalPrice}
+                      value={product.total}
                       readOnly
                     />
                   </div>

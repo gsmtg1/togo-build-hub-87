@@ -23,7 +23,7 @@ export function useDatabase() {
   return { isInitialized };
 }
 
-export function useLocalStorage<T>(storeName: keyof DatabaseSchema) {
+export function useLocalStorage<T extends { id: string }>(storeName: keyof DatabaseSchema) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();

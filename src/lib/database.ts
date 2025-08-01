@@ -1,99 +1,262 @@
+// Types pour la base de données Supabase
+export interface Product {
+  id: string;
+  nom: string;
+  categorie: string;
+  longueur_cm: number;
+  largeur_cm: number;
+  hauteur_cm: number;
+  prix_unitaire: number;
+  stock_actuel: number;
+  stock_minimum: number;
+  actif: boolean;
+  date_creation: string;
+  date_modification: string;
+}
 
-// Database configuration and management
-export interface DatabaseSchema {
-  sales: Sale[];
-  quotes: Quote[];
-  goals: Goal[];
-  employees: Employee[];
-  invoices: Invoice[];
-  settings: Settings[];
+export interface ProductionOrder {
+  id: string;
+  numero_ordre: string;
+  product_id: string;
+  quantite: number;
+  date_demande: string;
+  date_prevue?: string;
+  date_completion?: string;
+  statut: 'en_attente' | 'approuve' | 'rejete' | 'en_cours' | 'termine' | 'annule';
+  demandeur_id?: string;
+  approbateur_id?: string;
+  commentaires?: string;
+  cout_prevu?: number;
+  cout_reel?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Delivery {
+  id: string;
+  numero_livraison: string;
+  client_nom: string;
+  client_telephone?: string;
+  client_adresse: string;
+  lieu_livraison: string;
+  date_commande: string;
+  date_livraison_prevue?: string;
+  date_livraison_reelle?: string;
+  statut: 'en_attente' | 'approuve' | 'en_cours' | 'livre' | 'annule';
+  responsable_id?: string;
+  signature_client?: string;
+  commentaires?: string;
+  montant_total: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeliveryItem {
+  id: string;
+  delivery_id: string;
+  product_id: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
+  created_at: string;
 }
 
 export interface Sale {
   id: string;
-  customerName: string;
-  customerPhone: string;
-  customerAddress: string;
-  products: SaleProduct[];
-  totalAmount: number;
-  date: string;
-  status: 'pending' | 'completed' | 'cancelled';
-  createdAt: string;
-  updatedAt: string;
+  numero_vente: string;
+  client_nom: string;
+  client_telephone?: string;
+  client_adresse?: string;
+  date_vente: string;
+  statut: 'en_attente' | 'confirmee' | 'annulee';
+  montant_total: number;
+  vendeur_id?: string;
+  commentaires?: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface SaleProduct {
+export interface SaleItem {
   id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
+  sale_id: string;
+  product_id: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
+  created_at: string;
 }
 
 export interface Quote {
   id: string;
-  customerName: string;
-  customerPhone: string;
-  customerAddress: string;
-  products: QuoteProduct[];
-  totalAmount: number;
-  date: string;
-  validUntil: string;
-  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
-  createdAt: string;
-  updatedAt: string;
+  numero_devis: string;
+  client_nom: string;
+  client_telephone?: string;
+  client_adresse?: string;
+  date_devis: string;
+  date_validite?: string;
+  statut: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'expire';
+  montant_total: number;
+  vendeur_id?: string;
+  commentaires?: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface QuoteProduct {
+export interface QuoteItem {
   id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
-
-export interface Goal {
-  id: string;
-  title: string;
-  description: string;
-  targetAmount: number;
-  currentAmount: number;
-  month: string;
-  year: number;
-  employeeId?: string;
-  status: 'active' | 'completed' | 'cancelled';
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Employee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  position: string;
-  department: string;
-  hireDate: string;
-  salary: number;
-  status: 'active' | 'inactive';
-  createdAt: string;
-  updatedAt: string;
+  quote_id: string;
+  product_id?: string;
+  description?: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
+  created_at: string;
 }
 
 export interface Invoice {
   id: string;
-  customerName: string;
-  customerPhone: string;
-  customerAddress: string;
-  products: InvoiceProduct[];
-  totalAmount: number;
-  date: string;
-  dueDate: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue';
-  saleId?: string;
-  createdAt: string;
-  updatedAt: string;
+  numero_facture: string;
+  client_nom: string;
+  client_telephone?: string;
+  client_adresse?: string;
+  date_facture: string;
+  date_echeance?: string;
+  statut: 'brouillon' | 'envoyee' | 'payee' | 'en_retard' | 'annulee';
+  montant_total: number;
+  montant_paye: number;
+  vendeur_id?: string;
+  sale_id?: string;
+  delivery_id?: string;
+  commentaires?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvoiceItem {
+  id: string;
+  invoice_id: string;
+  product_id?: string;
+  description?: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
+  created_at: string;
+}
+
+export interface Employee {
+  id: string;
+  nom: string;
+  prenom: string;
+  email?: string;
+  telephone?: string;
+  adresse?: string;
+  document_identite?: string;
+  role: 'admin' | 'manager' | 'vendeur' | 'production' | 'livraison' | 'employe';
+  salaire: number;
+  date_embauche: string;
+  actif: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AccountingEntry {
+  id: string;
+  type: 'recette' | 'depense' | 'salaire' | 'charge';
+  categorie: string;
+  description: string;
+  montant: number;
+  date_operation: string;
+  methode_paiement?: 'especes' | 'virement' | 'cheque' | 'mobile_money';
+  reference_externe?: string;
+  employee_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MonthlyGoal {
+  id: string;
+  titre: string;
+  description?: string;
+  mois: number;
+  annee: number;
+  objectif_montant: number;
+  montant_realise: number;
+  statut: 'actif' | 'termine' | 'annule';
+  employee_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppSetting {
+  id: string;
+  cle: string;
+  valeur: any;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Types pour la comptabilité
+export interface AccountingCategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface ProductionStep {
+  id: string;
+  production_order_id: string;
+  step_name: string;
+  step_order: number;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  start_date?: string;
+  end_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BrickType {
+  id: string;
+  nom: string;
+  description?: string;
+  longueur_cm: number;
+  largeur_cm: number;
+  hauteur_cm: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionMaterial {
+  id: string;
+  nom: string;
+  description?: string;
+  unite: string;
+  prix_unitaire: number;
+  stock_actuel: number;
+  stock_minimum: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionRecipe {
+  id: string;
+  product_id: string;
+  material_id: string;
+  quantite_necessaire: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionCost {
+  id: string;
+  production_order_id: string;
+  material_id: string;
+  quantite_utilisee: number;
+  cout_unitaire: number;
+  cout_total: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface InvoiceProduct {
@@ -102,179 +265,5 @@ export interface InvoiceProduct {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  isCustom?: boolean;
 }
-
-export interface Settings {
-  id: string;
-  companyName: string;
-  companyAddress: string;
-  companyPhone: string;
-  companyEmail: string;
-  logo: string;
-  primaryColor: string;
-  secondaryColor: string;
-  invoiceTemplate: string;
-  quoteTemplate: string;
-  headerText: string;
-  footerText: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-class Database {
-  private dbName = 'cornerstone-briques-db';
-  private version = 1;
-  private db: IDBDatabase | null = null;
-
-  async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, this.version);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-
-        // Create object stores
-        const stores = ['sales', 'quotes', 'goals', 'employees', 'invoices', 'settings'];
-        
-        stores.forEach(storeName => {
-          if (!db.objectStoreNames.contains(storeName)) {
-            db.createObjectStore(storeName, { keyPath: 'id' });
-          }
-        });
-
-        // Initialize default settings
-        const transaction = request.transaction;
-        const settingsStore = transaction?.objectStore('settings');
-        const defaultSettings: Settings = {
-          id: 'default',
-          companyName: 'Cornerstone Briques',
-          companyAddress: 'Lomé, Togo',
-          companyPhone: '+228 XX XX XX XX',
-          companyEmail: 'contact@cornerstone-briques.tg',
-          logo: '',
-          primaryColor: '#ea580c',
-          secondaryColor: '#f97316',
-          invoiceTemplate: 'default',
-          quoteTemplate: 'default',
-          headerText: 'Cornerstone Briques - Votre partenaire de confiance',
-          footerText: 'Merci pour votre confiance',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        settingsStore?.add(defaultSettings);
-      };
-    });
-  }
-
-  async create<T>(storeName: keyof DatabaseSchema, data: T): Promise<T> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error('Database not initialized'));
-        return;
-      }
-
-      const transaction = this.db.transaction([storeName], 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.add(data);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(data);
-    });
-  }
-
-  async read<T>(storeName: keyof DatabaseSchema, id: string): Promise<T | null> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error('Database not initialized'));
-        return;
-      }
-
-      const transaction = this.db.transaction([storeName], 'readonly');
-      const store = transaction.objectStore(storeName);
-      const request = store.get(id);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result || null);
-    });
-  }
-
-  async readAll<T>(storeName: keyof DatabaseSchema): Promise<T[]> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error('Database not initialized'));
-        return;
-      }
-
-      const transaction = this.db.transaction([storeName], 'readonly');
-      const store = transaction.objectStore(storeName);
-      const request = store.getAll();
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result || []);
-    });
-  }
-
-  async update<T>(storeName: keyof DatabaseSchema, data: T): Promise<T> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error('Database not initialized'));
-        return;
-      }
-
-      const transaction = this.db.transaction([storeName], 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.put(data);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(data);
-    });
-  }
-
-  async delete(storeName: keyof DatabaseSchema, id: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error('Database not initialized'));
-        return;
-      }
-
-      const transaction = this.db.transaction([storeName], 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.delete(id);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
-    });
-  }
-
-  async clear(storeName: keyof DatabaseSchema): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error('Database not initialized'));
-        return;
-      }
-
-      const transaction = this.db.transaction([storeName], 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.clear();
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
-    });
-  }
-
-  async resetAll(): Promise<void> {
-    const stores: (keyof DatabaseSchema)[] = ['sales', 'quotes', 'goals', 'employees', 'invoices'];
-    
-    for (const store of stores) {
-      await this.clear(store);
-    }
-  }
-}
-
-export const database = new Database();

@@ -1,14 +1,14 @@
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, Eye, Send, Download } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useDatabase, useLocalStorage } from '@/hooks/useDatabase';
 import { Invoice } from '@/lib/database';
-import { InvoiceDialog } from '@/components/invoices/InvoiceDialog';
-import { InvoiceViewDialog } from '@/components/invoices/InvoiceViewDialog';
+import { EnhancedInvoiceDialog } from '@/components/invoices/EnhancedInvoiceDialog';
+import { ProfessionalInvoiceView } from '@/components/invoices/ProfessionalInvoiceView';
 
 const Factures = () => {
   const { isInitialized } = useDatabase();
@@ -66,6 +66,7 @@ const Factures = () => {
         saleId: invoiceData.saleId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        ...(invoiceData as any) // Pour les champs supplémentaires comme deliveryType
       };
       await create(newInvoice);
     }
@@ -73,134 +74,187 @@ const Factures = () => {
   };
 
   const getStatusBadge = (status: Invoice['status']) => {
-    const variants: Record<Invoice['status'], 'default' | 'secondary' | 'destructive'> = {
-      draft: 'secondary',
-      sent: 'default',
-      paid: 'default',
-      overdue: 'destructive',
-    };
-    
-    const labels: Record<Invoice['status'], string> = {
-      draft: 'Brouillon',
-      sent: 'Envoyée',
-      paid: 'Payée',
-      overdue: 'En retard',
+    const config = {
+      draft: { variant: 'secondary' as const, label: '📝 Brouillon', color: 'text-gray-600' },
+      sent: { variant: 'default' as const, label: '📤 Envoyée', color: 'text-blue-600' },
+      paid: { variant: 'default' as const, label: '✅ Payée', color: 'text-green-600' },
+      overdue: { variant: 'destructive' as const, label: '⏰ En retard', color: 'text-red-600' },
     };
 
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+    const { variant, label } = config[status];
+    return <Badge variant={variant}>{label}</Badge>;
   };
 
+  // Statistiques
   const totalInvoices = invoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
-  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid').length;
-  const overdueInvoices = invoices.filter(invoice => invoice.status === 'overdue').length;
+  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid');
+  const overdueInvoices = invoices.filter(invoice => invoice.status === 'overdue');
+  const draftInvoices = invoices.filter(invoice => invoice.status === 'draft');
+  const totalPaid = paidInvoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
 
   return (
     <div className="space-y-6">
+      {/* En-tête */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gestion des Factures</h1>
-        <Button onClick={handleCreate} className="gap-2">
+        <div>
+          <h1 className="text-3xl font-bold text-orange-600">💼 Gestion des Factures</h1>
+          <p className="text-gray-600 mt-1">Créez, gérez et suivez vos factures professionnelles</p>
+        </div>
+        <Button onClick={handleCreate} className="gap-2 bg-orange-600 hover:bg-orange-700">
           <Plus className="h-4 w-4" />
           Nouvelle Facture
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      {/* Statistiques */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-orange-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total des Factures</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600">Chiffre d'affaires total</CardTitle>
+              <TrendingUp className="h-4 w-4 text-orange-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalInvoices.toLocaleString()} FCFA</div>
+            <div className="text-2xl font-bold text-orange-600">{totalInvoices.toLocaleString()} FCFA</div>
+            <p className="text-xs text-gray-500 mt-1">{invoices.length} factures au total</p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Nombre de Factures</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600">Montant encaissé</CardTitle>
+              <div className="text-green-500">✅</div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{invoices.length}</div>
+            <div className="text-2xl font-bold text-green-600">{totalPaid.toLocaleString()} FCFA</div>
+            <p className="text-xs text-gray-500 mt-1">{paidInvoices.length} factures payées</p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="border-l-4 border-l-red-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Factures Payées</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600">En retard</CardTitle>
+              <AlertCircle className="h-4 w-4 text-red-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{paidInvoices}</div>
+            <div className="text-2xl font-bold text-red-600">{overdueInvoices.length}</div>
+            <p className="text-xs text-gray-500 mt-1">Factures en retard</p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="border-l-4 border-l-gray-500">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Factures en Retard</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600">Brouillons</CardTitle>
+              <Calendar className="h-4 w-4 text-gray-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overdueInvoices}</div>
+            <div className="text-2xl font-bold text-gray-600">{draftInvoices.length}</div>
+            <p className="text-xs text-gray-500 mt-1">À finaliser</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Liste des factures */}
       <Card>
         <CardHeader>
-          <CardTitle>Liste des Factures</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            📋 Liste des Factures
+            <Badge variant="outline">{invoices.length}</Badge>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Téléphone</TableHead>
-                <TableHead>Montant</TableHead>
-                <TableHead>Échéance</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
-                  <TableCell>{invoice.customerName}</TableCell>
-                  <TableCell>{invoice.customerPhone}</TableCell>
-                  <TableCell>{invoice.totalAmount.toLocaleString()} FCFA</TableCell>
-                  <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleView(invoice)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(invoice)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(invoice.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {invoices.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📄</div>
+              <h3 className="text-lg font-semibold text-gray-600 mb-2">Aucune facture</h3>
+              <p className="text-gray-500 mb-6">Commencez par créer votre première facture</p>
+              <Button onClick={handleCreate} className="bg-orange-600 hover:bg-orange-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Créer une facture
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>N° Facture</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Téléphone</TableHead>
+                  <TableHead>Montant</TableHead>
+                  <TableHead>Échéance</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {invoices.map((invoice) => (
+                  <TableRow key={invoice.id} className="hover:bg-gray-50">
+                    <TableCell className="font-mono text-sm">
+                      #{invoice.id.slice(-8).toUpperCase()}
+                    </TableCell>
+                    <TableCell>{new Date(invoice.date).toLocaleDateString('fr-FR')}</TableCell>
+                    <TableCell className="font-medium">{invoice.customerName}</TableCell>
+                    <TableCell>{invoice.customerPhone}</TableCell>
+                    <TableCell className="font-semibold text-orange-600">
+                      {invoice.totalAmount.toLocaleString()} FCFA
+                    </TableCell>
+                    <TableCell>
+                      <span className={`${
+                        new Date(invoice.dueDate) < new Date() && invoice.status !== 'paid' 
+                          ? 'text-red-600 font-medium' 
+                          : 'text-gray-600'
+                      }`}>
+                        {new Date(invoice.dueDate).toLocaleDateString('fr-FR')}
+                      </span>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleView(invoice)}
+                          title="Voir la facture"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(invoice)}
+                          title="Modifier"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(invoice.id)}
+                          title="Supprimer"
+                          className="hover:bg-red-50 hover:border-red-200"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
-      <InvoiceDialog
+      {/* Dialogs */}
+      <EnhancedInvoiceDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         invoice={selectedInvoice}
@@ -208,7 +262,7 @@ const Factures = () => {
         isEditing={isEditing}
       />
 
-      <InvoiceViewDialog
+      <ProfessionalInvoiceView
         open={viewDialogOpen}
         onOpenChange={setViewDialogOpen}
         invoice={selectedInvoice}

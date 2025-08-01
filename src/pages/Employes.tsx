@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Plus, Edit, Trash2, Mail, Phone, MapPin, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,51 +44,44 @@ const Employes = () => {
 
   const handleSubmit = async (employeeData: Partial<Employee>) => {
     if (isEditing && selectedEmployee) {
-      await update({ ...selectedEmployee, ...employeeData, updatedAt: new Date().toISOString() });
+      await update({ ...selectedEmployee, ...employeeData, updated_at: new Date().toISOString() });
     } else {
       const newEmployee: Employee = {
         id: crypto.randomUUID(),
-        firstName: employeeData.firstName || '',
-        lastName: employeeData.lastName || '',
+        nom: employeeData.nom || '',
+        prenom: employeeData.prenom || '',
         email: employeeData.email || '',
-        phone: employeeData.phone || '',
-        position: employeeData.position || '',
-        department: employeeData.department || '',
-        hireDate: employeeData.hireDate || new Date().toISOString().split('T')[0],
-        salary: employeeData.salary || 0,
-        status: employeeData.status || 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        telephone: employeeData.telephone || '',
+        adresse: employeeData.adresse || '',
+        document_identite: employeeData.document_identite || '',
+        role: employeeData.role || 'employe',
+        salaire: employeeData.salaire || 0,
+        date_embauche: employeeData.date_embauche || new Date().toISOString().split('T')[0],
+        actif: employeeData.actif !== undefined ? employeeData.actif : true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
       await create(newEmployee);
     }
     setDialogOpen(false);
   };
 
-  const getStatusBadge = (status: Employee['status']) => {
-    const variants: Record<Employee['status'], 'default' | 'secondary'> = {
-      active: 'default',
-      inactive: 'secondary',
-    };
-    
-    const labels: Record<Employee['status'], string> = {
-      active: 'Actif',
-      inactive: 'Inactif',
-    };
-
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+  const getStatusBadge = (actif: boolean) => {
+    const variant = actif ? 'default' : 'secondary';
+    const label = actif ? 'Actif' : 'Inactif';
+    return <Badge variant={variant}>{label}</Badge>;
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const getInitials = (prenom: string, nom: string) => {
+    return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
   };
 
-  const activeEmployees = employees.filter(emp => emp.status === 'active').length;
-  const totalSalary = employees.reduce((sum, emp) => sum + emp.salary, 0);
+  const activeEmployees = employees.filter(emp => emp.actif).length;
+  const totalSalary = employees.reduce((sum, emp) => sum + emp.salaire, 0);
 
-  // Group employees by department
-  const departmentCounts = employees.reduce((acc, emp) => {
-    acc[emp.department] = (acc[emp.department] || 0) + 1;
+  // Group employees by role since department doesn't exist
+  const roleCounts = employees.reduce((acc, emp) => {
+    acc[emp.role] = (acc[emp.role] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -133,10 +125,10 @@ const Employes = () => {
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Départements</CardTitle>
+            <CardTitle className="text-sm font-medium">Rôles</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{Object.keys(departmentCounts).length}</div>
+            <div className="text-2xl font-bold">{Object.keys(roleCounts).length}</div>
           </CardContent>
         </Card>
       </div>
@@ -150,8 +142,7 @@ const Employes = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Employé</TableHead>
-                <TableHead>Poste</TableHead>
-                <TableHead>Département</TableHead>
+                <TableHead>Rôle</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Date d'embauche</TableHead>
                 <TableHead>Salaire</TableHead>
@@ -166,12 +157,12 @@ const Employes = () => {
                     <div className="flex items-center gap-3">
                       <Avatar>
                         <AvatarFallback>
-                          {getInitials(employee.firstName, employee.lastName)}
+                          {getInitials(employee.prenom, employee.nom)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="font-medium">
-                          {employee.firstName} {employee.lastName}
+                          {employee.prenom} {employee.nom}
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <Mail className="h-3 w-3" />
@@ -180,24 +171,23 @@ const Employes = () => {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{employee.position}</TableCell>
-                  <TableCell>{employee.department}</TableCell>
+                  <TableCell>{employee.role}</TableCell>
                   <TableCell>
                     <div className="text-sm space-y-1">
                       <div className="flex items-center gap-1">
                         <Phone className="h-3 w-3" />
-                        {employee.phone}
+                        {employee.telephone}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {new Date(employee.hireDate).toLocaleDateString()}
+                      {new Date(employee.date_embauche).toLocaleDateString()}
                     </div>
                   </TableCell>
-                  <TableCell>{employee.salary.toLocaleString()} FCFA</TableCell>
-                  <TableCell>{getStatusBadge(employee.status)}</TableCell>
+                  <TableCell>{employee.salaire.toLocaleString()} FCFA</TableCell>
+                  <TableCell>{getStatusBadge(employee.actif)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button

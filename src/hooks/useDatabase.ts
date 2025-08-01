@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { database, DatabaseSchema } from '@/lib/database';
+import { database, DatabaseSchema } from '@/lib/localStorage';
 import { useToast } from '@/hooks/use-toast';
 
 export function useDatabase() {
@@ -31,13 +31,13 @@ export function useLocalStorage<T>(storeName: keyof DatabaseSchema) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const result = await database.readAll<T>(storeName);
+      const result = await database.readAll<T>(String(storeName));
       setData(result);
     } catch (error) {
-      console.error(`Error loading ${storeName}:`, error);
+      console.error(`Error loading ${String(storeName)}:`, error);
       toast({
         title: "Erreur",
-        description: `Impossible de charger les données de ${storeName}`,
+        description: `Impossible de charger les données de ${String(storeName)}`,
         variant: "destructive",
       });
     } finally {
@@ -47,14 +47,14 @@ export function useLocalStorage<T>(storeName: keyof DatabaseSchema) {
 
   const create = async (item: T) => {
     try {
-      await database.create(storeName, item);
+      await database.create(String(storeName), item);
       await loadData();
       toast({
         title: "Succès",
         description: "Élément créé avec succès",
       });
     } catch (error) {
-      console.error(`Error creating ${storeName}:`, error);
+      console.error(`Error creating ${String(storeName)}:`, error);
       toast({
         title: "Erreur",
         description: "Impossible de créer l'élément",
@@ -65,14 +65,14 @@ export function useLocalStorage<T>(storeName: keyof DatabaseSchema) {
 
   const update = async (item: T) => {
     try {
-      await database.update(storeName, item);
+      await database.update(String(storeName), item);
       await loadData();
       toast({
         title: "Succès",
         description: "Élément mis à jour avec succès",
       });
     } catch (error) {
-      console.error(`Error updating ${storeName}:`, error);
+      console.error(`Error updating ${String(storeName)}:`, error);
       toast({
         title: "Erreur",
         description: "Impossible de mettre à jour l'élément",
@@ -83,14 +83,14 @@ export function useLocalStorage<T>(storeName: keyof DatabaseSchema) {
 
   const remove = async (id: string) => {
     try {
-      await database.delete(storeName, id);
+      await database.delete(String(storeName), id);
       await loadData();
       toast({
         title: "Succès",
         description: "Élément supprimé avec succès",
       });
     } catch (error) {
-      console.error(`Error deleting ${storeName}:`, error);
+      console.error(`Error deleting ${String(storeName)}:`, error);
       toast({
         title: "Erreur",
         description: "Impossible de supprimer l'élément",

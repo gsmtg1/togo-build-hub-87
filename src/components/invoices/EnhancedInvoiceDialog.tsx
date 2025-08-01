@@ -74,13 +74,14 @@ export const EnhancedInvoiceDialog = ({ open, onOpenChange, invoice, onSubmit, i
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Remove deliveryType and other extended properties from the Invoice object
+    const { deliveryType, deliveryFee: _, products, notes, ...invoiceData } = formData;
     onSubmit({
-      ...formData,
+      ...invoiceData,
       montant_total,
       montant_paye: 0,
-      deliveryType: formData.deliveryType,
-      deliveryFee: deliveryAmount,
-      notes: formData.notes,
+      // Store extended properties as part of the invoice object but not in the type
+      ...(formData as any)
     });
   };
 

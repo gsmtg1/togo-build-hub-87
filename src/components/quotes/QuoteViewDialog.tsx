@@ -47,25 +47,27 @@ export const QuoteViewDialog = ({ open, onOpenChange, quote }: QuoteViewDialogPr
     }
   };
 
-  const getStatusBadge = (status: Quote['status']) => {
-    const variants: Record<Quote['status'], 'default' | 'secondary' | 'destructive'> = {
-      draft: 'secondary',
-      sent: 'default',
-      accepted: 'default',
-      rejected: 'destructive',
-      expired: 'destructive',
+  const getStatusBadge = (statut: Quote['statut']) => {
+    const variants: Record<Quote['statut'], 'default' | 'secondary' | 'destructive'> = {
+      brouillon: 'secondary',
+      envoye: 'default',
+      accepte: 'default',
+      refuse: 'destructive',
+      expire: 'destructive',
     };
     
-    const labels: Record<Quote['status'], string> = {
-      draft: 'Brouillon',
-      sent: 'Envoyé',
-      accepted: 'Accepté',
-      rejected: 'Refusé',
-      expired: 'Expiré',
+    const labels: Record<Quote['statut'], string> = {
+      brouillon: 'Brouillon',
+      envoye: 'Envoyé',
+      accepte: 'Accepté',
+      refuse: 'Refusé',
+      expire: 'Expiré',
     };
 
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+    return <Badge variant={variants[statut]}>{labels[statut]}</Badge>;
   };
+
+  const products = (quote as any).products || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -92,12 +94,12 @@ export const QuoteViewDialog = ({ open, onOpenChange, quote }: QuoteViewDialogPr
               <CardTitle>Informations Client</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div><strong>Nom:</strong> {quote.customerName}</div>
-              <div><strong>Téléphone:</strong> {quote.customerPhone}</div>
-              <div><strong>Adresse:</strong> {quote.customerAddress}</div>
-              <div><strong>Date:</strong> {new Date(quote.date).toLocaleDateString()}</div>
-              <div><strong>Valide jusqu'à:</strong> {new Date(quote.validUntil).toLocaleDateString()}</div>
-              <div><strong>Statut:</strong> {getStatusBadge(quote.status)}</div>
+              <div><strong>Nom:</strong> {quote.client_nom}</div>
+              <div><strong>Téléphone:</strong> {quote.client_telephone}</div>
+              <div><strong>Adresse:</strong> {quote.client_adresse}</div>
+              <div><strong>Date:</strong> {new Date(quote.date_devis).toLocaleDateString()}</div>
+              <div><strong>Valide jusqu'à:</strong> {quote.date_validite ? new Date(quote.date_validite).toLocaleDateString() : 'Non définie'}</div>
+              <div><strong>Statut:</strong> {getStatusBadge(quote.statut)}</div>
             </CardContent>
           </Card>
 
@@ -116,8 +118,8 @@ export const QuoteViewDialog = ({ open, onOpenChange, quote }: QuoteViewDialogPr
                   </tr>
                 </thead>
                 <tbody>
-                  {quote.products.map((product) => (
-                    <tr key={product.id}>
+                  {products.map((product, index) => (
+                    <tr key={product.id || index}>
                       <td>{product.name}</td>
                       <td>{product.quantity}</td>
                       <td>{product.unitPrice.toLocaleString()} FCFA</td>
@@ -127,10 +129,10 @@ export const QuoteViewDialog = ({ open, onOpenChange, quote }: QuoteViewDialogPr
                 </tbody>
               </table>
               <div className="total mt-4">
-                <strong>Total général: {quote.totalAmount.toLocaleString()} FCFA</strong>
+                <strong>Total général: {quote.montant_total.toLocaleString()} FCFA</strong>
               </div>
               <div className="validity">
-                <p>Ce devis est valable jusqu'au {new Date(quote.validUntil).toLocaleDateString()}</p>
+                <p>Ce devis est valable jusqu'au {quote.date_validite ? new Date(quote.date_validite).toLocaleDateString() : 'non défini'}</p>
               </div>
             </CardContent>
           </Card>

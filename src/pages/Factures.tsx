@@ -51,46 +51,51 @@ const Factures = () => {
 
   const handleSubmit = async (invoiceData: Partial<Invoice>) => {
     if (isEditing && selectedInvoice) {
-      await update({ ...selectedInvoice, ...invoiceData, updatedAt: new Date().toISOString() });
+      await update({ ...selectedInvoice, ...invoiceData, updated_at: new Date().toISOString() });
     } else {
       const newInvoice: Invoice = {
         id: crypto.randomUUID(),
-        customerName: invoiceData.customerName || '',
-        customerPhone: invoiceData.customerPhone || '',
-        customerAddress: invoiceData.customerAddress || '',
-        products: invoiceData.products || [],
-        totalAmount: invoiceData.totalAmount || 0,
-        date: invoiceData.date || new Date().toISOString().split('T')[0],
-        dueDate: invoiceData.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: invoiceData.status || 'draft',
-        saleId: invoiceData.saleId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        ...(invoiceData as any) // Pour les champs supplémentaires comme deliveryType
+        numero_facture: `INV-${Date.now()}`,
+        client_nom: invoiceData.client_nom || '',
+        client_telephone: invoiceData.client_telephone || '',
+        client_adresse: invoiceData.client_adresse || '',
+        date_facture: invoiceData.date_facture || new Date().toISOString().split('T')[0],
+        date_echeance: invoiceData.date_echeance,
+        statut: invoiceData.statut || 'brouillon',
+        montant_total: (invoiceData as any).montant_total || 0,
+        montant_paye: 0,
+        vendeur_id: invoiceData.vendeur_id,
+        sale_id: invoiceData.sale_id,
+        delivery_id: invoiceData.delivery_id,
+        commentaires: invoiceData.commentaires,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...(invoiceData as any) // Pour les champs supplémentaires comme products, deliveryType
       };
       await create(newInvoice);
     }
     setDialogOpen(false);
   };
 
-  const getStatusBadge = (status: Invoice['status']) => {
+  const getStatusBadge = (statut: Invoice['statut']) => {
     const config = {
-      draft: { variant: 'secondary' as const, label: '📝 Brouillon', color: 'text-gray-600' },
-      sent: { variant: 'default' as const, label: '📤 Envoyée', color: 'text-blue-600' },
-      paid: { variant: 'default' as const, label: '✅ Payée', color: 'text-green-600' },
-      overdue: { variant: 'destructive' as const, label: '⏰ En retard', color: 'text-red-600' },
+      brouillon: { variant: 'secondary' as const, label: '📝 Brouillon', color: 'text-gray-600' },
+      envoyee: { variant: 'default' as const, label: '📤 Envoyée', color: 'text-blue-600' },
+      payee: { variant: 'default' as const, label: '✅ Payée', color: 'text-green-600' },
+      en_retard: { variant: 'destructive' as const, label: '⏰ En retard', color: 'text-red-600' },
+      annulee: { variant: 'destructive' as const, label: '❌ Annulée', color: 'text-gray-600' },
     };
 
-    const { variant, label } = config[status];
+    const { variant, label } = config[statut];
     return <Badge variant={variant}>{label}</Badge>;
   };
 
   // Statistiques
-  const totalInvoices = invoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
-  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid');
-  const overdueInvoices = invoices.filter(invoice => invoice.status === 'overdue');
-  const draftInvoices = invoices.filter(invoice => invoice.status === 'draft');
-  const totalPaid = paidInvoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
+  const totalInvoices = invoices.reduce((sum, invoice) => sum + invoice.montant_total, 0);
+  const paidInvoices = invoices.filter(invoice => invoice.statut === 'payee');
+  const overdueInvoices = invoices.filter(invoice => invoice.statut === 'en_retard');
+  const draftInvoices = invoices.filter(invoice => invoice.statut === 'brouillon');
+  const totalPaid = paidInvoices.reduce((sum, invoice) => sum + invoice.montant_total, 0);
 
   return (
     <div className="space-y-6">
@@ -198,24 +203,24 @@ const Factures = () => {
                 {invoices.map((invoice) => (
                   <TableRow key={invoice.id} className="hover:bg-gray-50">
                     <TableCell className="font-mono text-sm">
-                      #{invoice.id.slice(-8).toUpperCase()}
+                      #{invoice.numero_facture || invoice.id.slice(-8).toUpperCase()}
                     </TableCell>
-                    <TableCell>{new Date(invoice.date).toLocaleDateString('fr-FR')}</TableCell>
-                    <TableCell className="font-medium">{invoice.customerName}</TableCell>
-                    <TableCell>{invoice.customerPhone}</TableCell>
+                    <TableCell>{new Date(invoice.date_facture).toLocaleDateString('fr-FR')}</TableCell>
+                    <TableCell className="font-medium">{invoice.client_nom}</TableCell>
+                    <TableCell>{invoice.client_telephone}</TableCell>
                     <TableCell className="font-semibold text-orange-600">
-                      {invoice.totalAmount.toLocaleString()} FCFA
+                      {invoice.montant_total.toLocaleString()} FCFA
                     </TableCell>
                     <TableCell>
                       <span className={`${
-                        new Date(invoice.dueDate) < new Date() && invoice.status !== 'paid' 
+                        invoice.date_echeance && new Date(invoice.date_echeance) < new Date() && invoice.statut !== 'payee' 
                           ? 'text-red-600 font-medium' 
                           : 'text-gray-600'
                       }`}>
-                        {new Date(invoice.dueDate).toLocaleDateString('fr-FR')}
+                        {invoice.date_echeance ? new Date(invoice.date_echeance).toLocaleDateString('fr-FR') : 'Non définie'}
                       </span>
                     </TableCell>
-                    <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                    <TableCell>{getStatusBadge(invoice.statut)}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button

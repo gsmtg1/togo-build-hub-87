@@ -267,3 +267,12 @@ export interface InvoiceProduct {
   totalPrice: number;
   isCustom?: boolean;
 }
+
+export interface QuoteProduct {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  isCustom?: boolean;
+}

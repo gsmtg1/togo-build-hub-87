@@ -73,11 +73,12 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
 
   const handleSendEmail = () => {
     const subject = `Facture ${invoice.id.slice(-8)} - ${COMPANY_INFO.name}`;
-    const body = `Bonjour ${invoice.customerName},\n\nVeuillez trouver ci-joint votre facture.\n\nCordialement,\n${COMPANY_INFO.name}`;
+    const body = `Bonjour ${invoice.client_nom},\n\nVeuillez trouver ci-joint votre facture.\n\nCordialement,\n${COMPANY_INFO.name}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
-  const subtotal = invoice.products.reduce((sum, product) => sum + product.totalPrice, 0);
+  const products = (invoice as any).products || [];
+  const subtotal = products.reduce((sum, product) => sum + product.totalPrice, 0);
   const deliveryFee = (invoice as any).deliveryFee || 0;
   const deliveryType = (invoice as any).deliveryType || 'pickup';
 
@@ -139,25 +140,27 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
           <div className="invoice-details">
             <div className="client-info">
               <div className="section-title">FACTURER À</div>
-              <div className="info-line"><strong>{invoice.customerName}</strong></div>
-              <div className="info-line">{invoice.customerPhone}</div>
-              <div className="info-line">{invoice.customerAddress}</div>
+              <div className="info-line"><strong>{invoice.client_nom}</strong></div>
+              <div className="info-line">{invoice.client_telephone}</div>
+              <div className="info-line">{invoice.client_adresse}</div>
             </div>
             <div className="invoice-info">
               <div className="section-title">DÉTAILS FACTURE</div>
-              <div className="info-line"><strong>Date d'émission:</strong> {new Date(invoice.date).toLocaleDateString('fr-FR')}</div>
-              <div className="info-line"><strong>Date d'échéance:</strong> {new Date(invoice.dueDate).toLocaleDateString('fr-FR')}</div>
+              <div className="info-line"><strong>Date d'émission:</strong> {new Date(invoice.date_facture).toLocaleDateString('fr-FR')}</div>
+              <div className="info-line"><strong>Date d'échéance:</strong> {invoice.date_echeance ? new Date(invoice.date_echeance).toLocaleDateString('fr-FR') : 'Non définie'}</div>
               <div className="info-line"><strong>Statut:</strong> 
                 <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                  invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                  invoice.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                  invoice.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                  invoice.statut === 'payee' ? 'bg-green-100 text-green-800' :
+                  invoice.statut === 'envoyee' ? 'bg-blue-100 text-blue-800' :
+                  invoice.statut === 'en_retard' ? 'bg-red-100 text-red-800' :
+                  invoice.statut === 'annulee' ? 'bg-gray-100 text-gray-800' :
                   'bg-gray-100 text-gray-800'
                 }`}>
-                  {invoice.status === 'draft' ? 'Brouillon' :
-                   invoice.status === 'sent' ? 'Envoyée' :
-                   invoice.status === 'paid' ? 'Payée' :
-                   'En retard'}
+                  {invoice.statut === 'brouillon' ? 'Brouillon' :
+                   invoice.statut === 'envoyee' ? 'Envoyée' :
+                   invoice.statut === 'payee' ? 'Payée' :
+                   invoice.statut === 'en_retard' ? 'En retard' :
+                   'Annulée'}
                 </span>
               </div>
             </div>
@@ -174,7 +177,7 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
               </tr>
             </thead>
             <tbody>
-              {invoice.products.map((product, index) => (
+              {products.map((product, index) => (
                 <tr key={product.id || index}>
                   <td>{product.name}</td>
                   <td style={{textAlign: 'center'}}>{product.quantity}</td>
@@ -201,7 +204,7 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
             </div>
             <div className="total-line final">
               <span>TOTAL À PAYER:</span>
-              <span>{invoice.totalAmount.toLocaleString()} FCFA</span>
+              <span>{invoice.montant_total.toLocaleString()} FCFA</span>
             </div>
           </div>
 
@@ -226,7 +229,7 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
           <div className="payment-info">
             <strong>💳 CONDITIONS DE PAIEMENT:</strong><br />
             Paiement à réception de facture. Merci de nous contacter pour tout renseignement.<br />
-            <strong>Délai de paiement:</strong> {new Date(invoice.dueDate).toLocaleDateString('fr-FR')}
+            <strong>Délai de paiement:</strong> {invoice.date_echeance ? new Date(invoice.date_echeance).toLocaleDateString('fr-FR') : 'Non défini'}
           </div>
 
           {/* Pied de page */}

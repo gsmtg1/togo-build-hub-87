@@ -19,34 +19,34 @@ interface QuoteDialogProps {
 
 export const QuoteDialog = ({ open, onOpenChange, quote, onSubmit, isEditing }: QuoteDialogProps) => {
   const [formData, setFormData] = useState({
-    customerName: '',
-    customerPhone: '',
-    customerAddress: '',
-    date: new Date().toISOString().split('T')[0],
-    validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    status: 'draft' as Quote['status'],
+    client_nom: '',
+    client_telephone: '',
+    client_adresse: '',
+    date_devis: new Date().toISOString().split('T')[0],
+    date_validite: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    statut: 'brouillon' as Quote['statut'],
     products: [] as QuoteProduct[],
   });
 
   useEffect(() => {
     if (quote && isEditing) {
       setFormData({
-        customerName: quote.customerName,
-        customerPhone: quote.customerPhone,
-        customerAddress: quote.customerAddress,
-        date: quote.date,
-        validUntil: quote.validUntil,
-        status: quote.status,
-        products: quote.products,
+        client_nom: quote.client_nom,
+        client_telephone: quote.client_telephone || '',
+        client_adresse: quote.client_adresse || '',
+        date_devis: quote.date_devis,
+        date_validite: quote.date_validite || '',
+        statut: quote.statut,
+        products: (quote as any).products || [],
       });
     } else {
       setFormData({
-        customerName: '',
-        customerPhone: '',
-        customerAddress: '',
-        date: new Date().toISOString().split('T')[0],
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: 'draft',
+        client_nom: '',
+        client_telephone: '',
+        client_adresse: '',
+        date_devis: new Date().toISOString().split('T')[0],
+        date_validite: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        statut: 'brouillon',
         products: [],
       });
     }
@@ -86,13 +86,13 @@ export const QuoteDialog = ({ open, onOpenChange, quote, onSubmit, isEditing }: 
     }));
   };
 
-  const totalAmount = formData.products.reduce((sum, product) => sum + product.totalPrice, 0);
+  const montant_total = formData.products.reduce((sum, product) => sum + product.totalPrice, 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
       ...formData,
-      totalAmount,
+      montant_total,
     });
   };
 
@@ -108,68 +108,68 @@ export const QuoteDialog = ({ open, onOpenChange, quote, onSubmit, isEditing }: 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="customerName">Nom du client</Label>
+              <Label htmlFor="client_nom">Nom du client</Label>
               <Input
-                id="customerName"
-                value={formData.customerName}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                id="client_nom"
+                value={formData.client_nom}
+                onChange={(e) => setFormData(prev => ({ ...prev, client_nom: e.target.value }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="customerPhone">Téléphone</Label>
+              <Label htmlFor="client_telephone">Téléphone</Label>
               <Input
-                id="customerPhone"
-                value={formData.customerPhone}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value }))}
+                id="client_telephone"
+                value={formData.client_telephone}
+                onChange={(e) => setFormData(prev => ({ ...prev, client_telephone: e.target.value }))}
                 required
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="customerAddress">Adresse</Label>
+            <Label htmlFor="client_adresse">Adresse</Label>
             <Textarea
-              id="customerAddress"
-              value={formData.customerAddress}
-              onChange={(e) => setFormData(prev => ({ ...prev, customerAddress: e.target.value }))}
+              id="client_adresse"
+              value={formData.client_adresse}
+              onChange={(e) => setFormData(prev => ({ ...prev, client_adresse: e.target.value }))}
               required
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date_devis">Date</Label>
               <Input
-                id="date"
+                id="date_devis"
                 type="date"
-                value={formData.date}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                value={formData.date_devis}
+                onChange={(e) => setFormData(prev => ({ ...prev, date_devis: e.target.value }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="validUntil">Valide jusqu'à</Label>
+              <Label htmlFor="date_validite">Valide jusqu'à</Label>
               <Input
-                id="validUntil"
+                id="date_validite"
                 type="date"
-                value={formData.validUntil}
-                onChange={(e) => setFormData(prev => ({ ...prev, validUntil: e.target.value }))}
+                value={formData.date_validite}
+                onChange={(e) => setFormData(prev => ({ ...prev, date_validite: e.target.value }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="status">Statut</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Quote['status'] }))}>
+              <Label htmlFor="statut">Statut</Label>
+              <Select value={formData.statut} onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value as Quote['statut'] }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">Brouillon</SelectItem>
-                  <SelectItem value="sent">Envoyé</SelectItem>
-                  <SelectItem value="accepted">Accepté</SelectItem>
-                  <SelectItem value="rejected">Refusé</SelectItem>
-                  <SelectItem value="expired">Expiré</SelectItem>
+                  <SelectItem value="brouillon">Brouillon</SelectItem>
+                  <SelectItem value="envoye">Envoyé</SelectItem>
+                  <SelectItem value="accepte">Accepté</SelectItem>
+                  <SelectItem value="refuse">Refusé</SelectItem>
+                  <SelectItem value="expire">Expiré</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -234,7 +234,7 @@ export const QuoteDialog = ({ open, onOpenChange, quote, onSubmit, isEditing }: 
 
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <div className="text-lg font-semibold">
-                Total: {totalAmount.toLocaleString()} FCFA
+                Total: {montant_total.toLocaleString()} FCFA
               </div>
             </div>
           </div>

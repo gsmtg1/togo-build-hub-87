@@ -19,38 +19,38 @@ interface InvoiceDialogProps {
 
 export const InvoiceDialog = ({ open, onOpenChange, invoice, onSubmit, isEditing }: InvoiceDialogProps) => {
   const [formData, setFormData] = useState({
-    customerName: '',
-    customerPhone: '',
-    customerAddress: '',
-    date: new Date().toISOString().split('T')[0],
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    status: 'draft' as Invoice['status'],
+    client_nom: '',
+    client_telephone: '',
+    client_adresse: '',
+    date_facture: new Date().toISOString().split('T')[0],
+    date_echeance: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    statut: 'brouillon' as Invoice['statut'],
     products: [] as InvoiceProduct[],
-    saleId: undefined as string | undefined,
+    sale_id: undefined as string | undefined,
   });
 
   useEffect(() => {
     if (invoice && isEditing) {
       setFormData({
-        customerName: invoice.customerName,
-        customerPhone: invoice.customerPhone,
-        customerAddress: invoice.customerAddress,
-        date: invoice.date,
-        dueDate: invoice.dueDate,
-        status: invoice.status,
-        products: invoice.products,
-        saleId: invoice.saleId,
+        client_nom: invoice.client_nom,
+        client_telephone: invoice.client_telephone || '',
+        client_adresse: invoice.client_adresse || '',
+        date_facture: invoice.date_facture,
+        date_echeance: invoice.date_echeance || '',
+        statut: invoice.statut,
+        products: (invoice as any).products || [],
+        sale_id: invoice.sale_id,
       });
     } else {
       setFormData({
-        customerName: '',
-        customerPhone: '',
-        customerAddress: '',
-        date: new Date().toISOString().split('T')[0],
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: 'draft',
+        client_nom: '',
+        client_telephone: '',
+        client_adresse: '',
+        date_facture: new Date().toISOString().split('T')[0],
+        date_echeance: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        statut: 'brouillon',
         products: [],
-        saleId: undefined,
+        sale_id: undefined,
       });
     }
   }, [invoice, isEditing, open]);
@@ -89,13 +89,14 @@ export const InvoiceDialog = ({ open, onOpenChange, invoice, onSubmit, isEditing
     }));
   };
 
-  const totalAmount = formData.products.reduce((sum, product) => sum + product.totalPrice, 0);
+  const montant_total = formData.products.reduce((sum, product) => sum + product.totalPrice, 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
       ...formData,
-      totalAmount,
+      montant_total,
+      montant_paye: 0,
     });
   };
 
@@ -111,67 +112,68 @@ export const InvoiceDialog = ({ open, onOpenChange, invoice, onSubmit, isEditing
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="customerName">Nom du client</Label>
+              <Label htmlFor="client_nom">Nom du client</Label>
               <Input
-                id="customerName"
-                value={formData.customerName}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                id="client_nom"
+                value={formData.client_nom}
+                onChange={(e) => setFormData(prev => ({ ...prev, client_nom: e.target.value }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="customerPhone">Téléphone</Label>
+              <Label htmlFor="client_telephone">Téléphone</Label>
               <Input
-                id="customerPhone"
-                value={formData.customerPhone}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value }))}
+                id="client_telephone"
+                value={formData.client_telephone}
+                onChange={(e) => setFormData(prev => ({ ...prev, client_telephone: e.target.value }))}
                 required
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="customerAddress">Adresse</Label>
+            <Label htmlFor="client_adresse">Adresse</Label>
             <Textarea
-              id="customerAddress"
-              value={formData.customerAddress}
-              onChange={(e) => setFormData(prev => ({ ...prev, customerAddress: e.target.value }))}
+              id="client_adresse"
+              value={formData.client_adresse}
+              onChange={(e) => setFormData(prev => ({ ...prev, client_adresse: e.target.value }))}
               required
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date_facture">Date</Label>
               <Input
-                id="date"
+                id="date_facture"
                 type="date"
-                value={formData.date}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                value={formData.date_facture}
+                onChange={(e) => setFormData(prev => ({ ...prev, date_facture: e.target.value }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="dueDate">Date d'échéance</Label>
+              <Label htmlFor="date_echeance">Date d'échéance</Label>
               <Input
-                id="dueDate"
+                id="date_echeance"
                 type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                value={formData.date_echeance}
+                onChange={(e) => setFormData(prev => ({ ...prev, date_echeance: e.target.value }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="status">Statut</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Invoice['status'] }))}>
+              <Label htmlFor="statut">Statut</Label>
+              <Select value={formData.statut} onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value as Invoice['statut'] }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">Brouillon</SelectItem>
-                  <SelectItem value="sent">Envoyée</SelectItem>
-                  <SelectItem value="paid">Payée</SelectItem>
-                  <SelectItem value="overdue">En retard</SelectItem>
+                  <SelectItem value="brouillon">Brouillon</SelectItem>
+                  <SelectItem value="envoyee">Envoyée</SelectItem>
+                  <SelectItem value="payee">Payée</SelectItem>
+                  <SelectItem value="en_retard">En retard</SelectItem>
+                  <SelectItem value="annulee">Annulée</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -236,7 +238,7 @@ export const InvoiceDialog = ({ open, onOpenChange, invoice, onSubmit, isEditing
 
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <div className="text-lg font-semibold">
-                Total: {totalAmount.toLocaleString()} FCFA
+                Total: {montant_total.toLocaleString()} FCFA
               </div>
             </div>
           </div>

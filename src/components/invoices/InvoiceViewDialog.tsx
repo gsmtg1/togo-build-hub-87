@@ -58,23 +58,27 @@ export const InvoiceViewDialog = ({ open, onOpenChange, invoice }: InvoiceViewDi
     console.log('Send invoice functionality');
   };
 
-  const getStatusBadge = (status: Invoice['status']) => {
-    const variants: Record<Invoice['status'], 'default' | 'secondary' | 'destructive'> = {
-      draft: 'secondary',
-      sent: 'default',
-      paid: 'default',
-      overdue: 'destructive',
+  const getStatusBadge = (statut: Invoice['statut']) => {
+    const variants: Record<Invoice['statut'], 'default' | 'secondary' | 'destructive'> = {
+      brouillon: 'secondary',
+      envoyee: 'default',
+      payee: 'default',
+      en_retard: 'destructive',
+      annulee: 'destructive',
     };
     
-    const labels: Record<Invoice['status'], string> = {
-      draft: 'Brouillon',
-      sent: 'Envoyée',
-      paid: 'Payée',
-      overdue: 'En retard',
+    const labels: Record<Invoice['statut'], string> = {
+      brouillon: 'Brouillon',
+      envoyee: 'Envoyée',
+      payee: 'Payée',
+      en_retard: 'En retard',
+      annulee: 'Annulée',
     };
 
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+    return <Badge variant={variants[statut]}>{labels[statut]}</Badge>;
   };
+
+  const products = (invoice as any).products || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,12 +115,12 @@ export const InvoiceViewDialog = ({ open, onOpenChange, invoice }: InvoiceViewDi
               <CardTitle>Informations Client</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div><strong>Nom:</strong> {invoice.customerName}</div>
-              <div><strong>Téléphone:</strong> {invoice.customerPhone}</div>
-              <div><strong>Adresse:</strong> {invoice.customerAddress}</div>
-              <div><strong>Date:</strong> {new Date(invoice.date).toLocaleDateString()}</div>
-              <div><strong>Date d'échéance:</strong> {new Date(invoice.dueDate).toLocaleDateString()}</div>
-              <div><strong>Statut:</strong> {getStatusBadge(invoice.status)}</div>
+              <div><strong>Nom:</strong> {invoice.client_nom}</div>
+              <div><strong>Téléphone:</strong> {invoice.client_telephone}</div>
+              <div><strong>Adresse:</strong> {invoice.client_adresse}</div>
+              <div><strong>Date:</strong> {new Date(invoice.date_facture).toLocaleDateString()}</div>
+              <div><strong>Date d'échéance:</strong> {invoice.date_echeance ? new Date(invoice.date_echeance).toLocaleDateString() : 'Non définie'}</div>
+              <div><strong>Statut:</strong> {getStatusBadge(invoice.statut)}</div>
             </CardContent>
           </Card>
 
@@ -135,8 +139,8 @@ export const InvoiceViewDialog = ({ open, onOpenChange, invoice }: InvoiceViewDi
                   </tr>
                 </thead>
                 <tbody>
-                  {invoice.products.map((product) => (
-                    <tr key={product.id}>
+                  {products.map((product, index) => (
+                    <tr key={product.id || index}>
                       <td>{product.name}</td>
                       <td>{product.quantity}</td>
                       <td>{product.unitPrice.toLocaleString()} FCFA</td>
@@ -146,10 +150,10 @@ export const InvoiceViewDialog = ({ open, onOpenChange, invoice }: InvoiceViewDi
                 </tbody>
               </table>
               <div className="total mt-4">
-                <strong>Total à payer: {invoice.totalAmount.toLocaleString()} FCFA</strong>
+                <strong>Total à payer: {invoice.montant_total.toLocaleString()} FCFA</strong>
               </div>
               <div className="due-date">
-                <p>Date limite de paiement: {new Date(invoice.dueDate).toLocaleDateString()}</p>
+                <p>Date limite de paiement: {invoice.date_echeance ? new Date(invoice.date_echeance).toLocaleDateString() : 'Non définie'}</p>
               </div>
               <div className="payment-info">
                 <h4>Informations de paiement</h4>

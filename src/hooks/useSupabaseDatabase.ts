@@ -30,7 +30,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const { data: result, error } = await supabase
+      const { data: result, error } = await (supabase as any)
         .from(tableName)
         .select('*')
         .order('created_at', { ascending: false });
@@ -51,9 +51,9 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
 
   const create = async (item: Omit<T, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const { data: result, error } = await supabase
+      const { data: result, error } = await (supabase as any)
         .from(tableName)
-        .insert([item as any])
+        .insert([item])
         .select()
         .single();
       
@@ -77,9 +77,9 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
 
   const update = async (id: string, updates: Partial<T>) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from(tableName)
-        .update({ ...updates, updated_at: new Date().toISOString() } as any)
+        .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id);
       
       if (error) throw error;
@@ -101,7 +101,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
 
   const remove = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from(tableName)
         .delete()
         .eq('id', id);
@@ -171,7 +171,7 @@ export function useProductsWithStock() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('products')
         .select('*')
         .eq('actif', true)

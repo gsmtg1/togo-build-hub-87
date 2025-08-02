@@ -51,12 +51,14 @@ export const SaleViewDialog = ({ open, onOpenChange, sale }: SaleViewDialogProps
     const variants: Record<Sale['statut'], 'default' | 'secondary' | 'destructive'> = {
       en_attente: 'secondary',
       confirmee: 'default',
+      livree: 'default',
       annulee: 'destructive',
     };
     
     const labels: Record<Sale['statut'], string> = {
       en_attente: 'En attente',
       confirmee: 'Confirmée',
+      livree: 'Livrée',
       annulee: 'Annulée',
     };
 

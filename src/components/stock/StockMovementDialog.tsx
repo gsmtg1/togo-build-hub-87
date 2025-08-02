@@ -20,7 +20,7 @@ export const StockMovementDialog = ({ open, onOpenChange, selectedProduct, onClo
   const { products } = useProductsWithStock();
   const [formData, setFormData] = useState({
     product_id: '',
-    type: '',
+    type: '' as 'entree' | 'sortie' | 'perte' | 'ajustement' | '',
     quantite: '',
     motif: '',
     commentaire: ''
@@ -34,6 +34,8 @@ export const StockMovementDialog = ({ open, onOpenChange, selectedProduct, onClo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.type) return;
+    
     try {
       await create({
         product_id: formData.product_id,
@@ -87,7 +89,7 @@ export const StockMovementDialog = ({ open, onOpenChange, selectedProduct, onClo
 
           <div>
             <Label htmlFor="type">Type de mouvement</Label>
-            <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
+            <Select value={formData.type} onValueChange={(value: 'entree' | 'sortie' | 'perte' | 'ajustement') => setFormData(prev => ({ ...prev, type: value }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner le type" />
               </SelectTrigger>

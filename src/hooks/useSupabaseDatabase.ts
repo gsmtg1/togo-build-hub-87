@@ -9,7 +9,11 @@ import type {
   Sale, 
   Delivery, 
   Invoice, 
-  ProductionOrder 
+  ProductionOrder,
+  AccountingEntry,
+  AccountingCategory,
+  MonthlyGoal,
+  AppSetting
 } from '@/types/supabase';
 
 // Hook générique pour les opérations Supabase
@@ -44,7 +48,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
     try {
       const { data: result, error } = await supabase
         .from(tableName)
-        .insert([item])
+        .insert([item as any])
         .select()
         .single();
       
@@ -70,7 +74,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
     try {
       const { error } = await supabase
         .from(tableName)
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq('id', id);
       
       if (error) throw error;
@@ -137,6 +141,14 @@ export const useSales = () => useSupabaseTable<Sale>('sales');
 export const useDeliveries = () => useSupabaseTable<Delivery>('deliveries');
 export const useInvoices = () => useSupabaseTable<Invoice>('invoices');
 export const useProductionOrders = () => useSupabaseTable<ProductionOrder>('production_orders');
+
+// Hooks pour comptabilité
+export const useAccountingEntries = () => useSupabaseTable<AccountingEntry>('accounting_entries');
+export const useAccountingCategories = () => useSupabaseTable<AccountingCategory>('accounting_categories');
+
+// Hooks pour objectifs et paramètres
+export const useMonthlyGoals = () => useSupabaseTable<MonthlyGoal>('monthly_goals');
+export const useAppSettings = () => useSupabaseTable<AppSetting>('app_settings');
 
 // Hooks manquants
 export const useProductionMaterials = () => useSupabaseTable<any>('production_materials');

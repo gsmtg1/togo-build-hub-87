@@ -114,3 +114,48 @@ export interface ProductionOrder {
   created_at: string;
   updated_at: string;
 }
+
+export interface AccountingEntry {
+  id: string;
+  type: 'recette' | 'depense' | 'salaire' | 'charge';
+  categorie: string;
+  description: string;
+  montant: number;
+  date_operation: string;
+  methode_paiement?: 'especes' | 'virement' | 'cheque' | 'mobile_money';
+  reference_externe?: string;
+  employee_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AccountingCategory {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MonthlyGoal {
+  id: string;
+  titre: string;
+  description?: string;
+  mois: number;
+  annee: number;
+  objectif_montant: number;
+  montant_realise: number;
+  statut: 'actif' | 'termine' | 'annule';
+  employee_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppSetting {
+  id: string;
+  cle: string;
+  valeur: any;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}

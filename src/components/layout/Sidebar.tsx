@@ -1,99 +1,100 @@
 
-import { useState } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  LayoutDashboard, 
+  Home, 
   Package, 
   ShoppingCart, 
-  Truck, 
   FileText, 
-  Calculator,
-  Users,
+  Truck, 
+  Calculator, 
+  Users, 
+  Settings, 
+  X,
   Target,
-  Settings,
-  Factory,
-  ClipboardList,
   AlertTriangle,
-  BarChart3
+  BarChart3,
+  Factory
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const navigation = [
-  { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Gestion Stock', href: '/stock', icon: Package },
-  { name: 'Production', href: '/production', icon: Factory },
-  { name: 'Ordres Production', href: '/ordres-production', icon: ClipboardList },
-  { name: 'Ventes', href: '/ventes', icon: ShoppingCart },
-  { name: 'Livraisons', href: '/livraisons', icon: Truck },
-  { name: 'Devis', href: '/devis', icon: FileText },
-  { name: 'Factures', href: '/factures', icon: FileText },
-  { name: 'Pertes Quotidiennes', href: '/pertes', icon: AlertTriangle },
-  { name: 'Rapports', href: '/rapports', icon: BarChart3 },
-  { name: 'Comptabilité', href: '/comptabilite', icon: Calculator },
-  { name: 'Employés', href: '/employes', icon: Users },
-  { name: 'Objectifs', href: '/objectifs', icon: Target },
-  { name: 'Paramètres', href: '/parametres', icon: Settings },
-];
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
-export const Sidebar = () => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+
+  const navigation = [
+    { name: 'Tableau de bord', href: '/dashboard', icon: Home },
+    { name: 'Stock', href: '/stock', icon: Package },
+    { name: 'Ventes', href: '/ventes', icon: ShoppingCart },
+    { name: 'Devis', href: '/devis', icon: FileText },
+    { name: 'Factures', href: '/factures', icon: FileText },
+    { name: 'Livraisons', href: '/livraisons', icon: Truck },
+    { name: 'Production', href: '/production', icon: Factory },
+    { name: 'Ordres Production', href: '/ordres-production', icon: Settings },
+    { name: 'Pertes', href: '/pertes', icon: AlertTriangle },
+    { name: 'Comptabilité', href: '/comptabilite', icon: Calculator },
+    { name: 'Employés', href: '/employes', icon: Users },
+    { name: 'Objectifs', href: '/objectifs', icon: Target },
+    { name: 'Rapports', href: '/rapports', icon: BarChart3 },
+    { name: 'Paramètres', href: '/parametres', icon: Settings },
+  ];
 
   return (
-    <div className={cn(
-      "flex flex-col h-full bg-white border-r transition-all duration-300",
-      collapsed ? "w-16" : "w-64"
-    )}>
-      <div className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-            <Package className="w-4 h-4 text-white" />
-          </div>
-          {!collapsed && (
-            <div>
-              <h1 className="font-bold text-lg">Cornerstone</h1>
-              <p className="text-xs text-muted-foreground">Briques & Construction</p>
-            </div>
-          )}
-        </div>
-      </div>
+    <>
+      {/* Overlay mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      <ScrollArea className="flex-1 px-2">
-        <div className="space-y-1">
-          {navigation.map((item) => {
-            const isActive = location.pathname === item.href;
-            return (
-              <Button
-                key={item.name}
-                asChild
-                variant={isActive ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full justify-start gap-2 h-10",
-                  collapsed && "justify-center px-0"
-                )}
-              >
-                <Link to={item.href}>
-                  <item.icon className="h-4 w-4 flex-shrink-0" />
-                  {!collapsed && <span className="truncate">{item.name}</span>}
-                </Link>
-              </Button>
-            );
-          })}
+      {/* Sidebar */}
+      <div className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out md:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="flex items-center justify-between h-16 px-6 border-b">
+          <h2 className="text-xl font-bold text-gray-800">Briqueterie</h2>
+          <button
+            onClick={onClose}
+            className="md:hidden p-2 rounded-md hover:bg-gray-100"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-      </ScrollArea>
 
-      <div className="p-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setCollapsed(!collapsed)}
-          className="w-full"
-        >
-          {collapsed ? '→' : '←'}
-        </Button>
+        <nav className="mt-6">
+          <ul className="space-y-1 px-3">
+            {navigation.map((item) => {
+              const isActive = location.pathname === item.href;
+              const Icon = item.icon;
+
+              return (
+                <li key={item.name}>
+                  <Link
+                    to={item.href}
+                    onClick={onClose}
+                    className={cn(
+                      "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      isActive
+                        ? "bg-orange-100 text-orange-900 border-r-2 border-orange-500"
+                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    )}
+                  >
+                    <Icon className="mr-3 h-5 w-5" />
+                    {item.name}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
       </div>
-    </div>
+    </>
   );
 };

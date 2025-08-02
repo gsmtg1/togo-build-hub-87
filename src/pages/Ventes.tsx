@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useSales } from '@/hooks/useSupabaseDatabase';
-import type { Sale } from '@/types/database';
+import type { Sale } from '@/types/supabase';
 import { SaleDialog } from '@/components/sales/SaleDialog';
 import { SaleViewDialog } from '@/components/sales/SaleViewDialog';
 import { COMPANY_INFO } from '@/config/company';
@@ -53,13 +53,13 @@ const Ventes = () => {
     if (isEditing && selectedSale) {
       await update(selectedSale.id, { ...saleData, updated_at: new Date().toISOString() });
     } else {
-      const newSale: Partial<Sale> = {
+      const newSale = {
         numero_vente: `VTE-${Date.now().toString().slice(-6)}`,
         client_nom: saleData.client_nom || '',
         client_telephone: saleData.client_telephone || '',
         client_adresse: saleData.client_adresse || '',
         date_vente: saleData.date_vente || new Date().toISOString(),
-        statut: saleData.statut || 'en_attente',
+        statut: saleData.statut || 'en_attente' as const,
         montant_total: saleData.montant_total || 0,
         vendeur_id: saleData.vendeur_id || '',
         commentaires: saleData.commentaires || ''
@@ -73,12 +73,14 @@ const Ventes = () => {
     const variants: Record<Sale['statut'], 'default' | 'secondary' | 'destructive'> = {
       en_attente: 'secondary',
       confirmee: 'default',
+      livree: 'default',
       annulee: 'destructive',
     };
     
     const labels: Record<Sale['statut'], string> = {
       en_attente: 'En attente',
       confirmee: 'Confirmée',
+      livree: 'Livrée',
       annulee: 'Annulée',
     };
 

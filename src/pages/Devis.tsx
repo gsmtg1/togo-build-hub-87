@@ -51,48 +51,50 @@ const Devis = () => {
 
   const handleSubmit = async (quoteData: Partial<Quote>) => {
     if (isEditing && selectedQuote) {
-      await update({ ...selectedQuote, ...quoteData, updatedAt: new Date().toISOString() });
+      await update({ ...selectedQuote, ...quoteData, updated_at: new Date().toISOString() });
     } else {
       const newQuote: Quote = {
         id: crypto.randomUUID(),
-        customerName: quoteData.customerName || '',
-        customerPhone: quoteData.customerPhone || '',
-        customerAddress: quoteData.customerAddress || '',
-        products: quoteData.products || [],
-        totalAmount: quoteData.totalAmount || 0,
-        date: quoteData.date || new Date().toISOString().split('T')[0],
-        validUntil: quoteData.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: quoteData.status || 'draft',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        numero_devis: `DEV-${Date.now()}`,
+        client_nom: quoteData.client_nom || '',
+        client_telephone: quoteData.client_telephone || '',
+        client_adresse: quoteData.client_adresse || '',
+        date_devis: quoteData.date_devis || new Date().toISOString().split('T')[0],
+        date_validite: quoteData.date_validite || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        statut: quoteData.statut || 'brouillon',
+        montant_total: quoteData.montant_total || 0,
+        vendeur_id: quoteData.vendeur_id,
+        commentaires: quoteData.commentaires,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
       await create(newQuote);
     }
     setDialogOpen(false);
   };
 
-  const getStatusBadge = (status: Quote['status']) => {
-    const variants: Record<Quote['status'], 'default' | 'secondary' | 'destructive'> = {
-      draft: 'secondary',
-      sent: 'default',
-      accepted: 'default',
-      rejected: 'destructive',
-      expired: 'destructive',
+  const getStatusBadge = (statut: Quote['statut']) => {
+    const variants: Record<Quote['statut'], 'default' | 'secondary' | 'destructive'> = {
+      brouillon: 'secondary',
+      envoye: 'default',
+      accepte: 'default',
+      refuse: 'destructive',
+      expire: 'destructive',
     };
     
-    const labels: Record<Quote['status'], string> = {
-      draft: 'Brouillon',
-      sent: 'Envoyé',
-      accepted: 'Accepté',
-      rejected: 'Refusé',
-      expired: 'Expiré',
+    const labels: Record<Quote['statut'], string> = {
+      brouillon: 'Brouillon',
+      envoye: 'Envoyé',
+      accepte: 'Accepté',
+      refuse: 'Refusé',
+      expire: 'Expiré',
     };
 
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+    return <Badge variant={variants[statut]}>{labels[statut]}</Badge>;
   };
 
-  const totalQuotes = quotes.reduce((sum, quote) => sum + quote.totalAmount, 0);
-  const acceptedQuotes = quotes.filter(quote => quote.status === 'accepted').length;
+  const totalQuotes = quotes.reduce((sum, quote) => sum + quote.montant_total, 0);
+  const acceptedQuotes = quotes.filter(quote => quote.statut === 'accepte').length;
 
   return (
     <div className="space-y-6">
@@ -153,12 +155,12 @@ const Devis = () => {
             <TableBody>
               {quotes.map((quote) => (
                 <TableRow key={quote.id}>
-                  <TableCell>{new Date(quote.date).toLocaleDateString()}</TableCell>
-                  <TableCell>{quote.customerName}</TableCell>
-                  <TableCell>{quote.customerPhone}</TableCell>
-                  <TableCell>{quote.totalAmount.toLocaleString()} FCFA</TableCell>
-                  <TableCell>{new Date(quote.validUntil).toLocaleDateString()}</TableCell>
-                  <TableCell>{getStatusBadge(quote.status)}</TableCell>
+                  <TableCell>{new Date(quote.date_devis).toLocaleDateString()}</TableCell>
+                  <TableCell>{quote.client_nom}</TableCell>
+                  <TableCell>{quote.client_telephone}</TableCell>
+                  <TableCell>{quote.montant_total.toLocaleString()} FCFA</TableCell>
+                  <TableCell>{quote.date_validite ? new Date(quote.date_validite).toLocaleDateString() : 'Non définie'}</TableCell>
+                  <TableCell>{getStatusBadge(quote.statut)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button

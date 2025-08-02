@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Plus, Package, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,13 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useProducts } from '@/hooks/useSupabaseDatabase';
 import { StockMovementDialog } from './StockMovementDialog';
+import type { Product } from '@/types/supabase';
 
 export const StockManagement = () => {
   const { data: products, loading } = useProducts();
   const [showMovementDialog, setShowMovementDialog] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const getStockStatus = (product: any) => {
+  const getStockStatus = (product: Product) => {
     if (product.stock_actuel <= product.stock_minimum) {
       return { status: 'danger', label: 'Stock critique', icon: AlertTriangle, color: 'text-red-500' };
     }
@@ -23,11 +23,13 @@ export const StockManagement = () => {
     return { status: 'success', label: 'Stock bon', icon: TrendingUp, color: 'text-green-500' };
   };
 
+  const typedProducts = products as Product[];
+
   const stats = {
-    total: products.length,
-    lowStock: products.filter(p => p.stock_actuel <= p.stock_minimum).length,
-    totalValue: products.reduce((sum, p) => sum + (p.stock_actuel * p.prix_unitaire), 0),
-    totalQuantity: products.reduce((sum, p) => sum + p.stock_actuel, 0)
+    total: typedProducts.length,
+    lowStock: typedProducts.filter(p => p.stock_actuel <= p.stock_minimum).length,
+    totalValue: typedProducts.reduce((sum, p) => sum + (p.stock_actuel * p.prix_unitaire), 0),
+    totalQuantity: typedProducts.reduce((sum, p) => sum + p.stock_actuel, 0)
   };
 
   if (loading) {
@@ -110,7 +112,7 @@ export const StockManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => {
+              {typedProducts.map((product) => {
                 const stockStatus = getStockStatus(product);
                 const StatusIcon = stockStatus.icon;
                 

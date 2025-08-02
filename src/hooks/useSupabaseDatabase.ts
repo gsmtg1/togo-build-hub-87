@@ -2,6 +2,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { 
+  Product, 
+  StockMovement, 
+  DailyLoss, 
+  Sale, 
+  Delivery, 
+  Invoice, 
+  ProductionOrder 
+} from '@/types/supabase';
 
 // Hook générique pour les opérations Supabase
 function useSupabaseTable<T extends { id: string }>(tableName: string) {
@@ -120,18 +129,25 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
 }
 
 // Hooks spécialisés
-export const useProducts = () => useSupabaseTable('products');
-export const useStockMovements = () => useSupabaseTable('stock_movements');
-export const useDailyLosses = () => useSupabaseTable('daily_losses');
-export const useMonthlyLossReports = () => useSupabaseTable('monthly_loss_reports');
-export const useSales = () => useSupabaseTable('sales');
-export const useDeliveries = () => useSupabaseTable('deliveries');
-export const useInvoices = () => useSupabaseTable('invoices');
-export const useProductionOrders = () => useSupabaseTable('production_orders');
+export const useProducts = () => useSupabaseTable<Product>('products');
+export const useStockMovements = () => useSupabaseTable<StockMovement>('stock_movements');
+export const useDailyLosses = () => useSupabaseTable<DailyLoss>('daily_losses');
+export const useMonthlyLossReports = () => useSupabaseTable<any>('monthly_loss_reports');
+export const useSales = () => useSupabaseTable<Sale>('sales');
+export const useDeliveries = () => useSupabaseTable<Delivery>('deliveries');
+export const useInvoices = () => useSupabaseTable<Invoice>('invoices');
+export const useProductionOrders = () => useSupabaseTable<ProductionOrder>('production_orders');
+
+// Hooks manquants
+export const useProductionMaterials = () => useSupabaseTable<any>('production_materials');
+export const useBrickTypes = () => useSupabaseTable<any>('brick_types');
+export const useProductionRecipes = () => useSupabaseTable<any>('production_recipes');
+export const useProductionCosts = () => useSupabaseTable<any>('production_costs');
+export const useEmployees = () => useSupabaseTable<any>('employees');
 
 // Hook spécialisé pour les produits avec stock
 export function useProductsWithStock() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 

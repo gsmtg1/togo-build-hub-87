@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Plus, AlertTriangle, Calendar, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useDailyLosses, useProductsWithStock } from '@/hooks/useSupabaseDatabase';
+import type { DailyLoss, Product } from '@/types/supabase';
 
 export const DailyLossManagement = () => {
   const { data: losses, loading, create, remove } = useDailyLosses();
@@ -27,7 +27,7 @@ export const DailyLossManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const selectedProduct = products.find(p => p.id === formData.product_id);
+      const selectedProduct = products.find((p: Product) => p.id === formData.product_id);
       const valeurPerte = selectedProduct ? selectedProduct.prix_unitaire * parseInt(formData.quantite_cassee) : 0;
 
       await create({
@@ -37,7 +37,7 @@ export const DailyLossManagement = () => {
         valeur_perte: valeurPerte,
         responsable: formData.responsable,
         commentaire: formData.commentaire
-      });
+      } as Omit<DailyLoss, 'id' | 'created_at' | 'updated_at'>);
       
       setFormData({
         product_id: '',
@@ -58,7 +58,7 @@ export const DailyLossManagement = () => {
     }
   };
 
-  const todayLosses = losses.filter(loss => 
+  const todayLosses = (losses as DailyLoss[]).filter(loss => 
     loss.date_perte === new Date().toISOString().split('T')[0]
   );
 
@@ -95,7 +95,7 @@ export const DailyLossManagement = () => {
                     <SelectValue placeholder="Sélectionner un produit" />
                   </SelectTrigger>
                   <SelectContent>
-                    {products.map((product) => (
+                    {products.map((product: Product) => (
                       <SelectItem key={product.id} value={product.id}>
                         {product.nom} - {product.prix_unitaire} FCFA
                       </SelectItem>
@@ -213,8 +213,8 @@ export const DailyLossManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {losses.map((loss) => {
-                const product = products.find(p => p.id === loss.product_id);
+              {(losses as DailyLoss[]).map((loss) => {
+                const product = products.find((p: Product) => p.id === loss.product_id);
                 return (
                   <TableRow key={loss.id}>
                     <TableCell>

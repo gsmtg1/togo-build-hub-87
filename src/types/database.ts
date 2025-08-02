@@ -1,3 +1,4 @@
+
 // Types pour la base de données Supabase
 export interface Product {
   id: string;
@@ -12,29 +13,65 @@ export interface Product {
   actif: boolean;
   date_creation: string;
   date_modification: string;
-}
-
-export interface ProductionOrder {
-  id: string;
-  numero_ordre: string;
-  product_id: string;
-  quantite: number;
-  date_demande: string;
-  date_prevue?: string;
-  date_completion?: string;
-  statut: 'en_attente' | 'approuve' | 'rejete' | 'en_cours' | 'termine' | 'annule';
-  demandeur_id?: string;
-  approbateur_id?: string;
-  commentaires?: string;
-  cout_prevu?: number;
-  cout_reel?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface StockMovement {
+  id: string;
+  product_id: string;
+  type: 'entree' | 'sortie' | 'perte' | 'ajustement';
+  quantite: number;
+  motif?: string;
+  reference_document?: string;
+  date_mouvement: string;
+  created_by?: string;
+  commentaire?: string;
+  created_at: string;
+}
+
+export interface DailyLoss {
+  id: string;
+  product_id: string;
+  date_perte: string;
+  quantite_cassee: number;
+  motif?: string;
+  valeur_perte?: number;
+  responsable?: string;
+  commentaire?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Sale {
+  id: string;
+  numero_vente: string;
+  client_nom: string;
+  client_telephone?: string;
+  client_adresse?: string;
+  date_vente: string;
+  statut: 'en_attente' | 'confirmee' | 'livree' | 'annulee';
+  montant_total: number;
+  vendeur_id?: string;
+  commentaires?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SaleItem {
+  id: string;
+  sale_id: string;
+  product_id: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
+  created_at: string;
 }
 
 export interface Delivery {
   id: string;
   numero_livraison: string;
+  sale_id?: string;
   client_nom: string;
   client_telephone?: string;
   client_adresse: string;
@@ -54,31 +91,6 @@ export interface Delivery {
 export interface DeliveryItem {
   id: string;
   delivery_id: string;
-  product_id: string;
-  quantite: number;
-  prix_unitaire: number;
-  total: number;
-  created_at: string;
-}
-
-export interface Sale {
-  id: string;
-  numero_vente: string;
-  client_nom: string;
-  client_telephone?: string;
-  client_adresse?: string;
-  date_vente: string;
-  statut: 'en_attente' | 'confirmee' | 'annulee';
-  montant_total: number;
-  vendeur_id?: string;
-  commentaires?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SaleItem {
-  id: string;
-  sale_id: string;
   product_id: string;
   quantite: number;
   prix_unitaire: number;
@@ -143,6 +155,24 @@ export interface InvoiceItem {
   created_at: string;
 }
 
+export interface ProductionOrder {
+  id: string;
+  numero_ordre: string;
+  product_id: string;
+  quantite: number;
+  date_demande: string;
+  date_prevue?: string;
+  date_completion?: string;
+  statut: 'en_attente' | 'approuve' | 'rejete' | 'en_cours' | 'termine' | 'annule';
+  demandeur_id?: string;
+  approbateur_id?: string;
+  commentaires?: string;
+  cout_prevu?: number;
+  cout_reel?: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Employee {
   id: string;
   nom: string;
@@ -173,6 +203,14 @@ export interface AccountingEntry {
   updated_at: string;
 }
 
+export interface AccountingCategory {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MonthlyGoal {
   id: string;
   titre: string;
@@ -194,13 +232,6 @@ export interface AppSetting {
   description?: string;
   created_at: string;
   updated_at: string;
-}
-
-// Types pour la comptabilité
-export interface AccountingCategory {
-  id: string;
-  name: string;
-  description?: string;
 }
 
 export interface ProductionStep {

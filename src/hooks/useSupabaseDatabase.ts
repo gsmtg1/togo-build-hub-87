@@ -13,8 +13,13 @@ import type {
   AccountingEntry,
   AccountingCategory,
   MonthlyGoal,
-  AppSetting
-} from '@/types/supabase';
+  AppSetting,
+  Employee,
+  BrickType,
+  ProductionMaterial,
+  ProductionRecipe,
+  ProductionCost
+} from '@/types/database';
 
 // Hook générique pour les opérations Supabase
 function useSupabaseTable<T extends { id: string }>(tableName: string) {
@@ -150,12 +155,12 @@ export const useAccountingCategories = () => useSupabaseTable<AccountingCategory
 export const useMonthlyGoals = () => useSupabaseTable<MonthlyGoal>('monthly_goals');
 export const useAppSettings = () => useSupabaseTable<AppSetting>('app_settings');
 
-// Hooks manquants
-export const useProductionMaterials = () => useSupabaseTable<any>('production_materials');
-export const useBrickTypes = () => useSupabaseTable<any>('brick_types');
-export const useProductionRecipes = () => useSupabaseTable<any>('production_recipes');
-export const useProductionCosts = () => useSupabaseTable<any>('production_costs');
-export const useEmployees = () => useSupabaseTable<any>('employees');
+// Hooks pour production
+export const useProductionMaterials = () => useSupabaseTable<ProductionMaterial>('production_materials');
+export const useBrickTypes = () => useSupabaseTable<BrickType>('brick_types');
+export const useProductionRecipes = () => useSupabaseTable<ProductionRecipe>('production_recipes');
+export const useProductionCosts = () => useSupabaseTable<ProductionCost>('production_costs');
+export const useEmployees = () => useSupabaseTable<Employee>('employees');
 
 // Hook spécialisé pour les produits avec stock
 export function useProductsWithStock() {

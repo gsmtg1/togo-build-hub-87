@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useSales } from '@/hooks/useSupabaseDatabase';
-import type { Sale } from '@/types/supabase';
+import type { Sale } from '@/types/database';
 import { SaleDialog } from '@/components/sales/SaleDialog';
 import { SaleViewDialog } from '@/components/sales/SaleViewDialog';
 import { COMPANY_INFO } from '@/config/company';

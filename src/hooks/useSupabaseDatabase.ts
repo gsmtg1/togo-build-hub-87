@@ -34,22 +34,41 @@ export interface StockMovement {
   created_at: string;
 }
 
-// Hook générique pour les opérations Supabase
-function useSupabaseTable<T extends { id: string }>(tableName: string) {
+// Hook générique pour les opérations Supabase avec types spécifiques
+function useSupabaseTable<T extends { id: string }>(tableName: keyof typeof TABLE_MAPPINGS) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Mapping des tables pour éviter les erreurs de typage
+  const TABLE_MAPPINGS = {
+    products: 'products',
+    daily_losses: 'daily_losses',
+    sales: 'sales',
+    deliveries: 'deliveries', 
+    invoices: 'invoices',
+    production_orders: 'production_orders',
+    accounting_entries: 'accounting_entries',
+    accounting_categories: 'accounting_categories',
+    monthly_goals: 'monthly_goals',
+    app_settings: 'app_settings',
+    employees: 'employees',
+    production_materials: 'production_materials',
+    brick_types: 'brick_types', 
+    production_recipes: 'production_recipes',
+    production_costs: 'production_costs'
+  } as const;
 
   const loadData = async () => {
     try {
       setLoading(true);
       const { data: result, error } = await supabase
-        .from(tableName)
+        .from(TABLE_MAPPINGS[tableName])
         .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      setData((result as T[]) || []);
     } catch (error) {
       console.error(`Error loading ${tableName}:`, error);
       toast({
@@ -65,8 +84,8 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
   const create = async (item: Omit<T, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       const { data: result, error } = await supabase
-        .from(tableName)
-        .insert([item])
+        .from(TABLE_MAPPINGS[tableName])
+        .insert([item as any])
         .select()
         .single();
       
@@ -76,7 +95,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
         title: "Succès",
         description: "Élément créé avec succès",
       });
-      return result;
+      return result as T;
     } catch (error) {
       console.error(`Error creating ${tableName}:`, error);
       toast({
@@ -91,8 +110,8 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
   const update = async (id: string, updates: Partial<T>) => {
     try {
       const { error } = await supabase
-        .from(tableName)
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .from(TABLE_MAPPINGS[tableName])
+        .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq('id', id);
       
       if (error) throw error;
@@ -115,7 +134,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
   const remove = async (id: string) => {
     try {
       const { error } = await supabase
-        .from(tableName)
+        .from(TABLE_MAPPINGS[tableName])
         .delete()
         .eq('id', id);
       
@@ -153,7 +172,6 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
 // Hooks spécialisés
 export const useProducts = () => useSupabaseTable<Product>('products');
 export const useDailyLosses = () => useSupabaseTable<DailyLoss>('daily_losses');
-export const useMonthlyLossReports = () => useSupabaseTable<any>('monthly_loss_reports');
 export const useSales = () => useSupabaseTable<Sale>('sales');
 export const useDeliveries = () => useSupabaseTable<Delivery>('deliveries');
 export const useInvoices = () => useSupabaseTable<Invoice>('invoices');

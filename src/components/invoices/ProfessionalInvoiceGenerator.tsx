@@ -1,22 +1,30 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, FileText, Printer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useProducts } from '@/hooks/useSupabaseDatabase';
+import { ProductSelector } from './ProductSelector';
+import { ProfessionalInvoiceView } from './ProfessionalInvoiceView';
+import { useProductsWithStock } from '@/hooks/useSupabaseDatabase';
+import type { Sale } from '@/types/database';
+
+interface InvoiceProduct {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  isCustom?: boolean;
+}
 
 interface ProfessionalInvoiceGeneratorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (saleData: any) => Promise<void>;
-  editingSale?: any;
+  onSubmit: (saleData: Partial<Sale>) => Promise<void>;
+  editingSale?: Sale | null;
 }
 
 export const ProfessionalInvoiceGenerator = ({ 
@@ -25,333 +33,241 @@ export const ProfessionalInvoiceGenerator = ({
   onSubmit, 
   editingSale 
 }: ProfessionalInvoiceGeneratorProps) => {
-  const { data: products } = useProducts();
-  
+  const { products: availableProducts } = useProductsWithStock();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showPreview, setShowPreview] = useState(false);
+
   const [formData, setFormData] = useState({
-    client_nom: editingSale?.client_nom || '',
-    client_telephone: editingSale?.client_telephone || '',
-    client_adresse: editingSale?.client_adresse || '',
-    items: editingSale?.items || [{ product_id: '', quantity: 1, unit_price: 0 }],
-    use_tva: false,
-    notes: ''
+    client_nom: '',
+    client_telephone: '',
+    client_adresse: '',
+    commentaires: ''
   });
 
-  const [customProduct, setCustomProduct] = useState({ name: '', price: '' });
+  const [products, setProducts] = useState<InvoiceProduct[]>([]);
 
-  const addItem = () => {
-    setFormData(prev => ({
-      ...prev,
-      items: [...prev.items, { product_id: '', quantity: 1, unit_price: 0 }]
-    }));
-  };
-
-  const removeItem = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      items: prev.items.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateItem = (index: number, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      items: prev.items.map((item, i) => 
-        i === index ? { ...item, [field]: value } : item
-      )
-    }));
-  };
-
-  const addCustomProduct = () => {
-    if (customProduct.name && customProduct.price) {
-      const newItem = {
-        product_id: 'custom',
-        custom_name: customProduct.name,
-        quantity: 1,
-        unit_price: parseFloat(customProduct.price)
-      };
-      setFormData(prev => ({
-        ...prev,
-        items: [...prev.items, newItem]
-      }));
-      setCustomProduct({ name: '', price: '' });
+  useEffect(() => {
+    if (editingSale) {
+      setFormData({
+        client_nom: editingSale.client_nom || '',
+        client_telephone: editingSale.client_telephone || '',
+        client_adresse: editingSale.client_adresse || '',
+        commentaires: editingSale.commentaires || ''
+      });
+      // Load existing products if any
+      const existingProducts: InvoiceProduct[] = [];
+      setProducts(existingProducts);
+    } else {
+      setFormData({
+        client_nom: '',
+        client_telephone: '',
+        client_adresse: '',
+        commentaires: ''
+      });
+      setProducts([]);
     }
-  };
+  }, [editingSale]);
 
-  const calculateSubtotal = () => {
-    return formData.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-  };
-
-  const calculateTVA = () => {
-    return formData.use_tva ? calculateSubtotal() * 0.18 : 0;
-  };
-
-  const calculateTotal = () => {
-    return calculateSubtotal() + calculateTVA();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    const totalAmount = products.reduce((sum, product) => sum + product.totalPrice, 0);
     
-    const saleData = {
-      numero_vente: `VTE-${Date.now()}`,
+    const saleData: Partial<Sale> = {
       client_nom: formData.client_nom,
-      client_telephone: formData.client_telephone,
-      client_adresse: formData.client_adresse,
-      items: JSON.stringify(formData.items),
-      montant_ht: calculateSubtotal(),
-      montant_tva: calculateTVA(),
-      montant_total: calculateTotal(),
-      use_tva: formData.use_tva,
-      notes: formData.notes,
-      statut: 'confirmee',
-      date_vente: new Date().toISOString()
+      client_telephone: formData.client_telephone || undefined,
+      client_adresse: formData.client_adresse || undefined,
+      date_vente: new Date().toISOString(),
+      statut: 'en_attente',
+      montant_total: totalAmount,
+      commentaires: formData.commentaires || undefined
     };
 
     await onSubmit(saleData);
     onOpenChange(false);
+    setCurrentStep(1);
+    setShowPreview(false);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const addProductFromPredefined = (productId: string) => {
+    const predefined = availableProducts.find(p => p.id === productId);
+    if (predefined) {
+      const newProduct: InvoiceProduct = {
+        id: crypto.randomUUID(),
+        name: `${predefined.name} (${predefined.dimensions})`,
+        quantity: 1,
+        unitPrice: predefined.price,
+        totalPrice: predefined.price,
+        isCustom: false,
+      };
+      setProducts([...products, newProduct]);
+    }
   };
+
+  if (showPreview) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Aperçu de la facture</DialogTitle>
+          </DialogHeader>
+          <ProfessionalInvoiceView 
+            sale={{
+              id: '',
+              numero_vente: `VT-${Date.now()}`,
+              client_nom: formData.client_nom,
+              client_telephone: formData.client_telephone,
+              client_adresse: formData.client_adresse,
+              date_vente: new Date().toISOString(),
+              statut: 'en_attente',
+              montant_total: products.reduce((sum, p) => sum + p.totalPrice, 0),
+              commentaires: formData.commentaires,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }}
+            products={products}
+            onBack={() => setShowPreview(false)}
+            onConfirm={handleSubmit}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            {editingSale ? 'Modifier la facture' : 'Générer une facture professionnelle'}
+          <DialogTitle>
+            {editingSale ? 'Modifier la vente' : 'Nouvelle vente / facture'}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* En-tête facture */}
-          <Card className="border-2">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-              <div className="flex justify-between items-start">
+          {currentStep === 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>1. Informations client</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-blue-900">CORNERSTONE BRIQUES</h2>
-                  <p className="text-sm text-gray-600 mt-2">
-                    21 Rue Be HEDJE, après les rails<br />
-                    non loin de la station d'essence CM<br />
-                    Akodésséwa, Lomé - Togo
-                  </p>
-                </div>
-                <div className="text-right">
-                  <h3 className="text-xl font-bold text-blue-900">FACTURE</h3>
-                  <p className="text-sm text-gray-600">N° VTE-{Date.now()}</p>
-                  <p className="text-sm text-gray-600">{new Date().toLocaleDateString('fr-FR')}</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Informations client */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="client_nom">Nom du client *</Label>
-                    <Input
-                      id="client_nom"
-                      value={formData.client_nom}
-                      onChange={(e) => setFormData(prev => ({ ...prev, client_nom: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="client_telephone">Téléphone</Label>
-                    <Input
-                      id="client_telephone"
-                      value={formData.client_telephone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, client_telephone: e.target.value }))}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label htmlFor="client_adresse">Adresse</Label>
-                    <Input
-                      id="client_adresse"
-                      value={formData.client_adresse}
-                      onChange={(e) => setFormData(prev => ({ ...prev, client_adresse: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Ajouter produit personnalisé */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Ajouter un produit personnalisé</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nom du produit"
-                        value={customProduct.name}
-                        onChange={(e) => setCustomProduct(prev => ({ ...prev, name: e.target.value }))}
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Prix unitaire"
-                        value={customProduct.price}
-                        onChange={(e) => setCustomProduct(prev => ({ ...prev, price: e.target.value }))}
-                      />
-                      <Button type="button" onClick={addCustomProduct}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Articles */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Articles</h3>
-                    <Button type="button" onClick={addItem} variant="outline" size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Ajouter un article
-                    </Button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {formData.items.map((item, index) => (
-                      <Card key={index} className="border">
-                        <CardContent className="pt-4">
-                          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-                            <div>
-                              <Label>Produit</Label>
-                              {item.product_id === 'custom' ? (
-                                <Input value={item.custom_name} disabled />
-                              ) : (
-                                <Select
-                                  value={item.product_id}
-                                  onValueChange={(value) => {
-                                    const product = products.find(p => p.id === value);
-                                    updateItem(index, 'product_id', value);
-                                    if (product) {
-                                      updateItem(index, 'unit_price', product.prix_unitaire);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Choisir un produit" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {products.map((product) => (
-                                      <SelectItem key={product.id} value={product.id}>
-                                        {product.nom}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </div>
-                            <div>
-                              <Label>Quantité</Label>
-                              <Input
-                                type="number"
-                                min="1"
-                                value={item.quantity}
-                                onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
-                              />
-                            </div>
-                            <div>
-                              <Label>Prix unitaire (FCFA)</Label>
-                              <Input
-                                type="number"
-                                value={item.unit_price}
-                                onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
-                              />
-                            </div>
-                            <div>
-                              <Label>Total</Label>
-                              <Input
-                                value={`${(item.quantity * item.unit_price).toLocaleString()} FCFA`}
-                                disabled
-                              />
-                            </div>
-                            <div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeItem(index)}
-                                disabled={formData.items.length === 1}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Totaux */}
-                <Card className="bg-gray-50">
-                  <CardContent className="pt-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-4 mb-4">
-                        <Switch
-                          checked={formData.use_tva}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, use_tva: checked }))}
-                        />
-                        <Label>Inclure la TVA (18%)</Label>
-                      </div>
-                      
-                      <div className="flex justify-between text-lg">
-                        <span>Sous-total:</span>
-                        <span className="font-semibold">{calculateSubtotal().toLocaleString()} FCFA</span>
-                      </div>
-                      
-                      {formData.use_tva && (
-                        <div className="flex justify-between text-lg">
-                          <span>TVA (18%):</span>
-                          <span className="font-semibold">{calculateTVA().toLocaleString()} FCFA</span>
-                        </div>
-                      )}
-                      
-                      <Separator />
-                      
-                      <div className="flex justify-between text-xl font-bold text-blue-900">
-                        <span>Total:</span>
-                        <span>{calculateTotal().toLocaleString()} FCFA</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Notes */}
-                <div>
-                  <Label htmlFor="notes">Notes / Commentaires</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Conditions de paiement, instructions spéciales..."
+                  <Label htmlFor="client_nom">Nom du client</Label>
+                  <Input
+                    id="client_nom"
+                    value={formData.client_nom}
+                    onChange={(e) => setFormData({ ...formData, client_nom: e.target.value })}
+                    required
                   />
                 </div>
-
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4">
-                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                    Annuler
-                  </Button>
-                  <Button type="button" variant="outline" onClick={handlePrint}>
-                    <Printer className="h-4 w-4 mr-2" />
-                    Imprimer
-                  </Button>
-                  <Button type="submit">
-                    <FileText className="h-4 w-4 mr-2" />
-                    {editingSale ? 'Mettre à jour' : 'Créer la facture'}
-                  </Button>
+                <div>
+                  <Label htmlFor="client_telephone">Téléphone</Label>
+                  <Input
+                    id="client_telephone"
+                    value={formData.client_telephone}
+                    onChange={(e) => setFormData({ ...formData, client_telephone: e.target.value })}
+                  />
                 </div>
-              </form>
-            </CardContent>
-          </Card>
+                <div>
+                  <Label htmlFor="client_adresse">Adresse</Label>
+                  <Textarea
+                    id="client_adresse"
+                    value={formData.client_adresse}
+                    onChange={(e) => setFormData({ ...formData, client_adresse: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="commentaires">Commentaires</Label>
+                  <Textarea
+                    id="commentaires"
+                    value={formData.commentaires}
+                    onChange={(e) => setFormData({ ...formData, commentaires: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {currentStep === 2 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>2. Produits</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProductSelector
+                  products={products}
+                  onProductsChange={setProducts}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {currentStep === 3 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>3. Résumé</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Nom du client</Label>
+                  <p className="font-bold">{formData.client_nom}</p>
+                </div>
+                <div>
+                  <Label>Téléphone</Label>
+                  <p className="font-bold">{formData.client_telephone || 'Non spécifié'}</p>
+                </div>
+                <div>
+                  <Label>Adresse</Label>
+                  <p className="font-bold">{formData.client_adresse || 'Non spécifiée'}</p>
+                </div>
+                <Separator />
+                <div>
+                  <Label>Produits</Label>
+                  <ul className="list-none space-y-2">
+                    {products.map((product) => (
+                      <li key={product.id} className="flex justify-between">
+                        <span>{product.name} x {product.quantity}</span>
+                        <span>{product.totalPrice.toLocaleString()} FCFA</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <Separator />
+                <div className="text-xl font-bold text-right">
+                  Total: {products.reduce((sum, product) => sum + product.totalPrice, 0).toLocaleString()} FCFA
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex justify-between">
+            <div>
+              {currentStep > 1 && (
+                <Button variant="outline" onClick={() => setCurrentStep(currentStep - 1)}>
+                  Précédent
+                </Button>
+              )}
+            </div>
+            <div className="space-x-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Annuler
+              </Button>
+              {currentStep < 3 && (
+                <Button onClick={() => setCurrentStep(currentStep + 1)}>
+                  Suivant
+                </Button>
+              )}
+              {currentStep === 3 && (
+                <>
+                  <Button variant="outline" onClick={() => setShowPreview(true)}>
+                    Aperçu
+                  </Button>
+                  <Button onClick={handleSubmit}>
+                    {editingSale ? 'Modifier' : 'Créer la vente'}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

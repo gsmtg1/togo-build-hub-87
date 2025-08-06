@@ -64,7 +64,7 @@ export const DeliveryDialog = ({ open, onOpenChange, delivery, onSubmit }: Deliv
     await onSubmit(deliveryData);
   };
 
-  const completedOrders = orders.filter(order => order.statut === 'termine');
+  const completedOrders = orders.filter(order => order.status === 'completed');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

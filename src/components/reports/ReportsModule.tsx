@@ -17,9 +17,9 @@ export const ReportsModule = () => {
   // Calculate sales report
   const salesReport = {
     totalSales: sales.length,
-    totalRevenue: sales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0),
-    completedSales: sales.filter(s => s.status === 'completed').length,
-    pendingSales: sales.filter(s => s.status === 'pending').length,
+    totalRevenue: sales.reduce((sum, sale) => sum + (sale.montant_total || 0), 0),
+    completedSales: sales.filter(s => s.statut === 'confirmee').length,
+    pendingSales: sales.filter(s => s.statut === 'en_attente').length,
   };
 
   // Calculate losses report
@@ -148,10 +148,10 @@ export const ReportsModule = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Ventes terminées</p>
+                <p className="text-sm text-muted-foreground">Ventes confirmées</p>
                 <div className="flex items-center gap-2">
                   <span className="text-2xl font-bold">{salesReport.completedSales}</span>
-                  <Badge variant="default">Terminées</Badge>
+                  <Badge variant="default">Confirmées</Badge>
                 </div>
               </div>
               <div>

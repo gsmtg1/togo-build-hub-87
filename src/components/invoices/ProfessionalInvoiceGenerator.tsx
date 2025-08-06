@@ -50,7 +50,7 @@ export const ProfessionalInvoiceGenerator = ({
   useEffect(() => {
     if (editingSale) {
       setFormData({
-        client_nom: editingSale.client_nom || '',
+        client_nom: editingSale.client_nom,
         client_telephone: editingSale.client_telephone || '',
         client_adresse: editingSale.client_adresse || '',
         commentaires: editingSale.commentaires || ''
@@ -104,32 +104,31 @@ export const ProfessionalInvoiceGenerator = ({
   };
 
   if (showPreview) {
+    const mockInvoice = {
+      id: crypto.randomUUID(),
+      numero_facture: `FAC-${Date.now()}`,
+      client_nom: formData.client_nom,
+      client_telephone: formData.client_telephone,
+      client_adresse: formData.client_adresse,
+      date_facture: new Date().toISOString(),
+      date_echeance: undefined,
+      statut: 'brouillon' as const,
+      montant_total: products.reduce((sum, p) => sum + p.totalPrice, 0),
+      montant_paye: 0,
+      vendeur_id: undefined,
+      sale_id: undefined,
+      delivery_id: undefined,
+      commentaires: formData.commentaires,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Aperçu de la facture</DialogTitle>
-          </DialogHeader>
-          <ProfessionalInvoiceView 
-            saleData={{
-              id: '',
-              numero_vente: `VT-${Date.now()}`,
-              client_nom: formData.client_nom,
-              client_telephone: formData.client_telephone,
-              client_adresse: formData.client_adresse,
-              date_vente: new Date().toISOString(),
-              statut: 'en_attente',
-              montant_total: products.reduce((sum, p) => sum + p.totalPrice, 0),
-              commentaires: formData.commentaires,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }}
-            products={products}
-            onBack={() => setShowPreview(false)}
-            onConfirm={handleSubmit}
-          />
-        </DialogContent>
-      </Dialog>
+      <ProfessionalInvoiceView 
+        open={open}
+        onOpenChange={onOpenChange}
+        invoice={Object.assign(mockInvoice, { products })}
+      />
     );
   }
 

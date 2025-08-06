@@ -11,7 +11,7 @@ import type {
   AppSetting
 } from '@/types/database';
 
-// Generic hook for Supabase operations
+// Generic hook for Supabase operations with better typing
 function useSupabaseTypedTable<T extends { id: string }>(tableName: string) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);

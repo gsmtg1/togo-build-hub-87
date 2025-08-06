@@ -19,12 +19,14 @@ const OrdresProduction = () => {
   const handleCreate = async (orderData: Partial<ProductionOrder>) => {
     // Ensure required fields have default values
     const completeOrderData = {
-      ...orderData,
+      numero_ordre: `ORD-${Date.now()}`,
       status: orderData.status || 'planned',
       product_id: orderData.product_id || '',
       planned_quantity: orderData.planned_quantity || 0,
-      start_date: orderData.start_date || new Date().toISOString().split('T')[0]
-    };
+      produced_quantity: 0,
+      start_date: orderData.start_date || new Date().toISOString().split('T')[0],
+      ...orderData
+    } as Omit<ProductionOrder, 'id' | 'created_at' | 'updated_at'>;
     
     await create(completeOrderData);
     setShowDialog(false);

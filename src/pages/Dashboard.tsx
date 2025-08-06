@@ -26,7 +26,7 @@ export default function Dashboard() {
       value: products.length,
       icon: Package,
       color: 'bg-blue-500',
-      detail: `${products.filter(p => !p.is_active).length} inactifs` // Using is_active instead of stock properties
+      detail: `${products.filter(p => !p.is_active).length} inactifs`
     },
     {
       title: 'Ordres en cours',
@@ -37,32 +37,32 @@ export default function Dashboard() {
     },
     {
       title: 'Livraisons',
-      value: deliveries.filter(d => d.status === 'in_transit').length,
+      value: deliveries.filter(d => d.statut === 'en_cours').length,
       icon: Truck,
       color: 'bg-green-500',
-      detail: `${deliveries.filter(d => d.status === 'delivered').length} livrées`
+      detail: `${deliveries.filter(d => d.statut === 'livre').length} livrées`
     },
     {
       title: 'Ventes du mois',
       value: sales.filter(s => {
-        const saleDate = new Date(s.sale_date);
+        const saleDate = new Date(s.date_vente);
         const now = new Date();
         return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
       }).length,
       icon: ShoppingCart,
       color: 'bg-purple-500',
-      detail: `${sales.reduce((sum, s) => sum + s.total_amount, 0).toLocaleString()} FCFA`
+      detail: `${sales.reduce((sum, s) => sum + s.montant_total, 0).toLocaleString()} FCFA`
     },
     {
       title: 'Employés actifs',
-      value: employees.filter(e => e.is_active).length,
+      value: employees.filter(e => e.actif).length,
       icon: Users,
       color: 'bg-indigo-500',
       detail: `${employees.length} au total`
     }
   ];
 
-  const lowStockProducts = products.filter(p => !p.is_active); // Simplified since stock info isn't in Product type
+  const lowStockProducts = products.filter(p => !p.is_active);
   const pendingOrders = orders.filter(o => o.status === 'planned');
 
   return (
@@ -194,7 +194,7 @@ export default function Dashboard() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Chiffre d'affaires</span>
                 <span className="font-semibold">
-                  {sales.reduce((sum, s) => sum + s.total_amount, 0).toLocaleString()} FCFA
+                  {sales.reduce((sum, s) => sum + s.montant_total, 0).toLocaleString()} FCFA
                 </span>
               </div>
               <div className="flex justify-between">
@@ -203,7 +203,7 @@ export default function Dashboard() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Livraisons en attente</span>
-                <span className="font-semibold">{deliveries.filter(d => d.status === 'scheduled').length}</span>
+                <span className="font-semibold">{deliveries.filter(d => d.statut === 'en_attente').length}</span>
               </div>
             </div>
           </CardContent>

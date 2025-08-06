@@ -40,23 +40,33 @@ const Ventes = () => {
   };
 
   const handleCreateSale = async (saleData: Partial<Sale>) => {
-    await create(saleData);
+    // Ensure required fields are present
+    const completeData = {
+      numero_vente: `VTE-${Date.now()}`,
+      client_nom: saleData.client_nom || '',
+      date_vente: saleData.date_vente || new Date().toISOString().split('T')[0],
+      statut: saleData.statut || 'en_attente',
+      montant_total: saleData.montant_total || 0,
+      ...saleData
+    } as Omit<Sale, 'id' | 'created_at' | 'updated_at'>;
+    
+    await create(completeData);
   };
 
-  const getStatusBadge = (status: Sale['status']) => {
-    const variants: Record<Sale['status'], 'default' | 'secondary' | 'destructive'> = {
-      pending: 'secondary',
-      completed: 'default',
-      cancelled: 'destructive',
+  const getStatusBadge = (statut: Sale['statut']) => {
+    const variants: Record<Sale['statut'], 'default' | 'secondary' | 'destructive'> = {
+      en_attente: 'secondary',
+      confirmee: 'default',
+      annulee: 'destructive',
     };
     
-    const labels: Record<Sale['status'], string> = {
-      pending: 'En attente',
-      completed: 'Confirmée',
-      cancelled: 'Annulée',
+    const labels: Record<Sale['statut'], string> = {
+      en_attente: 'En attente',
+      confirmee: 'Confirmée',
+      annulee: 'Annulée',
     };
 
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+    return <Badge variant={variants[statut]}>{labels[statut]}</Badge>;
   };
 
   if (loading) {
@@ -86,11 +96,11 @@ const Ventes = () => {
                 <div>
                   <CardTitle className="text-lg">Vente #{sale.id.slice(0, 8)}</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Client ID: {sale.client_id}
+                    Client: {sale.client_nom}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {getStatusBadge(sale.status)}
+                  {getStatusBadge(sale.statut)}
                   <div className="flex gap-1">
                     <Button size="sm" variant="outline" onClick={() => handleView(sale)}>
                       <Eye className="h-4 w-4" />
@@ -109,21 +119,21 @@ const Ventes = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="font-medium">Date:</span><br />
-                  {new Date(sale.sale_date).toLocaleDateString('fr-FR')}
+                  {new Date(sale.date_vente).toLocaleDateString('fr-FR')}
                 </div>
                 <div>
-                  <span className="font-medium">Quantité:</span><br />
-                  {sale.quantity}
+                  <span className="font-medium">Numéro:</span><br />
+                  {sale.numero_vente}
                 </div>
                 <div>
                   <span className="font-medium">Montant:</span><br />
                   <span className="font-bold text-green-600">
-                    {formatCurrency(sale.total_amount)}
+                    {formatCurrency(sale.montant_total)}
                   </span>
                 </div>
                 <div>
                   <span className="font-medium">Statut:</span><br />
-                  {getStatusBadge(sale.status)}
+                  {getStatusBadge(sale.statut)}
                 </div>
               </div>
             </CardContent>

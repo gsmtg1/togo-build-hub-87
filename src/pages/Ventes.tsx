@@ -87,8 +87,21 @@ const Ventes = () => {
     return <Badge variant={variants[status]}>{labels[status]}</Badge>;
   };
 
-  const totalSales = sales.reduce((sum, sale) => sum + sale.montant_total, 0);
+  // Safe calculation with null checks
+  const totalSales = sales.reduce((sum, sale) => {
+    const amount = sale.montant_total || 0;
+    return sum + amount;
+  }, 0);
+  
   const confirmedSales = sales.filter(sale => sale.statut === 'confirmee').length;
+
+  // Helper function to safely format currency
+  const formatCurrency = (amount: number | undefined | null): string => {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+      return '0 FCFA';
+    }
+    return `${amount.toLocaleString()} FCFA`;
+  };
 
   return (
     <div className="space-y-6">
@@ -109,7 +122,7 @@ const Ventes = () => {
             <CardTitle className="text-sm font-medium">Total des Ventes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalSales.toLocaleString()} FCFA</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalSales)}</div>
           </CardContent>
         </Card>
         
@@ -156,7 +169,7 @@ const Ventes = () => {
                   <TableCell>{new Date(sale.date_vente).toLocaleDateString('fr-FR')}</TableCell>
                   <TableCell>{sale.client_nom}</TableCell>
                   <TableCell>{sale.client_telephone}</TableCell>
-                  <TableCell className="font-medium">{sale.montant_total.toLocaleString()} FCFA</TableCell>
+                  <TableCell className="font-medium">{formatCurrency(sale.montant_total)}</TableCell>
                   <TableCell>{getStatusBadge(sale.statut)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">

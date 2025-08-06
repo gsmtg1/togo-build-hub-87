@@ -16,6 +16,14 @@ interface SaleViewDialogProps {
 export const SaleViewDialog = ({ open, onOpenChange, sale }: SaleViewDialogProps) => {
   if (!sale) return null;
 
+  // Helper function to safely format currency
+  const formatCurrency = (amount: number | undefined | null): string => {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+      return '0 FCFA';
+    }
+    return `${amount.toLocaleString()} FCFA`;
+  };
+
   const handlePrint = () => {
     const printContent = document.getElementById('sale-print-content');
     if (printContent) {
@@ -108,7 +116,7 @@ export const SaleViewDialog = ({ open, onOpenChange, sale }: SaleViewDialogProps
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-center">
-                {sale.montant_total.toLocaleString()} FCFA
+                {formatCurrency(sale.montant_total)}
               </div>
             </CardContent>
           </Card>

@@ -6,50 +6,54 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useProducts, useDailyLosses } from '@/hooks/useSupabaseData';
+import { useProducts } from '@/hooks/useSupabaseDatabase';
 
 interface DailyLossDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSubmit: (lossData: any) => Promise<void>;
 }
 
-export const DailyLossDialog = ({ open, onOpenChange }: DailyLossDialogProps) => {
+export const DailyLossDialog = ({ open, onOpenChange, onSubmit }: DailyLossDialogProps) => {
   const { data: products } = useProducts();
-  const { create } = useDailyLosses();
   
   const [formData, setFormData] = useState({
     product_id: '',
-    loss_date: new Date().toISOString().split('T')[0],
-    quantity_lost: '',
-    responsible: '',
-    comments: ''
+    quantite_cassee: '',
+    date_perte: new Date().toISOString().split('T')[0],
+    motif: '',
+    responsable: '',
+    commentaire: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     try {
       const selectedProduct = products.find(p => p.id === formData.product_id);
-      const lossValue = selectedProduct ? selectedProduct.price * parseInt(formData.quantity_lost) : 0;
-
-      await create({
+      const valeurPerte = selectedProduct ? selectedProduct.prix_unitaire * parseInt(formData.quantite_cassee) : 0;
+      
+      await onSubmit({
         product_id: formData.product_id,
-        loss_date: formData.loss_date,
-        quantity_lost: parseInt(formData.quantity_lost),
-        loss_value: lossValue,
-        responsible: formData.responsible,
-        comments: formData.comments
+        quantite_cassee: parseInt(formData.quantite_cassee),
+        date_perte: formData.date_perte,
+        motif: formData.motif,
+        valeur_perte: valeurPerte,
+        responsable: formData.responsable,
+        commentaire: formData.commentaire
       });
       
+      // Reset form
       setFormData({
         product_id: '',
-        loss_date: new Date().toISOString().split('T')[0],
-        quantity_lost: '',
-        responsible: '',
-        comments: ''
+        quantite_cassee: '',
+        date_perte: new Date().toISOString().split('T')[0],
+        motif: '',
+        responsable: '',
+        commentaire: ''
       });
-      onOpenChange(false);
     } catch (error) {
-      console.error('Erreur lors de l\'enregistrement de la perte:', error);
+      console.error('Erreur lors de la création de la perte:', error);
     }
   };
 
@@ -57,19 +61,19 @@ export const DailyLossDialog = ({ open, onOpenChange }: DailyLossDialogProps) =>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>📋 Nouvelle perte</DialogTitle>
+          <DialogTitle>📉 Nouvelle perte</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="product_id">Produit concerné</Label>
+            <Label htmlFor="product_id">Produit</Label>
             <Select value={formData.product_id} onValueChange={(value) => setFormData(prev => ({ ...prev, product_id: value }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un produit" />
               </SelectTrigger>
               <SelectContent>
-                {products.map((product: any) => (
+                {products.map((product) => (
                   <SelectItem key={product.id} value={product.id}>
-                    {product.name} - {product.price} FCFA
+                    {product.nom} - {product.longueur_cm}x{product.largeur_cm}x{product.hauteur_cm}cm
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -77,45 +81,55 @@ export const DailyLossDialog = ({ open, onOpenChange }: DailyLossDialogProps) =>
           </div>
 
           <div>
-            <Label htmlFor="loss_date">Date de la perte</Label>
+            <Label htmlFor="quantite_cassee">Quantité cassée</Label>
             <Input
-              id="loss_date"
-              type="date"
-              value={formData.loss_date}
-              onChange={(e) => setFormData(prev => ({ ...prev, loss_date: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="quantity_lost">Quantité perdue</Label>
-            <Input
-              id="quantity_lost"
+              id="quantite_cassee"
               type="number"
               min="1"
-              value={formData.quantity_lost}
-              onChange={(e) => setFormData(prev => ({ ...prev, quantity_lost: e.target.value }))}
+              value={formData.quantite_cassee}
+              onChange={(e) => setFormData(prev => ({ ...prev, quantite_cassee: e.target.value }))}
               required
             />
           </div>
 
           <div>
-            <Label htmlFor="responsible">Responsable/Témoin</Label>
+            <Label htmlFor="date_perte">Date de la perte</Label>
             <Input
-              id="responsible"
-              value={formData.responsible}
-              onChange={(e) => setFormData(prev => ({ ...prev, responsible: e.target.value }))}
+              id="date_perte"
+              type="date"
+              value={formData.date_perte}
+              onChange={(e) => setFormData(prev => ({ ...prev, date_perte: e.target.value }))}
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="motif">Motif de la perte</Label>
+            <Input
+              id="motif"
+              value={formData.motif}
+              onChange={(e) => setFormData(prev => ({ ...prev, motif: e.target.value }))}
+              placeholder="Casse, défaut de fabrication..."
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="responsable">Responsable</Label>
+            <Input
+              id="responsable"
+              value={formData.responsable}
+              onChange={(e) => setFormData(prev => ({ ...prev, responsable: e.target.value }))}
               placeholder="Nom du responsable"
             />
           </div>
 
           <div>
-            <Label htmlFor="comments">Commentaires</Label>
+            <Label htmlFor="commentaire">Commentaire</Label>
             <Textarea
-              id="comments"
-              value={formData.comments}
-              onChange={(e) => setFormData(prev => ({ ...prev, comments: e.target.value }))}
-              placeholder="Cause de la perte, circonstances..."
+              id="commentaire"
+              value={formData.commentaire}
+              onChange={(e) => setFormData(prev => ({ ...prev, commentaire: e.target.value }))}
+              placeholder="Détails supplémentaires..."
             />
           </div>
 
@@ -124,7 +138,7 @@ export const DailyLossDialog = ({ open, onOpenChange }: DailyLossDialogProps) =>
               Annuler
             </Button>
             <Button type="submit">
-              Enregistrer
+              Enregistrer la perte
             </Button>
           </div>
         </form>

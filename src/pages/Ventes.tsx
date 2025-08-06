@@ -1,57 +1,19 @@
 
 import { useState } from 'react';
 import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { SaleDialog } from '@/components/sales/SaleDialog';
 import { SaleViewDialog } from '@/components/sales/SaleViewDialog';
 import { ProfessionalInvoiceGenerator } from '@/components/invoices/ProfessionalInvoiceGenerator';
-import { useSales } from '@/hooks/useSupabaseData';
+import { useSales } from '@/hooks/useSupabaseDatabase';
+import type { Sale } from '@/types/database';
 
-export default function Ventes() {
-  const { data: sales, loading, remove } = useSales();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [selectedSale, setSelectedSale] = useState<any>(null);
-
-  const handleView = (sale: any) => {
-    setSelectedSale(sale);
-    setViewDialogOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette vente ?')) {
-      await remove(id);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      pending: 'secondary',
-      confirmed: 'default',
-      delivered: 'default',
-      cancelled: 'destructive'
-    } as const;
-
-    const labels = {
-      pending: 'En attente',
-      confirmed: 'Confirmée',
-      delivered: 'Livrée',
-      cancelled: 'Annulée'
-    };
-
-    return <Badge variant={variants[status as keyof typeof variants]}>{labels[status as keyof typeof labels]}</Badge>;
-  };
-
-  // Safe calculation with null checks
-  const totalSales = sales.reduce((sum, sale) => {
-    const amount = sale.total_amount || 0;
-    return sum + amount;
-  }, 0);
-  
-  const confirmedSales = sales.filter(sale => sale.status === 'confirmed').length;
+const Ventes = () => {
+  const { data: sales, loading, create, update, remove } = useSales();
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
 
   // Helper function to safely format currency
   const formatCurrency = (amount: number | undefined | null): string => {
@@ -61,8 +23,42 @@ export default function Ventes() {
     return `${amount.toLocaleString()} FCFA`;
   };
 
+  const handleView = (sale: Sale) => {
+    setSelectedSale(sale);
+    setShowViewDialog(true);
+  };
+
+  const handleCreateInvoice = (sale: Sale) => {
+    setSelectedSale(sale);
+    setShowInvoiceDialog(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette vente ?')) {
+      await remove(id);
+    }
+  };
+
+  const getStatusBadge = (status: Sale['statut']) => {
+    const variants: Record<Sale['statut'], 'default' | 'secondary' | 'destructive'> = {
+      en_attente: 'secondary',
+      confirmee: 'default',
+      livree: 'default',
+      annulee: 'destructive',
+    };
+    
+    const labels: Record<Sale['statut'], string> = {
+      en_attente: 'En attente',
+      confirmee: 'Confirmée',
+      livree: 'Livrée',
+      annulee: 'Annulée',
+    };
+
+    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+  };
+
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Chargement...</div>;
+    return <div className="flex justify-center items-center h-64">Chargement...</div>;
   }
 
   return (
@@ -70,90 +66,83 @@ export default function Ventes() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Ventes</h1>
-          <p className="text-muted-foreground">Gestion des ventes et commandes</p>
+          <p className="text-muted-foreground">
+            Gérez toutes vos ventes et générez des factures professionnelles
+          </p>
         </div>
-        <div className="flex gap-2">
-          <ProfessionalInvoiceGenerator />
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle vente
-          </Button>
-        </div>
+        <Button onClick={() => setShowInvoiceDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle vente
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total des Ventes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalSales)}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ventes Confirmées</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{confirmedSales}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Nombre de Ventes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{sales.length}</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4">
+        {sales.map((sale) => (
+          <Card key={sale.id}>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg">{sale.numero_vente}</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Client: {sale.client_nom}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(sale.statut)}
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={() => handleView(sale)}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleCreateInvoice(sale)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleDelete(sale.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Date:</span><br />
+                  {new Date(sale.date_vente).toLocaleDateString('fr-FR')}
+                </div>
+                <div>
+                  <span className="font-medium">Téléphone:</span><br />
+                  {sale.client_telephone || 'Non renseigné'}
+                </div>
+                <div>
+                  <span className="font-medium">Montant:</span><br />
+                  <span className="font-bold text-green-600">
+                    {formatCurrency(sale.montant_total)}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Statut:</span><br />
+                  {getStatusBadge(sale.statut)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Liste des ventes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Téléphone</TableHead>
-                <TableHead>Montant</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sales.map((sale) => (
-                <TableRow key={sale.id}>
-                  <TableCell>{new Date(sale.sale_date).toLocaleDateString('fr-FR')}</TableCell>
-                  <TableCell>{sale.client_id}</TableCell>
-                  <TableCell>{sale.notes}</TableCell>
-                  <TableCell className="font-medium">{formatCurrency(sale.total_amount)}</TableCell>
-                  <TableCell>{getStatusBadge(sale.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleView(sale)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <ProfessionalInvoiceGenerator saleId={sale.id} />
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(sale.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <SaleViewDialog
+        open={showViewDialog}
+        onOpenChange={setShowViewDialog}
+        sale={selectedSale}
+      />
 
-      <SaleDialog open={dialogOpen} onOpenChange={setDialogOpen} />
-      <SaleViewDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} sale={selectedSale} />
+      <ProfessionalInvoiceGenerator
+        open={showInvoiceDialog}
+        onOpenChange={setShowInvoiceDialog}
+        onSubmit={create}
+        editingSale={selectedSale}
+      />
     </div>
   );
-}
+};
+
+export default Ventes;

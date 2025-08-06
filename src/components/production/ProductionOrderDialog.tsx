@@ -6,44 +6,47 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useProducts, useProductionOrders } from '@/hooks/useSupabaseData';
+import { useProducts } from '@/hooks/useSupabaseDatabase';
 
 interface ProductionOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSubmit?: (orderData: any) => Promise<void>;
 }
 
-export const ProductionOrderDialog = ({ open, onOpenChange }: ProductionOrderDialogProps) => {
+export const ProductionOrderDialog = ({ open, onOpenChange, onSubmit }: ProductionOrderDialogProps) => {
   const { data: products } = useProducts();
-  const { create } = useProductionOrders();
   
   const [formData, setFormData] = useState({
     product_id: '',
-    planned_quantity: '',
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: '',
-    notes: ''
+    quantite: '',
+    date_demande: new Date().toISOString().split('T')[0],
+    date_prevue: '',
+    commentaires: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!onSubmit) return;
+    
     try {
-      await create({
+      await onSubmit({
+        numero_ordre: `OP-${Date.now()}`,
         product_id: formData.product_id,
-        planned_quantity: parseInt(formData.planned_quantity),
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        status: 'planned',
-        notes: formData.notes,
-        produced_quantity: 0
+        quantite: parseInt(formData.quantite),
+        date_demande: formData.date_demande,
+        date_prevue: formData.date_prevue || null,
+        statut: 'en_attente',
+        commentaires: formData.commentaires
       });
       
+      // Reset form
       setFormData({
         product_id: '',
-        planned_quantity: '',
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: '',
-        notes: ''
+        quantite: '',
+        date_demande: new Date().toISOString().split('T')[0],
+        date_prevue: '',
+        commentaires: ''
       });
       onOpenChange(false);
     } catch (error) {
@@ -65,9 +68,9 @@ export const ProductionOrderDialog = ({ open, onOpenChange }: ProductionOrderDia
                 <SelectValue placeholder="Sélectionner un produit" />
               </SelectTrigger>
               <SelectContent>
-                {products.map((product: any) => (
+                {products.map((product) => (
                   <SelectItem key={product.id} value={product.id}>
-                    {product.name} - {product.dimensions}
+                    {product.nom} - {product.longueur_cm}x{product.largeur_cm}x{product.hauteur_cm}cm
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -75,44 +78,44 @@ export const ProductionOrderDialog = ({ open, onOpenChange }: ProductionOrderDia
           </div>
 
           <div>
-            <Label htmlFor="planned_quantity">Quantité planifiée</Label>
+            <Label htmlFor="quantite">Quantité à produire</Label>
             <Input
-              id="planned_quantity"
+              id="quantite"
               type="number"
               min="1"
-              value={formData.planned_quantity}
-              onChange={(e) => setFormData(prev => ({ ...prev, planned_quantity: e.target.value }))}
+              value={formData.quantite}
+              onChange={(e) => setFormData(prev => ({ ...prev, quantite: e.target.value }))}
               required
             />
           </div>
 
           <div>
-            <Label htmlFor="start_date">Date de début</Label>
+            <Label htmlFor="date_demande">Date de demande</Label>
             <Input
-              id="start_date"
+              id="date_demande"
               type="date"
-              value={formData.start_date}
-              onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+              value={formData.date_demande}
+              onChange={(e) => setFormData(prev => ({ ...prev, date_demande: e.target.value }))}
               required
             />
           </div>
 
           <div>
-            <Label htmlFor="end_date">Date de fin prévue</Label>
+            <Label htmlFor="date_prevue">Date prévue de fin</Label>
             <Input
-              id="end_date"
+              id="date_prevue"
               type="date"
-              value={formData.end_date}
-              onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
+              value={formData.date_prevue}
+              onChange={(e) => setFormData(prev => ({ ...prev, date_prevue: e.target.value }))}
             />
           </div>
 
           <div>
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="commentaires">Commentaires</Label>
             <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              id="commentaires"
+              value={formData.commentaires}
+              onChange={(e) => setFormData(prev => ({ ...prev, commentaires: e.target.value }))}
               placeholder="Instructions spéciales, observations..."
             />
           </div>

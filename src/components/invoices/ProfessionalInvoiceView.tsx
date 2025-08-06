@@ -22,35 +22,263 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
         printWindow.document.write(`
           <html>
             <head>
-              <title>Facture ${invoice.id.slice(-8)}</title>
+              <title>Facture ${invoice.numero_facture || invoice.id.slice(-8)}</title>
               <style>
-                body { font-family: 'Arial', sans-serif; margin: 0; padding: 20px; color: #333; }
-                .invoice-container { max-width: 800px; margin: 0 auto; }
-                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 3px solid #ea580c; padding-bottom: 20px; }
-                .company-info { flex: 1; }
-                .company-name { font-size: 28px; font-weight: bold; color: #ea580c; margin-bottom: 5px; }
-                .company-slogan { font-style: italic; color: #666; margin-bottom: 10px; }
-                .company-details { font-size: 12px; color: #666; }
-                .logo-placeholder { width: 120px; height: 80px; background: #f3f4f6; border: 2px dashed #ea580c; display: flex; align-items: center; justify-content: center; color: #ea580c; font-size: 12px; }
-                .invoice-title { text-align: center; font-size: 24px; font-weight: bold; color: #ea580c; margin: 30px 0; }
-                .invoice-details { display: flex; justify-content: space-between; margin-bottom: 30px; }
-                .client-info, .invoice-info { flex: 1; }
-                .client-info { margin-right: 20px; }
-                .section-title { font-size: 16px; font-weight: bold; color: #ea580c; margin-bottom: 10px; border-bottom: 1px solid #ea580c; padding-bottom: 5px; }
-                .info-line { margin-bottom: 5px; font-size: 14px; }
-                .products-table { width: 100%; border-collapse: collapse; margin: 30px 0; }
-                .products-table th, .products-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-                .products-table th { background: #ea580c; color: white; font-weight: bold; }
-                .products-table tr:nth-child(even) { background: #f9f9f9; }
-                .total-section { margin-top: 30px; }
-                .total-line { display: flex; justify-content: space-between; margin-bottom: 8px; padding: 5px 0; }
-                .total-line.subtotal { border-top: 1px solid #ddd; padding-top: 10px; }
-                .total-line.final { background: #ea580c; color: white; font-weight: bold; font-size: 18px; padding: 15px; margin-top: 15px; }
-                .footer { margin-top: 50px; border-top: 2px solid #ea580c; padding-top: 20px; text-align: center; font-size: 12px; color: #666; }
-                .payment-info { background: #fff7ed; padding: 15px; border-left: 4px solid #ea580c; margin: 20px 0; }
+                @page { margin: 15mm; }
+                body { 
+                  font-family: 'Arial', sans-serif; 
+                  margin: 0; 
+                  padding: 0; 
+                  color: #333; 
+                  line-height: 1.4;
+                  background: white;
+                }
+                .invoice-container { 
+                  max-width: 210mm; 
+                  margin: 0 auto; 
+                  background: white;
+                  border: 3px solid #f97316;
+                  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                }
+                .header-section { 
+                  background: #f97316;
+                  color: white;
+                  padding: 20px;
+                  display: flex;
+                  align-items: center;
+                  position: relative;
+                }
+                .logo-container { 
+                  width: 90px; 
+                  height: 90px; 
+                  background: white;
+                  border-radius: 12px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin-right: 25px;
+                  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                }
+                .logo-image {
+                  max-width: 75px;
+                  max-height: 75px;
+                  object-fit: contain;
+                }
+                .company-details { 
+                  flex: 1;
+                }
+                .company-name { 
+                  font-size: 28px; 
+                  font-weight: bold; 
+                  margin-bottom: 8px;
+                  letter-spacing: 1px;
+                }
+                .company-slogan { 
+                  font-style: italic; 
+                  font-size: 14px;
+                  margin-bottom: 12px;
+                  opacity: 0.9;
+                }
+                .company-info { 
+                  font-size: 13px; 
+                  line-height: 1.4;
+                }
+                .company-info div {
+                  margin-bottom: 3px;
+                  display: flex;
+                  align-items: center;
+                }
+                .company-info svg {
+                  width: 12px;
+                  height: 12px;
+                  margin-right: 6px;
+                }
+                .invoice-header-right { 
+                  text-align: right;
+                  position: absolute;
+                  top: 20px;
+                  right: 20px;
+                  background: rgba(255,255,255,0.15);
+                  padding: 15px;
+                  border-radius: 8px;
+                }
+                .invoice-number { 
+                  font-size: 20px; 
+                  font-weight: bold;
+                  margin-bottom: 5px;
+                }
+                .invoice-date { 
+                  font-size: 14px;
+                  opacity: 0.9;
+                }
+                .client-section { 
+                  padding: 25px;
+                  background: linear-gradient(135deg, #fef7ed 0%, #fff7ed 100%);
+                  border-bottom: 2px solid #fed7aa;
+                }
+                .client-info-wrapper { 
+                  display: flex; 
+                  justify-content: space-between;
+                  gap: 40px;
+                }
+                .client-details, .invoice-details { 
+                  flex: 1;
+                  background: white;
+                  padding: 20px;
+                  border-radius: 10px;
+                  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+                }
+                .section-title { 
+                  font-weight: bold; 
+                  color: #f97316; 
+                  font-size: 16px;
+                  margin-bottom: 15px;
+                  border-bottom: 2px solid #f97316;
+                  padding-bottom: 8px;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                }
+                .info-row { 
+                  margin-bottom: 8px; 
+                  font-size: 14px;
+                  line-height: 1.5;
+                }
+                .info-row strong {
+                  color: #1f2937;
+                }
+                .products-section { 
+                  padding: 25px;
+                  background: white;
+                }
+                .products-table { 
+                  width: 100%; 
+                  border-collapse: collapse; 
+                  margin: 20px 0;
+                  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                  border-radius: 8px;
+                  overflow: hidden;
+                }
+                .products-table th { 
+                  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); 
+                  color: white; 
+                  padding: 15px 12px; 
+                  text-align: left; 
+                  font-size: 14px;
+                  font-weight: bold;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                }
+                .products-table td { 
+                  padding: 15px 12px; 
+                  border-bottom: 1px solid #f3f4f6; 
+                  font-size: 13px;
+                }
+                .products-table tbody tr:nth-child(even) { 
+                  background: #fef7ed;
+                }
+                .products-table tbody tr:hover { 
+                  background: #fed7aa;
+                  transition: background-color 0.2s ease;
+                }
+                .totals-section { 
+                  background: linear-gradient(135deg, #fef7ed 0%, #fed7aa 100%);
+                  padding: 30px 25px;
+                  border-top: 3px solid #f97316;
+                }
+                .totals-wrapper {
+                  display: flex;
+                  justify-content: flex-end;
+                }
+                .totals-content {
+                  background: white;
+                  padding: 25px;
+                  border-radius: 12px;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  min-width: 350px;
+                }
+                .total-row { 
+                  display: flex; 
+                  justify-content: space-between; 
+                  margin-bottom: 12px;
+                  font-size: 14px;
+                  padding: 8px 0;
+                }
+                .total-row.subtotal {
+                  border-top: 1px solid #e5e7eb;
+                  padding-top: 15px;
+                  margin-top: 15px;
+                  font-weight: 600;
+                }
+                .total-row.final { 
+                  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+                  color: white;
+                  font-size: 18px; 
+                  font-weight: bold; 
+                  padding: 18px 20px;
+                  margin: 20px -20px -20px -20px;
+                  border-radius: 0 0 12px 12px;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                }
+                .payment-info-section { 
+                  padding: 25px;
+                  background: #f8fafc;
+                  border-top: 1px solid #e5e7eb;
+                }
+                .payment-info { 
+                  background: white;
+                  padding: 20px;
+                  border-left: 5px solid #f97316;
+                  border-radius: 8px;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                  margin-bottom: 15px;
+                }
+                .payment-info h4 {
+                  color: #f97316;
+                  font-size: 16px;
+                  font-weight: bold;
+                  margin-bottom: 12px;
+                  display: flex;
+                  align-items: center;
+                }
+                .payment-info p {
+                  margin: 8px 0;
+                  font-size: 13px;
+                  line-height: 1.5;
+                }
+                .footer-section { 
+                  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+                  color: white;
+                  padding: 25px;
+                  text-align: center;
+                }
+                .footer-content {
+                  max-width: 600px;
+                  margin: 0 auto;
+                }
+                .footer-company {
+                  font-size: 18px;
+                  font-weight: bold;
+                  margin-bottom: 8px;
+                  color: #f97316;
+                }
+                .footer-details {
+                  font-size: 13px;
+                  line-height: 1.6;
+                  opacity: 0.9;
+                }
+                .footer-note {
+                  margin-top: 20px;
+                  padding-top: 15px;
+                  border-top: 1px solid rgba(255,255,255,0.2);
+                  font-size: 12px;
+                  font-style: italic;
+                  opacity: 0.8;
+                }
                 @media print {
-                  body { margin: 0; }
-                  .no-print { display: none; }
+                  .no-print { display: none !important; }
+                  body { print-color-adjust: exact; }
+                  .invoice-container { border: 2px solid #f97316; }
                 }
               </style>
             </head>
@@ -66,38 +294,42 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
   };
 
   const handleDownloadPDF = async () => {
-    // Cette fonction nécessiterait une bibliothèque comme jsPDF ou html2pdf
     console.log('Téléchargement PDF - À implémenter avec jsPDF');
     alert('Fonctionnalité PDF en cours de développement');
   };
 
   const handleSendEmail = () => {
-    const subject = `Facture ${invoice.id.slice(-8)} - ${COMPANY_INFO.name}`;
+    const subject = `Facture ${invoice.numero_facture || invoice.id.slice(-8)} - ${COMPANY_INFO.name}`;
     const body = `Bonjour ${invoice.client_nom},\n\nVeuillez trouver ci-joint votre facture.\n\nCordialement,\n${COMPANY_INFO.name}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
   const products = (invoice as any).products || [];
   const subtotal = products.reduce((sum, product) => sum + product.totalPrice, 0);
-  const deliveryFee = (invoice as any).deliveryFee || 0;
-  const deliveryType = (invoice as any).deliveryType || 'pickup';
+  const tvaRate = 0.18;
+  const tvaAmount = subtotal * tvaRate;
+  const total = subtotal + tvaAmount;
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex justify-between items-center">
-            <DialogTitle className="text-xl">Aperçu de la facture</DialogTitle>
+            <DialogTitle className="text-xl text-orange-600 font-bold">Aperçu de la facture professionnelle</DialogTitle>
             <div className="flex gap-2 no-print">
-              <Button onClick={handleSendEmail} variant="outline" size="sm">
+              <Button onClick={handleSendEmail} variant="outline" size="sm" className="hover:bg-orange-50">
                 <Send className="h-4 w-4 mr-2" />
                 Envoyer
               </Button>
-              <Button onClick={handleDownloadPDF} variant="outline" size="sm">
+              <Button onClick={handleDownloadPDF} variant="outline" size="sm" className="hover:bg-orange-50">
                 <Download className="h-4 w-4 mr-2" />
                 PDF
               </Button>
-              <Button onClick={handlePrint} variant="outline" size="sm">
+              <Button onClick={handlePrint} variant="outline" size="sm" className="hover:bg-orange-50">
                 <Printer className="h-4 w-4 mr-2" />
                 Imprimer
               </Button>
@@ -107,139 +339,161 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
 
         <div id="professional-invoice-print" className="invoice-container">
           {/* En-tête avec logo et informations entreprise */}
-          <div className="header">
-            <div className="company-info">
+          <div className="header-section">
+            <div className="logo-container">
+              <img 
+                src="/lovable-uploads/e960775f-1b0b-4dfe-8666-5154b7b3dd11.png" 
+                alt="Cornerstone Briques Logo" 
+                className="logo-image"
+              />
+            </div>
+            <div className="company-details">
               <div className="company-name">{COMPANY_INFO.name}</div>
               <div className="company-slogan">"{COMPANY_INFO.slogan}"</div>
-              <div className="company-details">
-                <div className="flex items-center gap-1 mb-1">
-                  <Phone className="h-3 w-3" />
+              <div className="company-info">
+                <div>
+                  <Phone className="inline w-3 h-3 mr-1" />
                   {COMPANY_INFO.phones.join(' / ')}
                 </div>
-                <div className="flex items-center gap-1 mb-1">
-                  <MapPin className="h-3 w-3" />
+                <div>
+                  <MapPin className="inline w-3 h-3 mr-1" />
                   {COMPANY_INFO.address}
                 </div>
-                <div className="flex items-center gap-1">
-                  <Mail className="h-3 w-3" />
+                <div>
+                  <Mail className="inline w-3 h-3 mr-1" />
                   {COMPANY_INFO.email}
                 </div>
               </div>
             </div>
-            <div className="logo-placeholder">
-              LOGO
-            </div>
-          </div>
-
-          {/* Titre de la facture */}
-          <div className="invoice-title">
-            FACTURE N° {invoice.id.slice(-8).toUpperCase()}
-          </div>
-
-          {/* Informations client et facture */}
-          <div className="invoice-details">
-            <div className="client-info">
-              <div className="section-title">FACTURER À</div>
-              <div className="info-line"><strong>{invoice.client_nom}</strong></div>
-              <div className="info-line">{invoice.client_telephone}</div>
-              <div className="info-line">{invoice.client_adresse}</div>
-            </div>
-            <div className="invoice-info">
-              <div className="section-title">DÉTAILS FACTURE</div>
-              <div className="info-line"><strong>Date d'émission:</strong> {new Date(invoice.date_facture).toLocaleDateString('fr-FR')}</div>
-              <div className="info-line"><strong>Date d'échéance:</strong> {invoice.date_echeance ? new Date(invoice.date_echeance).toLocaleDateString('fr-FR') : 'Non définie'}</div>
-              <div className="info-line"><strong>Statut:</strong> 
-                <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                  invoice.statut === 'payee' ? 'bg-green-100 text-green-800' :
-                  invoice.statut === 'envoyee' ? 'bg-blue-100 text-blue-800' :
-                  invoice.statut === 'en_retard' ? 'bg-red-100 text-red-800' :
-                  invoice.statut === 'annulee' ? 'bg-gray-100 text-gray-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {invoice.statut === 'brouillon' ? 'Brouillon' :
-                   invoice.statut === 'envoyee' ? 'Envoyée' :
-                   invoice.statut === 'payee' ? 'Payée' :
-                   invoice.statut === 'en_retard' ? 'En retard' :
-                   'Annulée'}
-                </span>
+            <div className="invoice-header-right">
+              <div className="invoice-number">
+                FACTURE N° {invoice.numero_facture || `FC${invoice.id.slice(-6).toUpperCase()}`}
+              </div>
+              <div className="invoice-date">
+                {new Date(invoice.date_facture).toLocaleDateString('fr-FR')}
               </div>
             </div>
           </div>
 
-          {/* Tableau des produits */}
-          <table className="products-table">
-            <thead>
-              <tr>
-                <th>DESCRIPTION</th>
-                <th style={{width: '80px'}}>QTÉ</th>
-                <th style={{width: '120px'}}>PRIX UNIT.</th>
-                <th style={{width: '120px'}}>TOTAL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product, index) => (
-                <tr key={product.id || index}>
-                  <td>{product.name}</td>
-                  <td style={{textAlign: 'center'}}>{product.quantity}</td>
-                  <td style={{textAlign: 'right'}}>{product.unitPrice.toLocaleString()} FCFA</td>
-                  <td style={{textAlign: 'right'}}>{product.totalPrice.toLocaleString()} FCFA</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Totaux */}
-          <div className="total-section">
-            <div className="total-line subtotal">
-              <span>Sous-total produits:</span>
-              <span>{subtotal.toLocaleString()} FCFA</span>
-            </div>
-            <div className="total-line">
-              <span>Livraison:</span>
-              <span>
-                {deliveryType === 'free' ? 'GRATUITE' : 
-                 deliveryType === 'pickup' ? 'RETRAIT MAGASIN' :
-                 `${deliveryFee.toLocaleString()} FCFA`}
-              </span>
-            </div>
-            <div className="total-line final">
-              <span>TOTAL À PAYER:</span>
-              <span>{invoice.montant_total.toLocaleString()} FCFA</span>
+          {/* Section informations client et facture */}
+          <div className="client-section">
+            <div className="client-info-wrapper">
+              <div className="client-details">
+                <div className="section-title">Facturer à</div>
+                <div className="info-row"><strong>{invoice.client_nom}</strong></div>
+                <div className="info-row">{invoice.client_telephone}</div>
+                <div className="info-row">{invoice.client_adresse}</div>
+              </div>
+              <div className="invoice-details">
+                <div className="section-title">Détails facture</div>
+                <div className="info-row">
+                  <strong>Date d'émission:</strong> {new Date(invoice.date_facture).toLocaleDateString('fr-FR')}
+                </div>
+                <div className="info-row">
+                  <strong>Date d'échéance:</strong> {invoice.date_echeance ? new Date(invoice.date_echeance).toLocaleDateString('fr-FR') : 'À réception'}
+                </div>
+                <div className="info-row">
+                  <strong>Statut:</strong> 
+                  <span className={`ml-2 px-3 py-1 rounded-full text-xs font-semibold ${
+                    invoice.statut === 'payee' ? 'bg-green-100 text-green-800' :
+                    invoice.statut === 'envoyee' ? 'bg-blue-100 text-blue-800' :
+                    invoice.statut === 'en_retard' ? 'bg-red-100 text-red-800' :
+                    invoice.statut === 'annulee' ? 'bg-gray-100 text-gray-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {invoice.statut === 'brouillon' ? 'Brouillon' :
+                     invoice.statut === 'envoyee' ? 'Envoyée' :
+                     invoice.statut === 'payee' ? 'Payée' :
+                     invoice.statut === 'en_retard' ? 'En retard' :
+                     'Annulée'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Informations de livraison */}
-          {deliveryType === 'pickup' && (
-            <div className="payment-info">
-              <strong>📍 RETRAIT EN MAGASIN:</strong><br />
-              {COMPANY_INFO.address}<br />
-              {COMPANY_INFO.city}, {COMPANY_INFO.country}
-            </div>
-          )}
+          {/* Section produits */}
+          <div className="products-section">
+            <table className="products-table">
+              <thead>
+                <tr>
+                  <th>Désignation</th>
+                  <th style={{width: '100px', textAlign: 'center'}}>Quantité</th>
+                  <th style={{width: '120px', textAlign: 'right'}}>Prix Unit. HT</th>
+                  <th style={{width: '120px', textAlign: 'right'}}>Total HT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((product, index) => (
+                  <tr key={product.id || index}>
+                    <td><strong>{product.name}</strong></td>
+                    <td style={{textAlign: 'center'}}>{product.quantity}</td>
+                    <td style={{textAlign: 'right'}}>{formatCurrency(product.unitPrice)}</td>
+                    <td style={{textAlign: 'right'}}><strong>{formatCurrency(product.totalPrice)}</strong></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-          {/* Notes */}
-          {(invoice as any).notes && (
-            <div className="payment-info">
-              <strong>📝 NOTES:</strong><br />
-              {(invoice as any).notes}
+          {/* Section totaux */}
+          <div className="totals-section">
+            <div className="totals-wrapper">
+              <div className="totals-content">
+                <div className="total-row subtotal">
+                  <span>Sous-total HT:</span>
+                  <span><strong>{formatCurrency(subtotal)}</strong></span>
+                </div>
+                <div className="total-row">
+                  <span>TVA ({(tvaRate * 100).toFixed(0)}%):</span>
+                  <span><strong>{formatCurrency(tvaAmount)}</strong></span>
+                </div>
+                <div className="total-row final">
+                  <span>Total TTC à payer:</span>
+                  <span>{formatCurrency(total)}</span>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
 
-          {/* Informations de paiement */}
-          <div className="payment-info">
-            <strong>💳 CONDITIONS DE PAIEMENT:</strong><br />
-            Paiement à réception de facture. Merci de nous contacter pour tout renseignement.<br />
-            <strong>Délai de paiement:</strong> {invoice.date_echeance ? new Date(invoice.date_echeance).toLocaleDateString('fr-FR') : 'Non défini'}
+          {/* Informations de paiement et notes */}
+          <div className="payment-info-section">
+            {(invoice as any).notes && (
+              <div className="payment-info">
+                <h4>📝 Notes</h4>
+                <p>{(invoice as any).notes}</p>
+              </div>
+            )}
+            
+            <div className="payment-info">
+              <h4>💳 Conditions de paiement</h4>
+              <p><strong>Modalités:</strong> Paiement par espèces, chèque ou virement bancaire accepté.</p>
+              <p><strong>Délai:</strong> {invoice.date_echeance ? `Échéance le ${new Date(invoice.date_echeance).toLocaleDateString('fr-FR')}` : 'Paiement à réception de facture'}</p>
+              <p><strong>Pénalités:</strong> Toute facture impayée donnera lieu à des pénalités de retard conformément à la loi.</p>
+            </div>
+
+            <div className="payment-info">
+              <h4>📍 Informations de retrait</h4>
+              <p><strong>Adresse:</strong> {COMPANY_INFO.address}</p>
+              <p><strong>Ville:</strong> {COMPANY_INFO.city}, {COMPANY_INFO.country}</p>
+              <p><strong>Contact:</strong> {COMPANY_INFO.phones.join(' / ')}</p>
+            </div>
           </div>
 
           {/* Pied de page */}
-          <div className="footer">
-            <p><strong>{COMPANY_INFO.name}</strong> - {COMPANY_INFO.slogan}</p>
-            <p>{COMPANY_INFO.address} - {COMPANY_INFO.phones.join(' / ')}</p>
-            <p>{COMPANY_INFO.email} - {COMPANY_INFO.website}</p>
-            <p style={{marginTop: '15px', fontSize: '11px'}}>
-              Merci de votre confiance ! Cette facture est générée électroniquement.
-            </p>
+          <div className="footer-section">
+            <div className="footer-content">
+              <div className="footer-company">{COMPANY_INFO.name}</div>
+              <div className="footer-details">
+                <div>{COMPANY_INFO.slogan}</div>
+                <div>{COMPANY_INFO.address} - {COMPANY_INFO.city}, {COMPANY_INFO.country}</div>
+                <div>Tél: {COMPANY_INFO.phones.join(' / ')} - Email: {COMPANY_INFO.email}</div>
+                <div>Site web: {COMPANY_INFO.website}</div>
+              </div>
+              <div className="footer-note">
+                Merci de votre confiance ! Cette facture est générée électroniquement et est valide sans signature.
+              </div>
+            </div>
           </div>
         </div>
       </DialogContent>

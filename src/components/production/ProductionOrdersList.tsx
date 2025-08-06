@@ -44,12 +44,10 @@ export const ProductionOrdersList = ({ orders, onEdit, onDelete, getStatusBadge 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Numéro</TableHead>
               <TableHead>Produit</TableHead>
               <TableHead>Quantité</TableHead>
-              <TableHead>Montant</TableHead>
-              <TableHead>Demandeur</TableHead>
-              <TableHead>Date demande</TableHead>
+              <TableHead>Date début</TableHead>
+              <TableHead>Date fin</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -60,40 +58,36 @@ export const ProductionOrdersList = ({ orders, onEdit, onDelete, getStatusBadge 
               
               return (
                 <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.numero_ordre}</TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{product?.nom || 'Produit inconnu'}</p>
-                      <p className="text-sm text-muted-foreground">{product?.categorie}</p>
+                      <p className="font-medium">{product?.name || product?.nom || 'Produit inconnu'}</p>
+                      <p className="text-sm text-muted-foreground">{product?.type}</p>
                     </div>
                   </TableCell>
-                  <TableCell>{order.quantite?.toLocaleString()} unités</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{order.cout_prevu?.toLocaleString()} FCFA</p>
-                      <p className="text-sm text-muted-foreground">
-                        {product?.prix_unitaire?.toLocaleString()} FCFA/unité
-                      </p>
-                    </div>
-                  </TableCell>
+                  <TableCell>{order.planned_quantity?.toLocaleString()} unités</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      <span>{order.demandeur_id}</span>
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        {order.start_date 
+                          ? new Date(order.start_date).toLocaleDateString('fr-FR')
+                          : 'N/A'
+                        }
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       <span>
-                        {order.date_demande 
-                          ? new Date(order.date_demande).toLocaleDateString('fr-FR')
-                          : 'N/A'
+                        {order.end_date 
+                          ? new Date(order.end_date).toLocaleDateString('fr-FR')
+                          : 'En cours'
                         }
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>{getStatusBadge(order.statut || 'en_attente')}</TableCell>
+                  <TableCell>{getStatusBadge(order.status || 'planned')}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button

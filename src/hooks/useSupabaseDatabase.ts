@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +19,20 @@ import type {
   ProductionRecipe,
   ProductionCost
 } from '@/types/database';
+
+// Interface pour les mouvements de stock
+export interface StockMovement {
+  id: string;
+  product_id: string;
+  type: 'entree' | 'sortie' | 'perte' | 'ajustement';
+  quantite: number;
+  motif?: string;
+  reference_document?: string;
+  date_mouvement: string;
+  created_by?: string;
+  commentaire?: string;
+  created_at: string;
+}
 
 // Hook générique pour les opérations Supabase
 function useSupabaseTable<T extends { id: string }>(tableName: string) {
@@ -143,6 +158,7 @@ export const useSales = () => useSupabaseTable<Sale>('sales');
 export const useDeliveries = () => useSupabaseTable<Delivery>('deliveries');
 export const useInvoices = () => useSupabaseTable<Invoice>('invoices');
 export const useProductionOrders = () => useSupabaseTable<ProductionOrder>('production_orders');
+export const useStockMovements = () => useSupabaseTable<StockMovement>('stock_movements');
 
 // Hooks pour comptabilité
 export const useAccountingEntries = () => useSupabaseTable<AccountingEntry>('accounting_entries');

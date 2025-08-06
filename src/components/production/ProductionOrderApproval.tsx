@@ -24,9 +24,9 @@ export const ProductionOrderApproval = ({ orders, onUpdate, getStatusBadge }: Pr
 
   const handleApprove = async (orderId: string) => {
     await onUpdate(orderId, {
-      statut: 'approuve',
-      date_prevue: new Date().toISOString(),
-      approbateur_id: 'Utilisateur actuel' // In a real app, this would come from auth
+      status: 'in_progress',
+      start_date: new Date().toISOString().split('T')[0],
+      notes: (rejectionReason[orderId] || '') + ' - Approuvé par utilisateur actuel'
     });
   };
 
@@ -38,10 +38,9 @@ export const ProductionOrderApproval = ({ orders, onUpdate, getStatusBadge }: Pr
     }
 
     await onUpdate(orderId, {
-      statut: 'rejete',
-      commentaires: reason,
-      date_prevue: new Date().toISOString(),
-      approbateur_id: 'Utilisateur actuel'
+      status: 'cancelled',
+      notes: reason,
+      end_date: new Date().toISOString().split('T')[0]
     });
 
     setRejectionReason({ ...rejectionReason, [orderId]: '' });
@@ -73,32 +72,33 @@ export const ProductionOrderApproval = ({ orders, onUpdate, getStatusBadge }: Pr
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Clock className="h-5 w-5" />
-                    Ordre #{order.numero_ordre}
+                    Ordre de production
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Demandé par {order.demandeur_id} le {' '}
-                    {order.date_demande 
-                      ? new Date(order.date_demande).toLocaleDateString('fr-FR')
-                      : 'N/A'
-                    }
+                    Créé le {new Date(order.created_at).toLocaleDateString('fr-FR')}
                   </p>
                 </div>
-                {getStatusBadge(order.statut || 'en_attente')}
+                {getStatusBadge(order.status || 'planned')}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="font-medium">Produit</p>
-                  <p className="text-muted-foreground">{product?.nom || 'Produit inconnu'}</p>
+                  <p className="text-muted-foreground">{product?.name || product?.nom || 'Produit inconnu'}</p>
                 </div>
                 <div>
                   <p className="font-medium">Quantité</p>
-                  <p className="text-muted-foreground">{order.quantite?.toLocaleString()} unités</p>
+                  <p className="text-muted-foreground">{order.planned_quantity?.toLocaleString()} unités</p>
                 </div>
                 <div>
-                  <p className="font-medium">Montant total</p>
-                  <p className="text-muted-foreground">{order.cout_prevu?.toLocaleString()} FCFA</p>
+                  <p className="font-medium">Date de début prévue</p>
+                  <p className="text-muted-foreground">
+                    {order.start_date 
+                      ? new Date(order.start_date).toLocaleDateString('fr-FR')
+                      : 'Non définie'
+                    }
+                  </p>
                 </div>
                 <div>
                   <p className="font-medium">Priorité</p>
@@ -106,11 +106,11 @@ export const ProductionOrderApproval = ({ orders, onUpdate, getStatusBadge }: Pr
                 </div>
               </div>
 
-              {order.commentaires && (
+              {order.notes && (
                 <div>
                   <p className="font-medium mb-2">Notes</p>
                   <p className="text-muted-foreground text-sm bg-gray-50 p-2 rounded">
-                    {order.commentaires}
+                    {order.notes}
                   </p>
                 </div>
               )}

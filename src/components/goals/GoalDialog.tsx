@@ -8,47 +8,53 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import type { MonthlyGoal } from '@/types/database';
 
-type GoalStatus = 'actif' | 'termine' | 'annule';
+type GoalStatus = 'active' | 'completed' | 'cancelled';
 
 interface GoalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  goal: MonthlyGoal | null;
+  goal?: MonthlyGoal | null;
   onSubmit: (data: Partial<MonthlyGoal>) => void;
-  isEditing: boolean;
+  isEditing?: boolean;
 }
 
-export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing }: GoalDialogProps) => {
+export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing = false }: GoalDialogProps) => {
   const [formData, setFormData] = useState({
-    titre: '',
+    title: '',
     description: '',
-    objectif_montant: 0,
-    montant_realise: 0,
-    mois: new Date().getMonth() + 1,
-    annee: new Date().getFullYear(),
-    statut: 'actif' as GoalStatus,
+    target_value: 0,
+    current_value: 0,
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+    status: 'active' as GoalStatus,
+    category: 'ventes',
+    unit: 'FCFA',
   });
 
   useEffect(() => {
     if (goal && isEditing) {
       setFormData({
-        titre: goal.titre,
+        title: goal.title,
         description: goal.description || '',
-        objectif_montant: Number(goal.objectif_montant || 0),
-        montant_realise: Number(goal.montant_realise || 0),
-        mois: goal.mois,
-        annee: goal.annee,
-        statut: (goal.statut as GoalStatus) || 'actif',
+        target_value: Number(goal.target_value || 0),
+        current_value: Number(goal.current_value || 0),
+        month: goal.month,
+        year: goal.year,
+        status: (goal.status as GoalStatus) || 'active',
+        category: goal.category,
+        unit: goal.unit,
       });
     } else if (!isEditing) {
       setFormData({
-        titre: '',
+        title: '',
         description: '',
-        objectif_montant: 0,
-        montant_realise: 0,
-        mois: new Date().getMonth() + 1,
-        annee: new Date().getFullYear(),
-        statut: 'actif',
+        target_value: 0,
+        current_value: 0,
+        month: new Date().getMonth() + 1,
+        year: new Date().getFullYear(),
+        status: 'active',
+        category: 'ventes',
+        unit: 'FCFA',
       });
     }
   }, [goal, isEditing, open]);
@@ -70,11 +76,11 @@ export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing }: Go
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="titre">Titre</Label>
+            <Label htmlFor="title">Titre</Label>
             <Input
-              id="titre"
-              value={formData.titre}
-              onChange={(e) => setFormData(prev => ({ ...prev, titre: e.target.value }))}
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               required
             />
           </div>
@@ -90,22 +96,22 @@ export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing }: Go
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="objectif_montant">Objectif montant (FCFA)</Label>
+              <Label htmlFor="target_value">Objectif montant (FCFA)</Label>
               <Input
-                id="objectif_montant"
+                id="target_value"
                 type="number"
-                value={formData.objectif_montant}
-                onChange={(e) => setFormData(prev => ({ ...prev, objectif_montant: parseFloat(e.target.value) || 0 }))}
+                value={formData.target_value}
+                onChange={(e) => setFormData(prev => ({ ...prev, target_value: parseFloat(e.target.value) || 0 }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="montant_realise">Réalisé montant (FCFA)</Label>
+              <Label htmlFor="current_value">Réalisé montant (FCFA)</Label>
               <Input
-                id="montant_realise"
+                id="current_value"
                 type="number"
-                value={formData.montant_realise}
-                onChange={(e) => setFormData(prev => ({ ...prev, montant_realise: parseFloat(e.target.value) || 0 }))}
+                value={formData.current_value}
+                onChange={(e) => setFormData(prev => ({ ...prev, current_value: parseFloat(e.target.value) || 0 }))}
                 required
               />
             </div>
@@ -113,8 +119,8 @@ export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing }: Go
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="mois">Mois</Label>
-              <Select value={formData.mois.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, mois: parseInt(value) }))}>
+              <Label htmlFor="month">Mois</Label>
+              <Select value={formData.month.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, month: parseInt(value) }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -128,27 +134,27 @@ export const GoalDialog = ({ open, onOpenChange, goal, onSubmit, isEditing }: Go
               </Select>
             </div>
             <div>
-              <Label htmlFor="annee">Année</Label>
+              <Label htmlFor="year">Année</Label>
               <Input
-                id="annee"
+                id="year"
                 type="number"
-                value={formData.annee}
-                onChange={(e) => setFormData(prev => ({ ...prev, annee: parseInt(e.target.value) || new Date().getFullYear() }))}
+                value={formData.year}
+                onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) || new Date().getFullYear() }))}
                 required
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="statut">Statut</Label>
-            <Select value={formData.statut} onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value as GoalStatus }))}>
+            <Label htmlFor="status">Statut</Label>
+            <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as GoalStatus }))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="actif">Actif</SelectItem>
-                <SelectItem value="termine">Terminé</SelectItem>
-                <SelectItem value="annule">Annulé</SelectItem>
+                <SelectItem value="active">Actif</SelectItem>
+                <SelectItem value="completed">Terminé</SelectItem>
+                <SelectItem value="cancelled">Annulé</SelectItem>
               </SelectContent>
             </Select>
           </div>

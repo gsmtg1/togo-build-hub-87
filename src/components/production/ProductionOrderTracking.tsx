@@ -22,15 +22,15 @@ export const ProductionOrderTracking = ({ orders, onUpdate, getStatusBadge }: Pr
 
   const handleStartProduction = async (orderId: string) => {
     await onUpdate(orderId, {
-      statut: 'en_cours',
-      date_prevue: new Date().toISOString()
+      status: 'in_progress',
+      start_date: new Date().toISOString().split('T')[0]
     });
   };
 
   const handleCompleteProduction = async (orderId: string) => {
     await onUpdate(orderId, {
-      statut: 'termine',
-      date_completion: new Date().toISOString()
+      status: 'completed',
+      end_date: new Date().toISOString().split('T')[0]
     });
   };
 
@@ -60,30 +60,30 @@ export const ProductionOrderTracking = ({ orders, onUpdate, getStatusBadge }: Pr
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5" />
-                    Ordre #{order.numero_ordre}
+                    Ordre de production
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    {product?.nom || 'Produit inconnu'} - {order.quantite?.toLocaleString()} unités
+                    {product?.name || product?.nom || 'Produit inconnu'} - {order.planned_quantity?.toLocaleString()} unités
                   </p>
                 </div>
-                {getStatusBadge(order.statut || 'approuve')}
+                {getStatusBadge(order.status || 'planned')}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="font-medium">Demandeur</p>
-                  <p className="text-muted-foreground">{order.demandeur_id}</p>
+                  <p className="font-medium">Créé le</p>
+                  <p className="text-muted-foreground">{new Date(order.created_at).toLocaleDateString('fr-FR')}</p>
                 </div>
                 <div>
-                  <p className="font-medium">Montant</p>
-                  <p className="text-muted-foreground">{order.cout_prevu?.toLocaleString()} FCFA</p>
+                  <p className="font-medium">Quantité prévue</p>
+                  <p className="text-muted-foreground">{order.planned_quantity?.toLocaleString()} unités</p>
                 </div>
                 <div>
                   <p className="font-medium">Date de début</p>
                   <p className="text-muted-foreground">
-                    {order.date_prevue 
-                      ? new Date(order.date_prevue).toLocaleDateString('fr-FR')
+                    {order.start_date 
+                      ? new Date(order.start_date).toLocaleDateString('fr-FR')
                       : 'Non commencé'
                     }
                   </p>
@@ -98,17 +98,17 @@ export const ProductionOrderTracking = ({ orders, onUpdate, getStatusBadge }: Pr
                 <div className="flex justify-between items-center">
                   <p className="font-medium">Progression</p>
                   <span className="text-sm text-muted-foreground">
-                    {order.statut === 'termine' ? '100' : order.statut === 'en_cours' ? '50' : '0'}%
+                    {order.status === 'completed' ? '100' : order.status === 'in_progress' ? '50' : '0'}%
                   </span>
                 </div>
                 <Progress 
-                  value={order.statut === 'termine' ? 100 : order.statut === 'en_cours' ? 50 : 0} 
+                  value={order.status === 'completed' ? 100 : order.status === 'in_progress' ? 50 : 0} 
                   className="w-full" 
                 />
               </div>
 
               <div className="flex gap-2">
-                {order.statut === 'approuve' && (
+                {order.status === 'planned' && (
                   <Button
                     onClick={() => handleStartProduction(order.id)}
                     className="flex items-center gap-2"
@@ -118,7 +118,7 @@ export const ProductionOrderTracking = ({ orders, onUpdate, getStatusBadge }: Pr
                   </Button>
                 )}
                 
-                {order.statut === 'en_cours' && (
+                {order.status === 'in_progress' && (
                   <Button
                     onClick={() => handleCompleteProduction(order.id)}
                     className="flex items-center gap-2"

@@ -129,7 +129,7 @@ export const DailyLossManagement = ({
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {product ? product.name : 'Produit introuvable'}
+                      {product ? product.nom : 'Produit introuvable'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="destructive">

@@ -146,7 +146,7 @@ export default function Production() {
                       {order.numero_ordre}
                     </TableCell>
                     <TableCell>
-                      {product ? product.name : 'Produit introuvable'}
+                      {product ? product.nom : 'Produit introuvable'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">

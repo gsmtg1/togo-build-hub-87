@@ -26,7 +26,7 @@ function useSupabaseTypedTable<T extends { id: string }>(tableName: string) {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      setData((result as T[]) || []);
     } catch (error) {
       console.error(`Error loading ${tableName}:`, error);
       toast({
@@ -43,7 +43,7 @@ function useSupabaseTypedTable<T extends { id: string }>(tableName: string) {
     try {
       const { data: result, error } = await supabase
         .from(tableName)
-        .insert([item])
+        .insert([item as any])
         .select()
         .single();
       
@@ -53,7 +53,7 @@ function useSupabaseTypedTable<T extends { id: string }>(tableName: string) {
         title: "Succès",
         description: "Élément créé avec succès",
       });
-      return result;
+      return result as T;
     } catch (error) {
       console.error(`Error creating ${tableName}:`, error);
       toast({
@@ -69,7 +69,7 @@ function useSupabaseTypedTable<T extends { id: string }>(tableName: string) {
     try {
       const { error } = await supabase
         .from(tableName)
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq('id', id);
       
       if (error) throw error;

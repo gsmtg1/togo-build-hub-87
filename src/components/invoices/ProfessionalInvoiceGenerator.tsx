@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -110,7 +111,7 @@ export const ProfessionalInvoiceGenerator = ({
             <DialogTitle>Aperçu de la facture</DialogTitle>
           </DialogHeader>
           <ProfessionalInvoiceView 
-            sale={{
+            saleData={{
               id: '',
               numero_vente: `VT-${Date.now()}`,
               client_nom: formData.client_nom,

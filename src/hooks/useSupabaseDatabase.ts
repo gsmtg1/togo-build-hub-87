@@ -20,7 +20,7 @@ import type {
   ProductionCost
 } from '@/types/database';
 
-// Interface pour les mouvements de stock
+// Interface for stock movements
 export interface StockMovement {
   id: string;
   product_id: string;
@@ -34,36 +34,17 @@ export interface StockMovement {
   created_at: string;
 }
 
-// Hook générique pour les opérations Supabase avec types spécifiques
-function useSupabaseTable<T extends { id: string }>(tableName: keyof typeof TABLE_MAPPINGS) {
+// Generic hook for Supabase operations with specific types
+function useSupabaseTable<T extends { id: string }>(tableName: string) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-
-  // Mapping des tables pour éviter les erreurs de typage
-  const TABLE_MAPPINGS = {
-    products: 'products',
-    daily_losses: 'daily_losses',
-    sales: 'sales',
-    deliveries: 'deliveries', 
-    invoices: 'invoices',
-    production_orders: 'production_orders',
-    accounting_entries: 'accounting_entries',
-    accounting_categories: 'accounting_categories',
-    monthly_goals: 'monthly_goals',
-    app_settings: 'app_settings',
-    employees: 'employees',
-    production_materials: 'production_materials',
-    brick_types: 'brick_types', 
-    production_recipes: 'production_recipes',
-    production_costs: 'production_costs'
-  } as const;
 
   const loadData = async () => {
     try {
       setLoading(true);
       const { data: result, error } = await supabase
-        .from(TABLE_MAPPINGS[tableName])
+        .from(tableName)
         .select('*')
         .order('created_at', { ascending: false });
       
@@ -84,7 +65,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: keyof typeof TABL
   const create = async (item: Omit<T, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       const { data: result, error } = await supabase
-        .from(TABLE_MAPPINGS[tableName])
+        .from(tableName)
         .insert([item as any])
         .select()
         .single();
@@ -110,7 +91,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: keyof typeof TABL
   const update = async (id: string, updates: Partial<T>) => {
     try {
       const { error } = await supabase
-        .from(TABLE_MAPPINGS[tableName])
+        .from(tableName)
         .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq('id', id);
       
@@ -134,7 +115,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: keyof typeof TABL
   const remove = async (id: string) => {
     try {
       const { error } = await supabase
-        .from(TABLE_MAPPINGS[tableName])
+        .from(tableName)
         .delete()
         .eq('id', id);
       
@@ -169,7 +150,7 @@ function useSupabaseTable<T extends { id: string }>(tableName: keyof typeof TABL
   };
 }
 
-// Hooks spécialisés
+// Specialized hooks
 export const useProducts = () => useSupabaseTable<Product>('products');
 export const useDailyLosses = () => useSupabaseTable<DailyLoss>('daily_losses');
 export const useSales = () => useSupabaseTable<Sale>('sales');
@@ -177,22 +158,22 @@ export const useDeliveries = () => useSupabaseTable<Delivery>('deliveries');
 export const useInvoices = () => useSupabaseTable<Invoice>('invoices');
 export const useProductionOrders = () => useSupabaseTable<ProductionOrder>('production_orders');
 
-// Hooks pour comptabilité
+// Hooks for accounting
 export const useAccountingEntries = () => useSupabaseTable<AccountingEntry>('accounting_entries');
 export const useAccountingCategories = () => useSupabaseTable<AccountingCategory>('accounting_categories');
 
-// Hooks pour objectifs et paramètres
+// Hooks for goals and settings
 export const useMonthlyGoals = () => useSupabaseTable<MonthlyGoal>('monthly_goals');
 export const useAppSettings = () => useSupabaseTable<AppSetting>('app_settings');
 
-// Hooks pour production
+// Hooks for production
 export const useProductionMaterials = () => useSupabaseTable<ProductionMaterial>('production_materials');
 export const useBrickTypes = () => useSupabaseTable<BrickType>('brick_types');
 export const useProductionRecipes = () => useSupabaseTable<ProductionRecipe>('production_recipes');
 export const useProductionCosts = () => useSupabaseTable<ProductionCost>('production_costs');
 export const useEmployees = () => useSupabaseTable<Employee>('employees');
 
-// Hook pour les mouvements de stock
+// Hook for stock movements
 export const useStockMovements = () => {
   const [data, setData] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -241,7 +222,7 @@ export const useStockMovements = () => {
   };
 };
 
-// Hook spécialisé pour les produits avec stock
+// Specialized hook for products with stock
 export function useProductsWithStock() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -257,7 +238,12 @@ export function useProductsWithStock() {
         .order('name');
       
       if (error) throw error;
-      setProducts(data || []);
+      // Map the database result to our Product interface
+      const mappedProducts = (data || []).map(item => ({
+        ...item,
+        nom: item.name // Add compatibility property
+      })) as Product[];
+      setProducts(mappedProducts);
     } catch (error) {
       console.error('Error loading products:', error);
       toast({

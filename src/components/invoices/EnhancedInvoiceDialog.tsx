@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -174,7 +173,6 @@ export const EnhancedInvoiceDialog = ({ open, onOpenChange, invoice, onSubmit, i
           {/* Sélection des produits */}
           <ProductSelector
             products={formData.products}
-            predefinedProducts={(predefinedProducts || []) as Product[]}
             onProductsChange={(products) => setFormData(prev => ({ ...prev, products }))}
           />
 

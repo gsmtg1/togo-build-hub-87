@@ -80,7 +80,7 @@ export const StockMovementDialog = ({ open, onOpenChange, selectedProduct, onClo
               <SelectContent>
                 {products.map((product) => (
                   <SelectItem key={product.id} value={product.id}>
-                    {product.nom} - Stock: {product.stock_actuel}
+                    {product.name} - {product.type}
                   </SelectItem>
                 ))}
               </SelectContent>

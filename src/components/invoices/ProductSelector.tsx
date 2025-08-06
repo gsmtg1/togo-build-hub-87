@@ -18,15 +18,6 @@ interface InvoiceProduct {
 
 interface ProductSelectorProps {
   products: InvoiceProduct[];
-  predefinedProducts?: Array<{
-    id: string;
-    nom: string;
-    categorie: string;
-    longueur_cm: number;
-    largeur_cm: number;
-    hauteur_cm: number;
-    prix_unitaire: number;
-  }>;
   onProductsChange: (products: InvoiceProduct[]) => void;
 }
 
@@ -72,8 +63,8 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
       const predefined = supabaseProducts.find(p => p.id === productId);
       if (predefined) {
         updateProduct(id, {
-          name: `${predefined.nom} (${predefined.longueur_cm}x${predefined.largeur_cm}x${predefined.hauteur_cm}cm)`,
-          unitPrice: predefined.prix_unitaire,
+          name: `${predefined.name} (${predefined.dimensions})`,
+          unitPrice: predefined.price,
           isCustom: false,
         });
       }
@@ -108,8 +99,8 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
                     <SelectItem value="custom">⚡ Autre (personnalisé)</SelectItem>
                     {supabaseProducts.map((predefined) => (
                       <SelectItem key={predefined.id} value={predefined.id}>
-                        🧱 {predefined.nom} - {predefined.longueur_cm}x{predefined.largeur_cm}x{predefined.hauteur_cm}cm
-                        ({predefined.prix_unitaire.toLocaleString()} FCFA) - Stock: {predefined.stock_actuel}
+                        🧱 {predefined.name} - {predefined.dimensions}
+                        ({predefined.price.toLocaleString()} FCFA)
                       </SelectItem>
                     ))}
                   </SelectContent>

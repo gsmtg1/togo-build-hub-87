@@ -32,7 +32,7 @@ export const SaleViewDialog = ({ open, onOpenChange, sale }: SaleViewDialogProps
         printWindow.document.write(`
           <html>
             <head>
-              <title>Vente ${sale.numero_vente}</title>
+              <title>Vente ${sale.id}</title>
               <style>
                 body { font-family: Arial, sans-serif; margin: 20px; }
                 .header { text-align: center; margin-bottom: 20px; }
@@ -55,19 +55,17 @@ export const SaleViewDialog = ({ open, onOpenChange, sale }: SaleViewDialogProps
     }
   };
 
-  const getStatusBadge = (status: Sale['statut']) => {
-    const variants: Record<Sale['statut'], 'default' | 'secondary' | 'destructive'> = {
-      en_attente: 'secondary',
-      confirmee: 'default',
-      livree: 'default',
-      annulee: 'destructive',
+  const getStatusBadge = (status: Sale['status']) => {
+    const variants: Record<Sale['status'], 'default' | 'secondary' | 'destructive'> = {
+      pending: 'secondary',
+      completed: 'default',
+      cancelled: 'destructive',
     };
     
-    const labels: Record<Sale['statut'], string> = {
-      en_attente: 'En attente',
-      confirmee: 'Confirmée',
-      livree: 'Livrée',
-      annulee: 'Annulée',
+    const labels: Record<Sale['status'], string> = {
+      pending: 'En attente',
+      completed: 'Terminée',
+      cancelled: 'Annulée',
     };
 
     return <Badge variant={variants[status]}>{labels[status]}</Badge>;
@@ -98,14 +96,10 @@ export const SaleViewDialog = ({ open, onOpenChange, sale }: SaleViewDialogProps
               <CardTitle>Informations Client</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div><strong>N° Vente:</strong> {sale.numero_vente}</div>
-              <div><strong>Nom:</strong> {sale.client_nom}</div>
-              <div><strong>Téléphone:</strong> {sale.client_telephone}</div>
-              <div><strong>Adresse:</strong> {sale.client_adresse}</div>
-              <div><strong>Date:</strong> {new Date(sale.date_vente).toLocaleDateString('fr-FR')}</div>
-              <div><strong>Statut:</strong> {getStatusBadge(sale.statut)}</div>
-              {sale.commentaires && (
-                <div><strong>Commentaires:</strong> {sale.commentaires}</div>
+              <div><strong>Date:</strong> {new Date(sale.sale_date).toLocaleDateString('fr-FR')}</div>
+              <div><strong>Statut:</strong> {getStatusBadge(sale.status)}</div>
+              {sale.notes && (
+                <div><strong>Commentaires:</strong> {sale.notes}</div>
               )}
             </CardContent>
           </Card>
@@ -116,7 +110,7 @@ export const SaleViewDialog = ({ open, onOpenChange, sale }: SaleViewDialogProps
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-center">
-                {formatCurrency(sale.montant_total)}
+                {formatCurrency(sale.total_amount)}
               </div>
             </CardContent>
           </Card>

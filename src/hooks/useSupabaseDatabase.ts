@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { 
   Product, 
-  StockMovement, 
   DailyLoss, 
   Sale, 
   Delivery, 
@@ -138,7 +137,6 @@ function useSupabaseTable<T extends { id: string }>(tableName: string) {
 
 // Hooks spécialisés
 export const useProducts = () => useSupabaseTable<Product>('products');
-export const useStockMovements = () => useSupabaseTable<StockMovement>('stock_movements');
 export const useDailyLosses = () => useSupabaseTable<DailyLoss>('daily_losses');
 export const useMonthlyLossReports = () => useSupabaseTable<any>('monthly_loss_reports');
 export const useSales = () => useSupabaseTable<Sale>('sales');

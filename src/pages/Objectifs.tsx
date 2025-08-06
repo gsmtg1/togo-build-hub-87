@@ -1,224 +1,159 @@
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, TrendingUp, Target } from 'lucide-react';
+import { Plus, Target, TrendingUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useMonthlyGoals } from '@/hooks/useSupabaseDatabase';
 import { GoalDialog } from '@/components/goals/GoalDialog';
-import type { MonthlyGoal } from '@/types/database';
 
 const Objectifs = () => {
   const { data: goals, loading, create, update, remove } = useMonthlyGoals();
-  const [selectedGoal, setSelectedGoal] = useState<MonthlyGoal | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Chargement des objectifs...</div>
-      </div>
-    );
-  }
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
 
-  const handleCreate = () => {
-    setSelectedGoal(null);
-    setIsEditing(false);
-    setDialogOpen(true);
-  };
+  const currentGoals = goals.filter(
+    goal => goal.month === currentMonth && goal.year === currentYear
+  );
 
-  const handleEdit = (goal: MonthlyGoal) => {
-    setSelectedGoal(goal);
-    setIsEditing(true);
-    setDialogOpen(true);
-  };
+  const handleSubmit = async (goalData: any) => {
+    const completeGoalData = {
+      ...goalData,
+      unit: goalData.unit || 'FCFA', // Ajouter une unité par défaut
+      month: goalData.month || currentMonth,
+      year: goalData.year || currentYear,
+      current_value: goalData.current_value || 0,
+      status: goalData.status || 'active',
+      category: goalData.category || 'ventes'
+    };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet objectif ?')) {
-      await remove(id);
-    }
-  };
-
-  const handleSubmit = async (goalData: Partial<MonthlyGoal>) => {
-    if (isEditing && selectedGoal) {
-      await update(selectedGoal.id, goalData);
-    } else {
-      // Ensure required fields have default values
-      const completeGoalData = {
-        ...goalData,
-        statut: goalData.statut || 'actif',
-        titre: goalData.titre || '',
-        mois: goalData.mois || new Date().getMonth() + 1,
-        annee: goalData.annee || new Date().getFullYear(),
-        objectif_montant: goalData.objectif_montant || 0,
-        montant_realise: goalData.montant_realise || 0
-      };
-      
-      await create(completeGoalData);
-    }
+    await create(completeGoalData);
     setDialogOpen(false);
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      actif: 'default',
-      termine: 'default',
-      annule: 'destructive',
+    const variants = {
+      active: 'default' as const,
+      completed: 'default' as const,
+      cancelled: 'destructive' as const,
     };
     
-    const labels: Record<string, string> = {
-      actif: 'Actif',
-      termine: 'Terminé',
-      annule: 'Annulé',
+    const labels = {
+      active: 'Actif',
+      completed: 'Terminé',
+      cancelled: 'Annulé',
     };
 
-    return <Badge variant={variants[status] || 'default'}>{labels[status] || status}</Badge>;
+    return <Badge variant={variants[status as keyof typeof variants] || 'default'}>
+      {labels[status as keyof typeof labels] || status}
+    </Badge>;
   };
 
-  const getProgress = (current: number, target: number) => {
-    return target > 0 ? (current / target) * 100 : 0;
-  };
-
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-  const currentMonthGoals = goals.filter(goal => goal.mois === currentMonth && goal.annee === currentYear);
-  const totalTarget = currentMonthGoals.reduce((sum, goal) => sum + (goal.objectif_montant || 0), 0);
-  const totalCurrent = currentMonthGoals.reduce((sum, goal) => sum + (goal.montant_realise || 0), 0);
-  const completedGoals = goals.filter(goal => goal.statut === 'termine').length;
+  if (loading) {
+    return <div className="flex items-center justify-center h-64">Chargement...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Objectifs Mensuels</h1>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nouvel Objectif
+        <div>
+          <h1 className="text-3xl font-bold">Objectifs</h1>
+          <p className="text-muted-foreground">
+            Définissez et suivez vos objectifs mensuels
+          </p>
+        </div>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvel objectif
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Stats du mois */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Objectif du Mois
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Objectifs ce mois</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalTarget.toLocaleString()} FCFA</div>
-            <div className="text-sm text-muted-foreground">
-              {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+            <div className="text-2xl font-bold">{currentGoals.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Terminés</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {currentGoals.filter(g => g.status === 'completed').length}
             </div>
           </CardContent>
         </Card>
-        
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Réalisé
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Taux de réussite</CardTitle>
+            <Calendar className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalCurrent.toLocaleString()} FCFA</div>
-            <Progress value={getProgress(totalCurrent, totalTarget)} className="mt-2" />
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Objectifs Terminés</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedGoals}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Objectifs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{goals.length}</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {currentGoals.length > 0 
+                ? Math.round((currentGoals.filter(g => g.status === 'completed').length / currentGoals.length) * 100)
+                : 0}%
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Liste des Objectifs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Titre</TableHead>
-                <TableHead>Période</TableHead>
-                <TableHead>Objectif</TableHead>
-                <TableHead>Réalisé</TableHead>
-                <TableHead>Progression</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {goals.map((goal) => (
-                <TableRow key={goal.id}>
-                  <TableCell>{goal.titre}</TableCell>
-                  <TableCell>
-                    {new Date(goal.annee, goal.mois - 1).toLocaleDateString('fr-FR', { 
-                      month: 'long', 
-                      year: 'numeric' 
-                    })}
-                  </TableCell>
-                  <TableCell>{(goal.objectif_montant || 0).toLocaleString()} FCFA</TableCell>
-                  <TableCell>{(goal.montant_realise || 0).toLocaleString()} FCFA</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Progress 
-                        value={getProgress(goal.montant_realise || 0, goal.objectif_montant || 0)} 
-                        className="w-16" 
-                      />
-                      <span className="text-sm">
-                        {Math.round(getProgress(goal.montant_realise || 0, goal.objectif_montant || 0))}%
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(goal.statut || 'actif')}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(goal)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(goal.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Liste des objectifs */}
+      <div className="grid gap-4">
+        {goals.map((goal) => {
+          const progress = goal.target_value > 0 ? Math.min((goal.current_value / goal.target_value) * 100, 100) : 0;
+          
+          return (
+            <Card key={goal.id}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">{goal.title}</CardTitle>
+                    {goal.description && (
+                      <CardDescription>{goal.description}</CardDescription>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(goal.status)}
+                    <Badge variant="outline">
+                      {goal.month}/{goal.year}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Progression</span>
+                    <span className="text-sm text-muted-foreground">
+                      {goal.current_value.toLocaleString()} / {goal.target_value.toLocaleString()} {goal.unit}
+                    </span>
+                  </div>
+                  <Progress value={progress} className="w-full" />
+                  <div className="text-right text-sm font-medium">
+                    {progress.toFixed(1)}%
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
       <GoalDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        goal={selectedGoal}
         onSubmit={handleSubmit}
-        isEditing={isEditing}
       />
     </div>
   );

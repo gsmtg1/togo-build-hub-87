@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -72,36 +73,16 @@ export interface AppSetting {
   updated_at: string;
 }
 
-// Types pour la base de données Supabase
-export interface Product {
-  id: string;
-  nom: string;
-  categorie: string;
-  longueur_cm: number;
-  largeur_cm: number;
-  hauteur_cm: number;
-  prix_unitaire: number;
-  stock_actuel: number;
-  stock_minimum: number;
-  actif: boolean;
-  date_creation: string;
-  date_modification: string;
-}
-
 export interface ProductionOrder {
   id: string;
   numero_ordre: string;
   product_id: string;
-  quantite: number;
-  date_demande: string;
-  date_prevue?: string;
-  date_completion?: string;
-  statut: 'en_attente' | 'approuve' | 'rejete' | 'en_cours' | 'termine' | 'annule';
-  demandeur_id?: string;
-  approbateur_id?: string;
-  commentaires?: string;
-  cout_prevu?: number;
-  cout_reel?: number;
+  planned_quantity: number;
+  produced_quantity: number;
+  start_date: string;
+  end_date?: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
@@ -229,63 +210,6 @@ export interface Employee {
   salaire: number;
   date_embauche: string;
   actif: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface AccountingEntry {
-  id: string;
-  type: 'recette' | 'depense' | 'salaire' | 'charge';
-  categorie: string;
-  description: string;
-  montant: number;
-  date_operation: string;
-  methode_paiement?: 'especes' | 'virement' | 'cheque' | 'mobile_money';
-  reference_externe?: string;
-  employee_id?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface MonthlyGoal {
-  id: string;
-  titre: string;
-  description?: string;
-  mois: number;
-  annee: number;
-  objectif_montant: number;
-  montant_realise: number;
-  statut: 'actif' | 'termine' | 'annule';
-  employee_id?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface AppSetting {
-  id: string;
-  cle: string;
-  valeur: any;
-  description?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-// Types pour la comptabilité
-export interface AccountingCategory {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-export interface ProductionStep {
-  id: string;
-  production_order_id: string;
-  step_name: string;
-  step_order: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  start_date?: string;
-  end_date?: string;
-  notes?: string;
   created_at: string;
   updated_at: string;
 }

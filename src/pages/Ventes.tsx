@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,14 +42,12 @@ const Ventes = () => {
     const variants: Record<Sale['statut'], 'default' | 'secondary' | 'destructive'> = {
       en_attente: 'secondary',
       confirmee: 'default',
-      livree: 'default',
       annulee: 'destructive',
     };
     
     const labels: Record<Sale['statut'], string> = {
       en_attente: 'En attente',
       confirmee: 'Confirmée',
-      livree: 'Livrée',
       annulee: 'Annulée',
     };
 

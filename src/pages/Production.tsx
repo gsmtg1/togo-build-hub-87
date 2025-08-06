@@ -1,78 +1,128 @@
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, Play, Pause, CheckCircle, XCircle, Eye, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, PlayCircle, PauseCircle, CheckCircle, XCircle, Edit } from 'lucide-react';
-import { ProductionOrderDialog } from '@/components/production/ProductionOrderDialog';
 import { useProductionOrders, useProducts } from '@/hooks/useSupabaseDatabase';
+import { ProductionOrderDialog } from '@/components/production/ProductionOrderDialog';
+import type { ProductionOrder } from '@/types/database';
 
 const Production = () => {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const { data: orders, loading, create, update } = useProductionOrders();
+  const { data: orders, loading, create, update, remove } = useProductionOrders();
   const { data: products } = useProducts();
+  const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-  const handleCreateOrder = (orderData: any) => {
-    if (isEditing && selectedOrder) {
-      update(selectedOrder.id, orderData);
-    } else {
-      create(orderData);
-    }
+  const handleCreate = async (orderData: any) => {
+    await create(orderData);
     setDialogOpen(false);
-    setSelectedOrder(null);
-    setIsEditing(false);
   };
 
-  const handleEditOrder = (order: any) => {
+  const handleEdit = (order: ProductionOrder) => {
     setSelectedOrder(order);
     setIsEditing(true);
     setDialogOpen(true);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'planned': return <PauseCircle className="h-4 w-4" />;
-      case 'in_progress': return <PlayCircle className="h-4 w-4" />;
-      case 'completed': return <CheckCircle className="h-4 w-4" />;
-      case 'cancelled': return <XCircle className="h-4 w-4" />;
-      default: return <PauseCircle className="h-4 w-4" />;
+  const handleUpdate = async (orderData: any) => {
+    if (selectedOrder) {
+      await update(selectedOrder.id, orderData);
+      setDialogOpen(false);
+      setSelectedOrder(null);
+      setIsEditing(false);
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'planned': return 'Planifié';
-      case 'in_progress': return 'En cours';
-      case 'completed': return 'Terminé';
-      case 'cancelled': return 'Annulé';
-      default: return status;
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet ordre de production ?')) {
+      await remove(id);
     }
   };
 
-  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-    switch (status) {
-      case 'planned': return 'outline';
-      case 'in_progress': return 'default';
-      case 'completed': return 'secondary';
-      case 'cancelled': return 'destructive';
-      default: return 'outline';
+  const handleUpdateStatus = async (id: string, newStatus: ProductionOrder['status']) => {
+    await update(id, { status: newStatus });
+  };
+
+  const getStatusBadge = (status: ProductionOrder['status']) => {
+    const variants = {
+      planned: 'secondary' as const,
+      in_progress: 'default' as const,
+      completed: 'default' as const,
+      cancelled: 'destructive' as const,
+    };
+    
+    const labels = {
+      planned: 'Planifié',
+      in_progress: 'En cours',
+      completed: 'Terminé',
+      cancelled: 'Annulé',
+    };
+
+    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+  };
+
+  const getStatusActions = (order: ProductionOrder) => {
+    switch (order.status) {
+      case 'planned':
+        return (
+          <Button 
+            size="sm" 
+            onClick={() => handleUpdateStatus(order.id, 'in_progress')}
+            className="mr-2"
+          >
+            <Play className="h-4 w-4 mr-1" />
+            Démarrer
+          </Button>
+        );
+      case 'in_progress':
+        return (
+          <>
+            <Button 
+              size="sm" 
+              onClick={() => handleUpdateStatus(order.id, 'completed')}
+              className="mr-2"
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Terminer
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => handleUpdateStatus(order.id, 'planned')}
+              className="mr-2"
+            >
+              <Pause className="h-4 w-4 mr-1" />
+              Pause
+            </Button>
+          </>
+        );
+      case 'completed':
+        return (
+          <Badge variant="default" className="mr-2">
+            <CheckCircle className="h-4 w-4 mr-1" />
+            Terminé
+          </Badge>
+        );
+      case 'cancelled':
+        return (
+          <Badge variant="destructive" className="mr-2">
+            <XCircle className="h-4 w-4 mr-1" />
+            Annulé
+          </Badge>
+        );
+      default:
+        return null;
     }
   };
 
-  // Grouper les produits par type
-  const productsByType = products.reduce((acc, product) => {
-    const type = product.type || 'Autres';
-    if (!acc[type]) {
-      acc[type] = [];
-    }
-    acc[type].push(product);
-    return acc;
-  }, {} as Record<string, any[]>);
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR');
+  };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Chargement...</div>;
+    return <div className="flex justify-center items-center h-64">Chargement...</div>;
   }
 
   return (
@@ -81,112 +131,144 @@ const Production = () => {
         <div>
           <h1 className="text-3xl font-bold">Production</h1>
           <p className="text-muted-foreground">
-            Gérez vos ordres de production et suivez l'avancement
+            Gérez les ordres de production et suivez l'avancement
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button onClick={() => {
+          setSelectedOrder(null);
+          setIsEditing(false);
+          setDialogOpen(true);
+        }}>
           <Plus className="h-4 w-4 mr-2" />
           Nouvel ordre
         </Button>
       </div>
 
-      {/* Affichage des produits par type */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {Object.entries(productsByType).map(([type, typeProducts]) => (
-          <Card key={type}>
-            <CardHeader>
-              <CardTitle className="text-lg">{type}</CardTitle>
-              <CardDescription>
-                {typeProducts.length} produit{typeProducts.length > 1 ? 's' : ''} disponible{typeProducts.length > 1 ? 's' : ''}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {typeProducts.map((product) => (
-                  <div key={product.id} className="flex justify-between items-center text-sm">
-                    <div>
-                      <span className="font-medium">{product.name || product.nom}</span>
-                      <div className="text-xs text-muted-foreground">{product.dimensions}</div>
-                    </div>
-                    <span className="text-muted-foreground">{product.price} FCFA</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Stats rapides */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total ordres</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{orders.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">En cours</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {orders.filter(o => o.status === 'in_progress').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Terminés</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {orders.filter(o => o.status === 'completed').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Production totale</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {orders.reduce((sum, o) => sum + o.planned_quantity, 0)}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ordres de production</CardTitle>
-          <CardDescription>
-            Liste de tous les ordres de production avec leur statut
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2">Produit</th>
-                  <th className="text-left py-2">Quantité prévue</th>
-                  <th className="text-left py-2">Quantité produite</th>
-                  <th className="text-left py-2">Date début</th>
-                  <th className="text-left py-2">Date fin</th>
-                  <th className="text-left py-2">Statut</th>
-                  <th className="text-left py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => {
-                  const product = products.find(p => p.id === order.product_id);
-                  return (
-                    <tr key={order.id} className="border-b">
-                      <td className="py-2">
-                        <div>
-                          <div className="font-medium">{product ? (product.name || product.nom) : 'Produit inconnu'}</div>
-                          {product && (
-                            <div className="text-xs text-muted-foreground">{product.dimensions}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-2">{order.planned_quantity}</td>
-                      <td className="py-2">{order.produced_quantity}</td>
-                      <td className="py-2">{new Date(order.start_date).toLocaleDateString('fr-FR')}</td>
-                      <td className="py-2">
-                        {order.end_date ? new Date(order.end_date).toLocaleDateString('fr-FR') : 'Non définie'}
-                      </td>
-                      <td className="py-2">
-                        <Badge variant={getStatusVariant(order.status)}>
-                          <div className="flex items-center gap-1">
-                            {getStatusIcon(order.status)}
-                            {getStatusLabel(order.status)}
-                          </div>
-                        </Badge>
-                      </td>
-                      <td className="py-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditOrder(order)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Liste des ordres */}
+      <div className="grid gap-4">
+        {orders.map((order) => {
+          const product = products.find(p => p.id === order.product_id);
+          const progress = order.planned_quantity > 0 ? 
+            Math.round((order.produced_quantity / order.planned_quantity) * 100) : 0;
+          
+          return (
+            <Card key={order.id}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">
+                      {product ? (product.name || product.nom) : 'Produit introuvable'}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {product?.dimensions} - {product?.type}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(order.status)}
+                    <div className="flex gap-1">
+                      {getStatusActions(order)}
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(order)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleDelete(order.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Quantité prévue:</span><br />
+                    {order.planned_quantity} pièces
+                  </div>
+                  <div>
+                    <span className="font-medium">Produit:</span><br />
+                    {order.produced_quantity} pièces
+                  </div>
+                  <div>
+                    <span className="font-medium">Date début:</span><br />
+                    {formatDate(order.start_date)}
+                  </div>
+                  <div>
+                    <span className="font-medium">Date fin:</span><br />
+                    {order.end_date ? formatDate(order.end_date) : 'Non définie'}
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Progression:</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${
+                        order.status === 'completed' ? 'bg-green-600' :
+                        order.status === 'in_progress' ? 'bg-blue-600' :
+                        order.status === 'cancelled' ? 'bg-red-600' : 'bg-gray-400'
+                      }`}
+                      style={{ width: `${Math.min(progress, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                {order.notes && (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    <strong>Notes:</strong> {order.notes}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
       <ProductionOrderDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSubmit={handleCreateOrder}
+        onSubmit={isEditing ? handleUpdate : handleCreate}
         order={selectedOrder}
         isEditing={isEditing}
       />

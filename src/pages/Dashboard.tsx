@@ -26,44 +26,44 @@ export default function Dashboard() {
       value: products.length,
       icon: Package,
       color: 'bg-blue-500',
-      detail: `${products.filter(p => p.stock_actuel < p.stock_minimum).length} en rupture`
+      detail: `${products.filter(p => !p.is_active).length} inactifs` // Using is_active instead of stock properties
     },
     {
       title: 'Ordres en cours',
-      value: orders.filter(o => o.statut === 'en_cours').length,
+      value: orders.filter(o => o.status === 'in_progress').length,
       icon: Factory,
       color: 'bg-orange-500',
-      detail: `${orders.filter(o => o.statut === 'en_attente').length} en attente`
+      detail: `${orders.filter(o => o.status === 'planned').length} en attente`
     },
     {
       title: 'Livraisons',
-      value: deliveries.filter(d => d.statut === 'en_cours').length,
+      value: deliveries.filter(d => d.status === 'in_transit').length,
       icon: Truck,
       color: 'bg-green-500',
-      detail: `${deliveries.filter(d => d.statut === 'livre').length} livrées`
+      detail: `${deliveries.filter(d => d.status === 'delivered').length} livrées`
     },
     {
       title: 'Ventes du mois',
       value: sales.filter(s => {
-        const saleDate = new Date(s.date_vente);
+        const saleDate = new Date(s.sale_date);
         const now = new Date();
         return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
       }).length,
       icon: ShoppingCart,
       color: 'bg-purple-500',
-      detail: `${sales.reduce((sum, s) => sum + s.montant_total, 0).toLocaleString()} FCFA`
+      detail: `${sales.reduce((sum, s) => sum + s.total_amount, 0).toLocaleString()} FCFA`
     },
     {
       title: 'Employés actifs',
-      value: employees.filter(e => e.actif).length,
+      value: employees.filter(e => e.is_active).length,
       icon: Users,
       color: 'bg-indigo-500',
       detail: `${employees.length} au total`
     }
   ];
 
-  const lowStockProducts = products.filter(p => p.stock_actuel < p.stock_minimum);
-  const pendingOrders = orders.filter(o => o.statut === 'en_attente');
+  const lowStockProducts = products.filter(p => !p.is_active); // Simplified since stock info isn't in Product type
+  const pendingOrders = orders.filter(o => o.status === 'planned');
 
   return (
     <div className="space-y-6">
@@ -100,7 +100,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Stock faible
+              Produits inactifs
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -109,11 +109,11 @@ export default function Dashboard() {
                 {lowStockProducts.slice(0, 5).map((product) => (
                   <div key={product.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                     <div>
-                      <p className="font-medium">{product.nom}</p>
-                      <p className="text-sm text-gray-600">{product.categorie}</p>
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-sm text-gray-600">{product.type}</p>
                     </div>
                     <Badge variant="destructive">
-                      {product.stock_actuel} / {product.stock_minimum}
+                      Inactif
                     </Badge>
                   </div>
                 ))}
@@ -124,7 +124,7 @@ export default function Dashboard() {
                 )}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">Aucun produit en rupture</p>
+              <p className="text-gray-500 text-center py-4">Tous les produits sont actifs</p>
             )}
           </CardContent>
         </Card>
@@ -143,13 +143,13 @@ export default function Dashboard() {
                 {pendingOrders.slice(0, 5).map((order) => (
                   <div key={order.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                     <div>
-                      <p className="font-medium">{order.numero_ordre}</p>
+                      <p className="font-medium">Ordre #{order.id.slice(0, 8)}</p>
                       <p className="text-sm text-gray-600">
-                        {new Date(order.date_demande).toLocaleDateString('fr-FR')}
+                        {new Date(order.start_date).toLocaleDateString('fr-FR')}
                       </p>
                     </div>
                     <Badge variant="outline">
-                      {order.quantite} unités
+                      {order.planned_quantity} unités
                     </Badge>
                   </div>
                 ))}
@@ -194,16 +194,16 @@ export default function Dashboard() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Chiffre d'affaires</span>
                 <span className="font-semibold">
-                  {sales.reduce((sum, s) => sum + s.montant_total, 0).toLocaleString()} FCFA
+                  {sales.reduce((sum, s) => sum + s.total_amount, 0).toLocaleString()} FCFA
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Commandes en cours</span>
-                <span className="font-semibold">{orders.filter(o => o.statut === 'en_cours').length}</span>
+                <span className="font-semibold">{orders.filter(o => o.status === 'in_progress').length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Livraisons en attente</span>
-                <span className="font-semibold">{deliveries.filter(d => d.statut === 'en_attente').length}</span>
+                <span className="font-semibold">{deliveries.filter(d => d.status === 'scheduled').length}</span>
               </div>
             </div>
           </CardContent>

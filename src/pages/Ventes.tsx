@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,17 +39,21 @@ const Ventes = () => {
     }
   };
 
-  const getStatusBadge = (status: Sale['statut']) => {
-    const variants: Record<Sale['statut'], 'default' | 'secondary' | 'destructive'> = {
-      en_attente: 'secondary',
-      confirmee: 'default',
-      annulee: 'destructive',
+  const handleCreateSale = async (saleData: Partial<Sale>) => {
+    await create(saleData);
+  };
+
+  const getStatusBadge = (status: Sale['status']) => {
+    const variants: Record<Sale['status'], 'default' | 'secondary' | 'destructive'> = {
+      pending: 'secondary',
+      completed: 'default',
+      cancelled: 'destructive',
     };
     
-    const labels: Record<Sale['statut'], string> = {
-      en_attente: 'En attente',
-      confirmee: 'Confirmée',
-      annulee: 'Annulée',
+    const labels: Record<Sale['status'], string> = {
+      pending: 'En attente',
+      completed: 'Confirmée',
+      cancelled: 'Annulée',
     };
 
     return <Badge variant={variants[status]}>{labels[status]}</Badge>;
@@ -79,13 +84,13 @@ const Ventes = () => {
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="text-lg">{sale.numero_vente}</CardTitle>
+                  <CardTitle className="text-lg">Vente #{sale.id.slice(0, 8)}</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Client: {sale.client_nom}
+                    Client ID: {sale.client_id}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {getStatusBadge(sale.statut)}
+                  {getStatusBadge(sale.status)}
                   <div className="flex gap-1">
                     <Button size="sm" variant="outline" onClick={() => handleView(sale)}>
                       <Eye className="h-4 w-4" />
@@ -104,21 +109,21 @@ const Ventes = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="font-medium">Date:</span><br />
-                  {new Date(sale.date_vente).toLocaleDateString('fr-FR')}
+                  {new Date(sale.sale_date).toLocaleDateString('fr-FR')}
                 </div>
                 <div>
-                  <span className="font-medium">Téléphone:</span><br />
-                  {sale.client_telephone || 'Non renseigné'}
+                  <span className="font-medium">Quantité:</span><br />
+                  {sale.quantity}
                 </div>
                 <div>
                   <span className="font-medium">Montant:</span><br />
                   <span className="font-bold text-green-600">
-                    {formatCurrency(sale.montant_total)}
+                    {formatCurrency(sale.total_amount)}
                   </span>
                 </div>
                 <div>
                   <span className="font-medium">Statut:</span><br />
-                  {getStatusBadge(sale.statut)}
+                  {getStatusBadge(sale.status)}
                 </div>
               </div>
             </CardContent>
@@ -135,7 +140,7 @@ const Ventes = () => {
       <ProfessionalInvoiceGenerator
         open={showInvoiceDialog}
         onOpenChange={setShowInvoiceDialog}
-        onSubmit={create}
+        onSubmit={handleCreateSale}
         editingSale={selectedSale}
       />
     </div>

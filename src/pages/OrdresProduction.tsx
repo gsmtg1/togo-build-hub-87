@@ -20,11 +20,10 @@ const OrdresProduction = () => {
     // Ensure required fields have default values
     const completeOrderData = {
       ...orderData,
-      numero_ordre: orderData.numero_ordre || `OP-${Date.now()}`,
-      statut: orderData.statut || 'en_attente',
+      status: orderData.status || 'planned',
       product_id: orderData.product_id || '',
-      quantite: orderData.quantite || 0,
-      date_demande: orderData.date_demande || new Date().toISOString()
+      planned_quantity: orderData.planned_quantity || 0,
+      start_date: orderData.start_date || new Date().toISOString().split('T')[0]
     };
     
     await create(completeOrderData);
@@ -52,21 +51,19 @@ const OrdresProduction = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
-      approuve: { label: 'Approuvé', color: 'bg-green-100 text-green-800' },
-      rejete: { label: 'Rejeté', color: 'bg-red-100 text-red-800' },
-      en_cours: { label: 'En cours', color: 'bg-blue-100 text-blue-800' },
-      termine: { label: 'Terminé', color: 'bg-purple-100 text-purple-800' },
-      annule: { label: 'Annulé', color: 'bg-gray-100 text-gray-800' }
+      planned: { label: 'Planifié', color: 'bg-yellow-100 text-yellow-800' },
+      in_progress: { label: 'En cours', color: 'bg-blue-100 text-blue-800' },
+      completed: { label: 'Terminé', color: 'bg-green-100 text-green-800' },
+      cancelled: { label: 'Annulé', color: 'bg-red-100 text-red-800' }
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.en_attente;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.planned;
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
-  const pendingOrders = orders.filter(order => order.statut === 'en_attente');
+  const pendingOrders = orders.filter(order => order.status === 'planned');
   const activeOrders = orders.filter(order => 
-    ['approuve', 'en_cours'].includes(order.statut)
+    ['in_progress'].includes(order.status)
   );
 
   if (loading) {

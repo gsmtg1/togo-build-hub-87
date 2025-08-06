@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -174,8 +173,8 @@ export function useProductsWithStock() {
       const { data, error } = await (supabase as any)
         .from('products')
         .select('*')
-        .eq('actif', true)
-        .order('nom');
+        .eq('is_active', true)
+        .order('name');
       
       if (error) throw error;
       setProducts(data || []);

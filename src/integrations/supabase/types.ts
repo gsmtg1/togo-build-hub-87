@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_categories: {
+        Row: {
+          account_type: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          account_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          account_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      accounting_entries: {
+        Row: {
+          account_name: string
+          category: string
+          created_at: string
+          credit_amount: number | null
+          debit_amount: number | null
+          description: string
+          entry_date: string
+          id: string
+          notes: string | null
+          reference: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          category: string
+          created_at?: string
+          credit_amount?: number | null
+          debit_amount?: number | null
+          description: string
+          entry_date?: string
+          id?: string
+          notes?: string | null
+          reference?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          category?: string
+          created_at?: string
+          credit_amount?: number | null
+          debit_amount?: number | null
+          description?: string
+          entry_date?: string
+          id?: string
+          notes?: string | null
+          reference?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      app_settings: {
+        Row: {
+          cle: string
+          created_at: string
+          description: string | null
+          id: string
+          updated_at: string
+          valeur: string
+        }
+        Insert: {
+          cle: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          valeur: string
+        }
+        Update: {
+          cle?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          valeur?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -52,6 +148,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      daily_losses: {
+        Row: {
+          comments: string | null
+          created_at: string
+          id: string
+          loss_date: string
+          loss_type: string
+          loss_value: number | null
+          product_id: string
+          quantity_lost: number
+          responsible: string | null
+          updated_at: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          id?: string
+          loss_date?: string
+          loss_type: string
+          loss_value?: number | null
+          product_id: string
+          quantity_lost: number
+          responsible?: string | null
+          updated_at?: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          id?: string
+          loss_date?: string
+          loss_type?: string
+          loss_value?: number | null
+          product_id?: string
+          quantity_lost?: number
+          responsible?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_losses_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deliveries: {
         Row: {
@@ -304,6 +447,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      monthly_goals: {
+        Row: {
+          category: string
+          created_at: string
+          current_value: number
+          description: string | null
+          id: string
+          month: number
+          status: string
+          target_value: number
+          title: string
+          unit: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          current_value?: number
+          description?: string | null
+          id?: string
+          month: number
+          status?: string
+          target_value: number
+          title: string
+          unit: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          current_value?: number
+          description?: string | null
+          id?: string
+          month?: number
+          status?: string
+          target_value?: number
+          title?: string
+          unit?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
       }
       objectives: {
         Row: {

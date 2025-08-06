@@ -12,19 +12,11 @@ const Comptabilite = () => {
   const { data: entries, loading, create, update, remove } = useAccountingEntries();
 
   const handleCreateExpense = (data: any) => {
-    const expenseData = {
-      type: 'depense' as const,
-      categorie: data.category,
-      description: data.description,
-      montant: parseFloat(data.amount),
-      date_operation: data.date,
-      methode_paiement: data.payment_method,
-      reference_externe: data.reference
-    };
-    create(expenseData);
+    create(data);
   };
 
-  const totalExpenses = entries.reduce((sum, entry) => sum + (entry.montant || 0), 0);
+  const totalExpenses = entries.reduce((sum, entry) => sum + (entry.debit_amount || 0), 0);
+  const totalRevenue = entries.reduce((sum, entry) => sum + (entry.credit_amount || 0), 0);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -32,16 +24,6 @@ const Comptabilite = () => {
       currency: 'XOF',
       minimumFractionDigits: 0,
     }).format(amount);
-  };
-
-  const getPaymentMethodLabel = (method: string) => {
-    const methods = {
-      especes: 'Espèces',
-      virement: 'Virement bancaire',
-      cheque: 'Chèque',
-      mobile_money: 'Mobile Money'
-    };
-    return methods[method as keyof typeof methods] || method;
   };
 
   return (
@@ -53,24 +35,30 @@ const Comptabilite = () => {
           onClick={() => setIsExpenseDialogOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" />
-          Nouvelle dépense
+          Nouvelle écriture
         </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Résumé des dépenses</CardTitle>
+            <CardTitle className="text-lg">Résumé financier</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm">Total des dépenses</span>
+                <span className="text-sm">Total dépenses</span>
                 <span className="text-red-600 font-medium">{formatCurrency(totalExpenses)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Nombre d'entrées</span>
-                <span className="font-medium">{entries.length}</span>
+                <span className="text-sm">Total recettes</span>
+                <span className="text-green-600 font-medium">{formatCurrency(totalRevenue)}</span>
+              </div>
+              <div className="flex justify-between items-center border-t pt-2">
+                <span className="text-sm font-medium">Solde</span>
+                <span className={`font-bold ${totalRevenue - totalExpenses >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(totalRevenue - totalExpenses)}
+                </span>
               </div>
               <Button variant="outline" size="sm" className="w-full mt-4">
                 <Download className="mr-2 h-4 w-4" />
@@ -90,7 +78,7 @@ const Comptabilite = () => {
                 <div key={category.id} className="flex justify-between items-center text-sm">
                   <span>{category.name}</span>
                   <span className="text-muted-foreground">
-                    {entries.filter(e => e.categorie === category.name).length}
+                    {entries.filter(e => e.category === category.name).length}
                   </span>
                 </div>
               ))}
@@ -119,7 +107,7 @@ const Comptabilite = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Dépenses récentes</CardTitle>
+          <CardTitle>Écritures comptables</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -131,24 +119,26 @@ const Comptabilite = () => {
                   <tr className="border-b">
                     <th className="text-left py-2">Date</th>
                     <th className="text-left py-2">Description</th>
+                    <th className="text-left py-2">Compte</th>
+                    <th className="text-left py-2">Débit</th>
+                    <th className="text-left py-2">Crédit</th>
                     <th className="text-left py-2">Catégorie</th>
-                    <th className="text-left py-2">Montant</th>
-                    <th className="text-left py-2">Paiement</th>
                     <th className="text-left py-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {entries.map((entry) => (
                     <tr key={entry.id} className="border-b">
-                      <td className="py-2">{new Date(entry.date_operation).toLocaleDateString('fr-FR')}</td>
+                      <td className="py-2">{new Date(entry.entry_date).toLocaleDateString('fr-FR')}</td>
                       <td className="py-2">{entry.description}</td>
-                      <td className="py-2">{entry.categorie}</td>
-                      <td className="py-2 text-red-600 font-medium">
-                        {formatCurrency(entry.montant)}
+                      <td className="py-2">{entry.account_name}</td>
+                      <td className="py-2 text-red-600">
+                        {entry.debit_amount ? formatCurrency(entry.debit_amount) : '-'}
                       </td>
-                      <td className="py-2">
-                        {entry.methode_paiement ? getPaymentMethodLabel(entry.methode_paiement) : 'N/A'}
+                      <td className="py-2 text-green-600">
+                        {entry.credit_amount ? formatCurrency(entry.credit_amount) : '-'}
                       </td>
+                      <td className="py-2">{entry.category}</td>
                       <td className="py-2">
                         <div className="flex gap-2">
                           <Button variant="ghost" size="sm">

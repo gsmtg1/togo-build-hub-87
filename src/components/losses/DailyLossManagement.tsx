@@ -54,17 +54,6 @@ export const DailyLossManagement = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Pertes Quotidiennes</h1>
-          <p className="text-muted-foreground">Enregistrement des briques cassées et défectueuses</p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Enregistrer une perte
-        </Button>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -112,8 +101,8 @@ export const DailyLossManagement = ({
                 <TableHead>Produit</TableHead>
                 <TableHead>Quantité</TableHead>
                 <TableHead>Valeur</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Responsable</TableHead>
-                <TableHead>Commentaires</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -129,7 +118,7 @@ export const DailyLossManagement = ({
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {product ? product.nom : 'Produit introuvable'}
+                      {product ? (product.name || product.nom) : 'Produit introuvable'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="destructive">
@@ -140,10 +129,10 @@ export const DailyLossManagement = ({
                       -{(loss.loss_value || 0).toLocaleString()} FCFA
                     </TableCell>
                     <TableCell className="text-sm">
-                      {loss.responsible || 'Non spécifié'}
+                      {loss.loss_type || 'Non spécifié'}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                      {loss.comments || 'Aucun commentaire'}
+                    <TableCell className="text-sm">
+                      {loss.responsible || 'Non spécifié'}
                     </TableCell>
                     <TableCell>
                       <Button

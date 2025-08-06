@@ -19,11 +19,11 @@ export const DailyLossDialog = ({ open, onOpenChange, onSubmit }: DailyLossDialo
   
   const [formData, setFormData] = useState({
     product_id: '',
-    quantite_cassee: '',
-    date_perte: new Date().toISOString().split('T')[0],
-    motif: '',
-    responsable: '',
-    commentaire: ''
+    quantity_lost: '',
+    loss_date: new Date().toISOString().split('T')[0],
+    loss_type: '',
+    responsible: '',
+    comments: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,26 +31,26 @@ export const DailyLossDialog = ({ open, onOpenChange, onSubmit }: DailyLossDialo
     
     try {
       const selectedProduct = products.find(p => p.id === formData.product_id);
-      const valeurPerte = selectedProduct ? selectedProduct.prix_unitaire * parseInt(formData.quantite_cassee) : 0;
+      const lossValue = selectedProduct ? selectedProduct.price * parseInt(formData.quantity_lost) : 0;
       
       await onSubmit({
         product_id: formData.product_id,
-        quantite_cassee: parseInt(formData.quantite_cassee),
-        date_perte: formData.date_perte,
-        motif: formData.motif,
-        valeur_perte: valeurPerte,
-        responsable: formData.responsable,
-        commentaire: formData.commentaire
+        quantity_lost: parseInt(formData.quantity_lost),
+        loss_date: formData.loss_date,
+        loss_type: formData.loss_type,
+        loss_value: lossValue,
+        responsible: formData.responsible,
+        comments: formData.comments
       });
       
       // Reset form
       setFormData({
         product_id: '',
-        quantite_cassee: '',
-        date_perte: new Date().toISOString().split('T')[0],
-        motif: '',
-        responsable: '',
-        commentaire: ''
+        quantity_lost: '',
+        loss_date: new Date().toISOString().split('T')[0],
+        loss_type: '',
+        responsible: '',
+        comments: ''
       });
     } catch (error) {
       console.error('Erreur lors de la création de la perte:', error);
@@ -73,7 +73,7 @@ export const DailyLossDialog = ({ open, onOpenChange, onSubmit }: DailyLossDialo
               <SelectContent>
                 {products.map((product) => (
                   <SelectItem key={product.id} value={product.id}>
-                    {product.nom} - {product.longueur_cm}x{product.largeur_cm}x{product.hauteur_cm}cm
+                    {product.name || product.nom} - {product.dimensions}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -81,54 +81,60 @@ export const DailyLossDialog = ({ open, onOpenChange, onSubmit }: DailyLossDialo
           </div>
 
           <div>
-            <Label htmlFor="quantite_cassee">Quantité cassée</Label>
+            <Label htmlFor="quantity_lost">Quantité perdue</Label>
             <Input
-              id="quantite_cassee"
+              id="quantity_lost"
               type="number"
               min="1"
-              value={formData.quantite_cassee}
-              onChange={(e) => setFormData(prev => ({ ...prev, quantite_cassee: e.target.value }))}
+              value={formData.quantity_lost}
+              onChange={(e) => setFormData(prev => ({ ...prev, quantity_lost: e.target.value }))}
               required
             />
           </div>
 
           <div>
-            <Label htmlFor="date_perte">Date de la perte</Label>
+            <Label htmlFor="loss_date">Date de la perte</Label>
             <Input
-              id="date_perte"
+              id="loss_date"
               type="date"
-              value={formData.date_perte}
-              onChange={(e) => setFormData(prev => ({ ...prev, date_perte: e.target.value }))}
+              value={formData.loss_date}
+              onChange={(e) => setFormData(prev => ({ ...prev, loss_date: e.target.value }))}
               required
             />
           </div>
 
           <div>
-            <Label htmlFor="motif">Motif de la perte</Label>
-            <Input
-              id="motif"
-              value={formData.motif}
-              onChange={(e) => setFormData(prev => ({ ...prev, motif: e.target.value }))}
-              placeholder="Casse, défaut de fabrication..."
-            />
+            <Label htmlFor="loss_type">Type de perte</Label>
+            <Select value={formData.loss_type} onValueChange={(value) => setFormData(prev => ({ ...prev, loss_type: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner le type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="casse">Casse</SelectItem>
+                <SelectItem value="defaut_fabrication">Défaut de fabrication</SelectItem>
+                <SelectItem value="transport">Dommage transport</SelectItem>
+                <SelectItem value="stockage">Problème de stockage</SelectItem>
+                <SelectItem value="autre">Autre</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
-            <Label htmlFor="responsable">Responsable</Label>
+            <Label htmlFor="responsible">Responsable</Label>
             <Input
-              id="responsable"
-              value={formData.responsable}
-              onChange={(e) => setFormData(prev => ({ ...prev, responsable: e.target.value }))}
+              id="responsible"
+              value={formData.responsible}
+              onChange={(e) => setFormData(prev => ({ ...prev, responsible: e.target.value }))}
               placeholder="Nom du responsable"
             />
           </div>
 
           <div>
-            <Label htmlFor="commentaire">Commentaire</Label>
+            <Label htmlFor="comments">Commentaire</Label>
             <Textarea
-              id="commentaire"
-              value={formData.commentaire}
-              onChange={(e) => setFormData(prev => ({ ...prev, commentaire: e.target.value }))}
+              id="comments"
+              value={formData.comments}
+              onChange={(e) => setFormData(prev => ({ ...prev, comments: e.target.value }))}
               placeholder="Détails supplémentaires..."
             />
           </div>

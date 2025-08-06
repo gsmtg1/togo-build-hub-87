@@ -15,6 +15,8 @@ import Devis from '@/pages/Devis';
 import Factures from '@/pages/Factures';
 import Objectifs from '@/pages/Objectifs';
 import Parametres from '@/pages/Parametres';
+import Pertes from '@/pages/Pertes';
+import Rapports from '@/pages/Rapports';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient({
@@ -45,6 +47,8 @@ function App() {
             <Route path="factures" element={<Factures />} />
             <Route path="objectifs" element={<Objectifs />} />
             <Route path="parametres" element={<Parametres />} />
+            <Route path="pertes" element={<Pertes />} />
+            <Route path="rapports" element={<Rapports />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

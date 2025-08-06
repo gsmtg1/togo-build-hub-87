@@ -11,6 +11,21 @@ import type {
   AppSetting
 } from '@/types/database';
 
+// Mapping function for products
+const mapDbProductToProduct = (dbProduct: any): Product => ({
+  id: dbProduct.id,
+  name: dbProduct.name,
+  nom: dbProduct.name, // Compatibility
+  type: dbProduct.type,
+  dimensions: dbProduct.dimensions || '',
+  description: dbProduct.description || '',
+  unit: dbProduct.unit || 'pièce',
+  price: dbProduct.price || 0,
+  is_active: dbProduct.is_active ?? true,
+  created_at: dbProduct.created_at,
+  updated_at: dbProduct.updated_at
+});
+
 // Specific hooks for each table type - no more generic implementation
 export const useProducts = () => {
   const [data, setData] = useState<Product[]>([]);
@@ -26,7 +41,8 @@ export const useProducts = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      const mappedProducts = (result || []).map(mapDbProductToProduct);
+      setData(mappedProducts);
     } catch (error) {
       console.error('Error loading products:', error);
       toast({
@@ -41,9 +57,19 @@ export const useProducts = () => {
 
   const create = async (item: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      const dbItem = {
+        name: item.name,
+        type: item.type,
+        price: item.price,
+        is_active: item.is_active,
+        description: item.description,
+        dimensions: item.dimensions,
+        unit: item.unit
+      };
+      
       const { data: result, error } = await supabase
         .from('products')
-        .insert([item])
+        .insert([dbItem])
         .select()
         .single();
       
@@ -53,7 +79,7 @@ export const useProducts = () => {
         title: "Succès",
         description: "Élément créé avec succès",
       });
-      return result;
+      return mapDbProductToProduct(result);
     } catch (error) {
       console.error('Error creating product:', error);
       toast({
@@ -67,9 +93,18 @@ export const useProducts = () => {
 
   const update = async (id: string, updates: Partial<Product>) => {
     try {
+      const dbUpdates: any = {};
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.type) dbUpdates.type = updates.type;
+      if (updates.price !== undefined) dbUpdates.price = updates.price;
+      if (updates.is_active !== undefined) dbUpdates.is_active = updates.is_active;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.dimensions !== undefined) dbUpdates.dimensions = updates.dimensions;
+      if (updates.unit !== undefined) dbUpdates.unit = updates.unit;
+      
       const { error } = await supabase
         .from('products')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...dbUpdates, updated_at: new Date().toISOString() })
         .eq('id', id);
       
       if (error) throw error;
@@ -462,7 +497,12 @@ export const useMonthlyGoals = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      // Map database result to interface with proper status typing
+      const mappedGoals = (result || []).map((item: any) => ({
+        ...item,
+        status: item.status as 'active' | 'completed' | 'cancelled'
+      }));
+      setData(mappedGoals);
     } catch (error) {
       console.error('Error loading monthly_goals:', error);
       toast({

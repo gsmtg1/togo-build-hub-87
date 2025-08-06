@@ -36,19 +36,26 @@ export interface StockMovement {
 // Mapping functions to transform database records to interface types
 const mapDbProductToProduct = (dbProduct: any): Product => ({
   id: dbProduct.id,
-  nom: dbProduct.name,
-  categorie: dbProduct.type,
-  longueur_cm: 0,
-  largeur_cm: 0, 
-  hauteur_cm: 0,
-  prix_unitaire: dbProduct.price,
-  stock_actuel: 0,
-  stock_minimum: 0,
-  actif: dbProduct.is_active,
-  date_creation: dbProduct.created_at,
-  date_modification: dbProduct.updated_at,
+  name: dbProduct.name,
+  nom: dbProduct.name, // Compatibility
+  type: dbProduct.type,
+  dimensions: dbProduct.dimensions || '',
+  description: dbProduct.description || '',
+  unit: dbProduct.unit || 'pièce',
+  price: dbProduct.price || 0,
+  is_active: dbProduct.is_active ?? true,
   created_at: dbProduct.created_at,
   updated_at: dbProduct.updated_at
+});
+
+const mapProductToDb = (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => ({
+  name: product.name,
+  type: product.type,
+  dimensions: product.dimensions,
+  description: product.description,
+  unit: product.unit,
+  price: product.price,
+  is_active: product.is_active
 });
 
 const mapDbSaleToSale = (dbSale: any): Sale => ({
@@ -57,26 +64,37 @@ const mapDbSaleToSale = (dbSale: any): Sale => ({
   client_nom: 'Client', // Default value as client name not in db
   client_telephone: '',
   client_adresse: '',
-  date_vente: dbSale.sale_date,
-  statut: dbSale.status,
-  montant_total: dbSale.total_amount,
+  date_vente: dbSale.sale_date || dbSale.created_at,
+  statut: dbSale.status as any,
+  montant_total: dbSale.total_amount || 0,
   vendeur_id: '',
   commentaires: dbSale.notes || '',
   created_at: dbSale.created_at,
   updated_at: dbSale.updated_at
 });
 
+const mapSaleToDb = (sale: Omit<Sale, 'id' | 'created_at' | 'updated_at'>) => ({
+  client_id: '', // Default value
+  product_id: '', // Default value  
+  quantity: 1,
+  unit_price: 0,
+  total_amount: sale.montant_total,
+  status: sale.statut,
+  notes: sale.commentaires,
+  payment_method: 'cash' as const
+});
+
 const mapDbDeliveryToDelivery = (dbDelivery: any): Delivery => ({
   id: dbDelivery.id,
   numero_livraison: `DEL-${dbDelivery.id.slice(0, 8)}`,
-  client_nom: 'Client', // Default value
+  client_nom: 'Client',
   client_telephone: '',
-  client_adresse: dbDelivery.delivery_address,
-  lieu_livraison: dbDelivery.delivery_address,
+  client_adresse: dbDelivery.delivery_address || '',
+  lieu_livraison: dbDelivery.delivery_address || '',
   date_commande: dbDelivery.created_at,
   date_livraison_prevue: dbDelivery.delivery_date,
   date_livraison_reelle: '',
-  statut: dbDelivery.status,
+  statut: dbDelivery.status as any,
   responsable_id: '',
   signature_client: '',
   commentaires: dbDelivery.notes || '',
@@ -85,16 +103,26 @@ const mapDbDeliveryToDelivery = (dbDelivery: any): Delivery => ({
   updated_at: dbDelivery.updated_at
 });
 
+const mapDeliveryToDb = (delivery: Omit<Delivery, 'id' | 'created_at' | 'updated_at'>) => ({
+  sale_id: '', // Default value
+  delivery_address: delivery.lieu_livraison,
+  delivery_date: delivery.date_livraison_prevue || new Date().toISOString(),
+  status: delivery.statut,
+  driver_name: '',
+  vehicle_info: '',
+  notes: delivery.commentaires
+});
+
 const mapDbInvoiceToInvoice = (dbInvoice: any): Invoice => ({
   id: dbInvoice.id,
-  numero_facture: dbInvoice.invoice_number,
-  client_nom: 'Client', // Default value
+  numero_facture: dbInvoice.invoice_number || `INV-${dbInvoice.id.slice(0, 8)}`,
+  client_nom: 'Client',
   client_telephone: '',
   client_adresse: '',
-  date_facture: dbInvoice.issue_date,
+  date_facture: dbInvoice.issue_date || dbInvoice.created_at,
   date_echeance: dbInvoice.due_date,
-  statut: dbInvoice.status,
-  montant_total: dbInvoice.total_amount,
+  statut: dbInvoice.status as any,
+  montant_total: dbInvoice.total_amount || 0,
   montant_paye: 0,
   vendeur_id: '',
   sale_id: dbInvoice.sale_id,
@@ -102,6 +130,62 @@ const mapDbInvoiceToInvoice = (dbInvoice: any): Invoice => ({
   commentaires: dbInvoice.notes || '',
   created_at: dbInvoice.created_at,
   updated_at: dbInvoice.updated_at
+});
+
+const mapInvoiceToDb = (invoice: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>) => ({
+  invoice_number: invoice.numero_facture,
+  sale_id: invoice.sale_id || '',
+  issue_date: invoice.date_facture,
+  due_date: invoice.date_echeance || new Date().toISOString(),
+  total_amount: invoice.montant_total,
+  tax_amount: 0,
+  tax_rate: 18,
+  status: invoice.statut,
+  notes: invoice.commentaires
+});
+
+const mapDbProductionOrderToProductionOrder = (dbOrder: any): ProductionOrder => ({
+  id: dbOrder.id,
+  numero_ordre: `PROD-${dbOrder.id.slice(0, 8)}`,
+  product_id: dbOrder.product_id,
+  planned_quantity: dbOrder.planned_quantity || 0,
+  produced_quantity: dbOrder.produced_quantity || 0,
+  start_date: dbOrder.start_date,
+  end_date: dbOrder.end_date,
+  status: dbOrder.status as any,
+  notes: dbOrder.notes,
+  created_at: dbOrder.created_at,
+  updated_at: dbOrder.updated_at
+});
+
+const mapDbEmployeeToEmployee = (dbEmployee: any): Employee => ({
+  id: dbEmployee.id,
+  nom: dbEmployee.last_name || '',
+  prenom: dbEmployee.first_name || '',
+  email: dbEmployee.email,
+  telephone: dbEmployee.phone,
+  adresse: dbEmployee.address,
+  document_identite: '',
+  role: dbEmployee.role as any,
+  salaire: dbEmployee.salary || 0,
+  date_embauche: dbEmployee.hire_date || dbEmployee.created_at,
+  actif: dbEmployee.is_active ?? true,
+  created_at: dbEmployee.created_at,
+  updated_at: dbEmployee.updated_at
+});
+
+const mapEmployeeToDb = (employee: Omit<Employee, 'id' | 'created_at' | 'updated_at'>) => ({
+  first_name: employee.prenom,
+  last_name: employee.nom,
+  email: employee.email,
+  phone: employee.telephone,
+  address: employee.adresse,
+  role: employee.role,
+  salary: employee.salaire,
+  hire_date: employee.date_embauche,
+  is_active: employee.actif,
+  department: '',
+  position: ''
 });
 
 // Specialized hooks for each table
@@ -135,15 +219,7 @@ export const useProducts = () => {
 
   const create = async (item: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const dbItem = {
-        name: item.nom,
-        type: item.categorie,
-        price: item.prix_unitaire,
-        is_active: item.actif,
-        description: '',
-        dimensions: `${item.longueur_cm}x${item.largeur_cm}x${item.hauteur_cm}`,
-        unit: 'pièce'
-      };
+      const dbItem = mapProductToDb(item);
       
       const { data: result, error } = await supabase
         .from('products')
@@ -172,10 +248,13 @@ export const useProducts = () => {
   const update = async (id: string, updates: Partial<Product>) => {
     try {
       const dbUpdates: any = {};
-      if (updates.nom) dbUpdates.name = updates.nom;
-      if (updates.categorie) dbUpdates.type = updates.categorie;
-      if (updates.prix_unitaire !== undefined) dbUpdates.price = updates.prix_unitaire;
-      if (updates.actif !== undefined) dbUpdates.is_active = updates.actif;
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.type) dbUpdates.type = updates.type;
+      if (updates.price !== undefined) dbUpdates.price = updates.price;
+      if (updates.is_active !== undefined) dbUpdates.is_active = updates.is_active;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.dimensions !== undefined) dbUpdates.dimensions = updates.dimensions;
+      if (updates.unit !== undefined) dbUpdates.unit = updates.unit;
       
       const { error } = await supabase
         .from('products')
@@ -368,16 +447,7 @@ export const useSales = () => {
 
   const create = async (item: Omit<Sale, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const dbItem = {
-        client_id: '', // Default value
-        product_id: '', // Default value  
-        quantity: 1,
-        unit_price: 0,
-        total_amount: item.montant_total,
-        status: item.statut,
-        notes: item.commentaires,
-        payment_method: 'cash'
-      };
+      const dbItem = mapSaleToDb(item);
       
       const { data: result, error } = await supabase
         .from('sales')
@@ -493,15 +563,7 @@ export const useDeliveries = () => {
 
   const create = async (item: Omit<Delivery, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const dbItem = {
-        sale_id: '', // Default value
-        delivery_address: item.lieu_livraison,
-        delivery_date: item.date_livraison_prevue || new Date().toISOString(),
-        status: item.statut,
-        driver_name: '',
-        vehicle_info: '',
-        notes: item.commentaires
-      };
+      const dbItem = mapDeliveryToDb(item);
       
       const { data: result, error } = await supabase
         .from('deliveries')
@@ -618,17 +680,7 @@ export const useInvoices = () => {
 
   const create = async (item: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const dbItem = {
-        invoice_number: item.numero_facture,
-        sale_id: item.sale_id || '',
-        issue_date: item.date_facture,
-        due_date: item.date_echeance || new Date().toISOString(),
-        total_amount: item.montant_total,
-        tax_amount: 0,
-        tax_rate: 18,
-        status: item.statut,
-        notes: item.commentaires
-      };
+      const dbItem = mapInvoiceToDb(item);
       
       const { data: result, error } = await supabase
         .from('invoices')
@@ -729,7 +781,8 @@ export const useProductionOrders = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      const mappedOrders = (result || []).map(mapDbProductionOrderToProductionOrder);
+      setData(mappedOrders);
     } catch (error) {
       console.error('Error loading production orders:', error);
       toast({
@@ -744,9 +797,19 @@ export const useProductionOrders = () => {
 
   const create = async (item: Omit<ProductionOrder, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      const dbItem = {
+        product_id: item.product_id,
+        planned_quantity: item.planned_quantity,
+        produced_quantity: item.produced_quantity,
+        start_date: item.start_date,
+        end_date: item.end_date,
+        status: item.status,
+        notes: item.notes
+      };
+      
       const { data: result, error } = await supabase
         .from('production_orders')
-        .insert([item])
+        .insert([dbItem])
         .select()
         .single();
       
@@ -756,7 +819,7 @@ export const useProductionOrders = () => {
         title: "Succès",
         description: "Ordre de production créé avec succès",
       });
-      return result;
+      return mapDbProductionOrderToProductionOrder(result);
     } catch (error) {
       console.error('Error creating production order:', error);
       toast({
@@ -770,9 +833,16 @@ export const useProductionOrders = () => {
 
   const update = async (id: string, updates: Partial<ProductionOrder>) => {
     try {
+      const dbUpdates: any = {};
+      if (updates.planned_quantity !== undefined) dbUpdates.planned_quantity = updates.planned_quantity;
+      if (updates.produced_quantity !== undefined) dbUpdates.produced_quantity = updates.produced_quantity;
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.notes) dbUpdates.notes = updates.notes;
+      if (updates.end_date) dbUpdates.end_date = updates.end_date;
+      
       const { error } = await supabase
         .from('production_orders')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(dbUpdates)
         .eq('id', id);
       
       if (error) throw error;
@@ -946,7 +1016,12 @@ export const useAccountingCategories = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      // Map database result to interface
+      const mappedCategories = (result || []).map((item: any) => ({
+        ...item,
+        account_type: item.account_type as 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
+      }));
+      setData(mappedCategories);
     } catch (error) {
       console.error('Error loading accounting categories:', error);
       toast({
@@ -1055,7 +1130,12 @@ export const useMonthlyGoals = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      // Map database result to interface with proper status typing
+      const mappedGoals = (result || []).map((item: any) => ({
+        ...item,
+        status: item.status as 'active' | 'completed' | 'cancelled'
+      }));
+      setData(mappedGoals);
     } catch (error) {
       console.error('Error loading monthly goals:', error);
       toast({
@@ -1257,279 +1337,7 @@ export const useAppSettings = () => {
   return { data, loading, create, update, remove, reload: loadData };
 };
 
-// Hooks for production
-export const useProductionMaterials = () => {
-  const [data, setData] = useState<ProductionMaterial[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      // Since production_materials table may not exist, return empty array
-      setData([]);
-    } catch (error) {
-      console.error('Error loading production materials:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les matériaux de production",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const create = async (item: Omit<ProductionMaterial, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      console.log('Creating production material:', item);
-      toast({
-        title: "Succès",
-        description: "Matériau de production créé avec succès",
-      });
-    } catch (error) {
-      console.error('Error creating production material:', error);
-      throw error;
-    }
-  };
-
-  const update = async (id: string, updates: Partial<ProductionMaterial>) => {
-    try {
-      console.log('Updating production material:', id, updates);
-      toast({
-        title: "Succès",
-        description: "Matériau de production mis à jour avec succès",
-      });
-    } catch (error) {
-      console.error('Error updating production material:', error);
-      throw error;
-    }
-  };
-
-  const remove = async (id: string) => {
-    try {
-      console.log('Deleting production material:', id);
-      toast({
-        title: "Succès",
-        description: "Matériau de production supprimé avec succès",
-      });
-    } catch (error) {
-      console.error('Error deleting production material:', error);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  return { data, loading, create, update, remove, reload: loadData };
-};
-
-export const useBrickTypes = () => {
-  const [data, setData] = useState<BrickType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      // Since brick_types table may not exist, return empty array
-      setData([]);
-    } catch (error) {
-      console.error('Error loading brick types:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les types de briques",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const create = async (item: Omit<BrickType, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      console.log('Creating brick type:', item);
-      toast({
-        title: "Succès",
-        description: "Type de brique créé avec succès",
-      });
-    } catch (error) {
-      console.error('Error creating brick type:', error);
-      throw error;
-    }
-  };
-
-  const update = async (id: string, updates: Partial<BrickType>) => {
-    try {
-      console.log('Updating brick type:', id, updates);
-      toast({
-        title: "Succès",
-        description: "Type de brique mis à jour avec succès",
-      });
-    } catch (error) {
-      console.error('Error updating brick type:', error);
-      throw error;
-    }
-  };
-
-  const remove = async (id: string) => {
-    try {
-      console.log('Deleting brick type:', id);
-      toast({
-        title: "Succès",
-        description: "Type de brique supprimé avec succès",
-      });
-    } catch (error) {
-      console.error('Error deleting brick type:', error);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  return { data, loading, create, update, remove, reload: loadData };
-};
-
-export const useProductionRecipes = () => {
-  const [data, setData] = useState<ProductionRecipe[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      // Since production_recipes table may not exist, return empty array
-      setData([]);
-    } catch (error) {
-      console.error('Error loading production recipes:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les recettes de production",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const create = async (item: Omit<ProductionRecipe, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      console.log('Creating production recipe:', item);
-      toast({
-        title: "Succès",
-        description: "Recette de production créée avec succès",
-      });
-    } catch (error) {
-      console.error('Error creating production recipe:', error);
-      throw error;
-    }
-  };
-
-  const update = async (id: string, updates: Partial<ProductionRecipe>) => {
-    try {
-      console.log('Updating production recipe:', id, updates);
-      toast({
-        title: "Succès",
-        description: "Recette de production mise à jour avec succès",
-      });
-    } catch (error) {
-      console.error('Error updating production recipe:', error);
-      throw error;
-    }
-  };
-
-  const remove = async (id: string) => {
-    try {
-      console.log('Deleting production recipe:', id);
-      toast({
-        title: "Succès",
-        description: "Recette de production supprimée avec succès",
-      });
-    } catch (error) {
-      console.error('Error deleting production recipe:', error);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  return { data, loading, create, update, remove, reload: loadData };
-};
-
-export const useProductionCosts = () => {
-  const [data, setData] = useState<ProductionCost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      // Since production_costs table may not exist, return empty array
-      setData([]);
-    } catch (error) {
-      console.error('Error loading production costs:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les coûts de production",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const create = async (item: Omit<ProductionCost, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      console.log('Creating production cost:', item);
-      toast({
-        title: "Succès",
-        description: "Coût de production créé avec succès",
-      });
-    } catch (error) {
-      console.error('Error creating production cost:', error);
-      throw error;
-    }
-  };
-
-  const update = async (id: string, updates: Partial<ProductionCost>) => {
-    try {
-      console.log('Updating production cost:', id, updates);
-      toast({
-        title: "Succès",
-        description: "Coût de production mis à jour avec succès",
-      });
-    } catch (error) {
-      console.error('Error updating production cost:', error);
-      throw error;
-    }
-  };
-
-  const remove = async (id: string) => {
-    try {
-      console.log('Deleting production cost:', id);
-      toast({
-        title: "Succès",
-        description: "Coût de production supprimé avec succès",
-      });
-    } catch (error) {
-      console.error('Error deleting production cost:', error);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  return { data, loading, create, update, remove, reload: loadData };
-};
-
+// Hooks for employees
 export const useEmployees = () => {
   const [data, setData] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1544,7 +1352,8 @@ export const useEmployees = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      const mappedEmployees = (result || []).map(mapDbEmployeeToEmployee);
+      setData(mappedEmployees);
     } catch (error) {
       console.error('Error loading employees:', error);
       toast({
@@ -1559,9 +1368,11 @@ export const useEmployees = () => {
 
   const create = async (item: Omit<Employee, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      const dbItem = mapEmployeeToDb(item);
+      
       const { data: result, error } = await supabase
         .from('employees')
-        .insert([item])
+        .insert([dbItem])
         .select()
         .single();
       
@@ -1571,7 +1382,7 @@ export const useEmployees = () => {
         title: "Succès",
         description: "Employé créé avec succès",
       });
-      return result;
+      return mapDbEmployeeToEmployee(result);
     } catch (error) {
       console.error('Error creating employee:', error);
       toast({
@@ -1585,9 +1396,20 @@ export const useEmployees = () => {
 
   const update = async (id: string, updates: Partial<Employee>) => {
     try {
+      const dbUpdates: any = {};
+      if (updates.prenom) dbUpdates.first_name = updates.prenom;
+      if (updates.nom) dbUpdates.last_name = updates.nom;
+      if (updates.email) dbUpdates.email = updates.email;
+      if (updates.telephone) dbUpdates.phone = updates.telephone;
+      if (updates.adresse) dbUpdates.address = updates.adresse;
+      if (updates.role) dbUpdates.role = updates.role;
+      if (updates.salaire !== undefined) dbUpdates.salary = updates.salaire;
+      if (updates.date_embauche) dbUpdates.hire_date = updates.date_embauche;
+      if (updates.actif !== undefined) dbUpdates.is_active = updates.actif;
+      
       const { error } = await supabase
         .from('employees')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(dbUpdates)
         .eq('id', id);
       
       if (error) throw error;
@@ -1723,4 +1545,97 @@ export function useProductsWithStock() {
   }, []);
 
   return { products, loading, reload: loadProducts };
-}
+};
+
+// Stub implementations for production hooks that don't have tables yet
+export const useProductionMaterials = () => {
+  const [data, setData] = useState<ProductionMaterial[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const create = async (item: Omit<ProductionMaterial, 'id' | 'created_at' | 'updated_at'>) => {
+    console.log('Creating production material:', item);
+    toast({ title: "Succès", description: "Matériau de production créé avec succès" });
+  };
+
+  const update = async (id: string, updates: Partial<ProductionMaterial>) => {
+    console.log('Updating production material:', id, updates);
+    toast({ title: "Succès", description: "Matériau de production mis à jour avec succès" });
+  };
+
+  const remove = async (id: string) => {
+    console.log('Deleting production material:', id);
+    toast({ title: "Succès", description: "Matériau de production supprimé avec succès" });
+  };
+
+  return { data, loading, create, update, remove, reload: () => {} };
+};
+
+export const useBrickTypes = () => {
+  const [data, setData] = useState<BrickType[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const create = async (item: Omit<BrickType, 'id' | 'created_at' | 'updated_at'>) => {
+    console.log('Creating brick type:', item);
+    toast({ title: "Succès", description: "Type de brique créé avec succès" });
+  };
+
+  const update = async (id: string, updates: Partial<BrickType>) => {
+    console.log('Updating brick type:', id, updates);
+    toast({ title: "Succès", description: "Type de brique mis à jour avec succès" });
+  };
+
+  const remove = async (id: string) => {
+    console.log('Deleting brick type:', id);
+    toast({ title: "Succès", description: "Type de brique supprimé avec succès" });
+  };
+
+  return { data, loading, create, update, remove, reload: () => {} };
+};
+
+export const useProductionRecipes = () => {
+  const [data, setData] = useState<ProductionRecipe[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const create = async (item: Omit<ProductionRecipe, 'id' | 'created_at' | 'updated_at'>) => {
+    console.log('Creating production recipe:', item);
+    toast({ title: "Succès", description: "Recette de production créée avec succès" });
+  };
+
+  const update = async (id: string, updates: Partial<ProductionRecipe>) => {
+    console.log('Updating production recipe:', id, updates);
+    toast({ title: "Succès", description: "Recette de production mise à jour avec succès" });
+  };
+
+  const remove = async (id: string) => {
+    console.log('Deleting production recipe:', id);
+    toast({ title: "Succès", description: "Recette de production supprimée avec succès" });
+  };
+
+  return { data, loading, create, update, remove, reload: () => {} };
+};
+
+export const useProductionCosts = () => {
+  const [data, setData] = useState<ProductionCost[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const create = async (item: Omit<ProductionCost, 'id' | 'created_at' | 'updated_at'>) => {
+    console.log('Creating production cost:', item);
+    toast({ title: "Succès", description: "Coût de production créé avec succès" });
+  };
+
+  const update = async (id: string, updates: Partial<ProductionCost>) => {
+    console.log('Updating production cost:', id, updates);
+    toast({ title: "Succès", description: "Coût de production mis à jour avec succès" });
+  };
+
+  const remove = async (id: string) => {
+    console.log('Deleting production cost:', id);
+    toast({ title: "Succès", description: "Coût de production supprimé avec succès" });
+  };
+
+  return { data, loading, create, update, remove, reload: () => {} };
+};

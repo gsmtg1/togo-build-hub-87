@@ -108,7 +108,7 @@ export const ProductionOrderDialog = ({
               <SelectContent>
                 {products.map((product) => (
                   <SelectItem key={product.id} value={product.id}>
-                    {product.nom || product.name} - {product.dimensions}
+                    {product.name} - {product.dimensions}
                   </SelectItem>
                 ))}
               </SelectContent>

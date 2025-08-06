@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +33,77 @@ export interface StockMovement {
   created_at: string;
 }
 
+// Mapping functions to transform database records to interface types
+const mapDbProductToProduct = (dbProduct: any): Product => ({
+  id: dbProduct.id,
+  nom: dbProduct.name,
+  categorie: dbProduct.type,
+  longueur_cm: 0,
+  largeur_cm: 0, 
+  hauteur_cm: 0,
+  prix_unitaire: dbProduct.price,
+  stock_actuel: 0,
+  stock_minimum: 0,
+  actif: dbProduct.is_active,
+  date_creation: dbProduct.created_at,
+  date_modification: dbProduct.updated_at,
+  created_at: dbProduct.created_at,
+  updated_at: dbProduct.updated_at
+});
+
+const mapDbSaleToSale = (dbSale: any): Sale => ({
+  id: dbSale.id,
+  numero_vente: `SALE-${dbSale.id.slice(0, 8)}`,
+  client_nom: 'Client', // Default value as client name not in db
+  client_telephone: '',
+  client_adresse: '',
+  date_vente: dbSale.sale_date,
+  statut: dbSale.status,
+  montant_total: dbSale.total_amount,
+  vendeur_id: '',
+  commentaires: dbSale.notes || '',
+  created_at: dbSale.created_at,
+  updated_at: dbSale.updated_at
+});
+
+const mapDbDeliveryToDelivery = (dbDelivery: any): Delivery => ({
+  id: dbDelivery.id,
+  numero_livraison: `DEL-${dbDelivery.id.slice(0, 8)}`,
+  client_nom: 'Client', // Default value
+  client_telephone: '',
+  client_adresse: dbDelivery.delivery_address,
+  lieu_livraison: dbDelivery.delivery_address,
+  date_commande: dbDelivery.created_at,
+  date_livraison_prevue: dbDelivery.delivery_date,
+  date_livraison_reelle: '',
+  statut: dbDelivery.status,
+  responsable_id: '',
+  signature_client: '',
+  commentaires: dbDelivery.notes || '',
+  montant_total: 0,
+  created_at: dbDelivery.created_at,
+  updated_at: dbDelivery.updated_at
+});
+
+const mapDbInvoiceToInvoice = (dbInvoice: any): Invoice => ({
+  id: dbInvoice.id,
+  numero_facture: dbInvoice.invoice_number,
+  client_nom: 'Client', // Default value
+  client_telephone: '',
+  client_adresse: '',
+  date_facture: dbInvoice.issue_date,
+  date_echeance: dbInvoice.due_date,
+  statut: dbInvoice.status,
+  montant_total: dbInvoice.total_amount,
+  montant_paye: 0,
+  vendeur_id: '',
+  sale_id: dbInvoice.sale_id,
+  delivery_id: '',
+  commentaires: dbInvoice.notes || '',
+  created_at: dbInvoice.created_at,
+  updated_at: dbInvoice.updated_at
+});
+
 // Specialized hooks for each table
 export const useProducts = () => {
   const [data, setData] = useState<Product[]>([]);
@@ -49,7 +119,8 @@ export const useProducts = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      const mappedProducts = (result || []).map(mapDbProductToProduct);
+      setData(mappedProducts);
     } catch (error) {
       console.error('Error loading products:', error);
       toast({
@@ -64,9 +135,19 @@ export const useProducts = () => {
 
   const create = async (item: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      const dbItem = {
+        name: item.nom,
+        type: item.categorie,
+        price: item.prix_unitaire,
+        is_active: item.actif,
+        description: '',
+        dimensions: `${item.longueur_cm}x${item.largeur_cm}x${item.hauteur_cm}`,
+        unit: 'pièce'
+      };
+      
       const { data: result, error } = await supabase
         .from('products')
-        .insert([item])
+        .insert([dbItem])
         .select()
         .single();
       
@@ -76,7 +157,7 @@ export const useProducts = () => {
         title: "Succès",
         description: "Produit créé avec succès",
       });
-      return result;
+      return mapDbProductToProduct(result);
     } catch (error) {
       console.error('Error creating product:', error);
       toast({
@@ -90,9 +171,15 @@ export const useProducts = () => {
 
   const update = async (id: string, updates: Partial<Product>) => {
     try {
+      const dbUpdates: any = {};
+      if (updates.nom) dbUpdates.name = updates.nom;
+      if (updates.categorie) dbUpdates.type = updates.categorie;
+      if (updates.prix_unitaire !== undefined) dbUpdates.price = updates.prix_unitaire;
+      if (updates.actif !== undefined) dbUpdates.is_active = updates.actif;
+      
       const { error } = await supabase
         .from('products')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(dbUpdates)
         .eq('id', id);
       
       if (error) throw error;
@@ -265,7 +352,8 @@ export const useSales = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      const mappedSales = (result || []).map(mapDbSaleToSale);
+      setData(mappedSales);
     } catch (error) {
       console.error('Error loading sales:', error);
       toast({
@@ -280,9 +368,20 @@ export const useSales = () => {
 
   const create = async (item: Omit<Sale, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      const dbItem = {
+        client_id: '', // Default value
+        product_id: '', // Default value  
+        quantity: 1,
+        unit_price: 0,
+        total_amount: item.montant_total,
+        status: item.statut,
+        notes: item.commentaires,
+        payment_method: 'cash'
+      };
+      
       const { data: result, error } = await supabase
         .from('sales')
-        .insert([item])
+        .insert([dbItem])
         .select()
         .single();
       
@@ -292,7 +391,7 @@ export const useSales = () => {
         title: "Succès",
         description: "Vente créée avec succès",
       });
-      return result;
+      return mapDbSaleToSale(result);
     } catch (error) {
       console.error('Error creating sale:', error);
       toast({
@@ -306,9 +405,14 @@ export const useSales = () => {
 
   const update = async (id: string, updates: Partial<Sale>) => {
     try {
+      const dbUpdates: any = {};
+      if (updates.statut) dbUpdates.status = updates.statut;
+      if (updates.montant_total !== undefined) dbUpdates.total_amount = updates.montant_total;
+      if (updates.commentaires) dbUpdates.notes = updates.commentaires;
+      
       const { error } = await supabase
         .from('sales')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(dbUpdates)
         .eq('id', id);
       
       if (error) throw error;
@@ -373,7 +477,8 @@ export const useDeliveries = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      const mappedDeliveries = (result || []).map(mapDbDeliveryToDelivery);
+      setData(mappedDeliveries);
     } catch (error) {
       console.error('Error loading deliveries:', error);
       toast({
@@ -388,9 +493,19 @@ export const useDeliveries = () => {
 
   const create = async (item: Omit<Delivery, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      const dbItem = {
+        sale_id: '', // Default value
+        delivery_address: item.lieu_livraison,
+        delivery_date: item.date_livraison_prevue || new Date().toISOString(),
+        status: item.statut,
+        driver_name: '',
+        vehicle_info: '',
+        notes: item.commentaires
+      };
+      
       const { data: result, error } = await supabase
         .from('deliveries')
-        .insert([item])
+        .insert([dbItem])
         .select()
         .single();
       
@@ -400,7 +515,7 @@ export const useDeliveries = () => {
         title: "Succès",
         description: "Livraison créée avec succès",
       });
-      return result;
+      return mapDbDeliveryToDelivery(result);
     } catch (error) {
       console.error('Error creating delivery:', error);
       toast({
@@ -414,9 +529,15 @@ export const useDeliveries = () => {
 
   const update = async (id: string, updates: Partial<Delivery>) => {
     try {
+      const dbUpdates: any = {};
+      if (updates.lieu_livraison) dbUpdates.delivery_address = updates.lieu_livraison;
+      if (updates.date_livraison_prevue) dbUpdates.delivery_date = updates.date_livraison_prevue;
+      if (updates.statut) dbUpdates.status = updates.statut;
+      if (updates.commentaires) dbUpdates.notes = updates.commentaires;
+      
       const { error } = await supabase
         .from('deliveries')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(dbUpdates)
         .eq('id', id);
       
       if (error) throw error;
@@ -481,7 +602,8 @@ export const useInvoices = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setData(result || []);
+      const mappedInvoices = (result || []).map(mapDbInvoiceToInvoice);
+      setData(mappedInvoices);
     } catch (error) {
       console.error('Error loading invoices:', error);
       toast({
@@ -496,9 +618,21 @@ export const useInvoices = () => {
 
   const create = async (item: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      const dbItem = {
+        invoice_number: item.numero_facture,
+        sale_id: item.sale_id || '',
+        issue_date: item.date_facture,
+        due_date: item.date_echeance || new Date().toISOString(),
+        total_amount: item.montant_total,
+        tax_amount: 0,
+        tax_rate: 18,
+        status: item.statut,
+        notes: item.commentaires
+      };
+      
       const { data: result, error } = await supabase
         .from('invoices')
-        .insert([item])
+        .insert([dbItem])
         .select()
         .single();
       
@@ -508,7 +642,7 @@ export const useInvoices = () => {
         title: "Succès",
         description: "Facture créée avec succès",
       });
-      return result;
+      return mapDbInvoiceToInvoice(result);
     } catch (error) {
       console.error('Error creating invoice:', error);
       toast({
@@ -522,9 +656,15 @@ export const useInvoices = () => {
 
   const update = async (id: string, updates: Partial<Invoice>) => {
     try {
+      const dbUpdates: any = {};
+      if (updates.numero_facture) dbUpdates.invoice_number = updates.numero_facture;
+      if (updates.statut) dbUpdates.status = updates.statut;
+      if (updates.montant_total !== undefined) dbUpdates.total_amount = updates.montant_total;
+      if (updates.commentaires) dbUpdates.notes = updates.commentaires;
+      
       const { error } = await supabase
         .from('invoices')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(dbUpdates)
         .eq('id', id);
       
       if (error) throw error;
@@ -1564,10 +1704,7 @@ export function useProductsWithStock() {
       
       if (error) throw error;
       // Map the database result to our Product interface
-      const mappedProducts = (data || []).map(item => ({
-        ...item,
-        nom: item.name // Add compatibility property
-      })) as Product[];
+      const mappedProducts = (data || []).map(mapDbProductToProduct);
       setProducts(mappedProducts);
     } catch (error) {
       console.error('Error loading products:', error);

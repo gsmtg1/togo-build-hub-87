@@ -82,7 +82,10 @@ const OrdresProduction = () => {
             Gérez tous vos ordres de production et suivez leur progression
           </p>
         </div>
-        <Button onClick={() => setShowDialog(true)}>
+        <Button onClick={() => {
+          setSelectedOrder(null);
+          setShowDialog(true);
+        }}>
           <Plus className="h-4 w-4 mr-2" />
           Nouvel ordre
         </Button>

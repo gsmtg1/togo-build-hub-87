@@ -1,482 +1,357 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { FileText, Plus, Trash2, Download, Printer } from 'lucide-react';
-import { useProducts, useClients, useInvoices } from '@/hooks/useSupabaseData';
-
-interface InvoiceItem {
-  id: string;
-  productId?: string;
-  customName?: string;
-  quantity: number;
-  unitPrice: number;
-  total: number;
-  isCustom: boolean;
-}
+import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, FileText, Printer } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { useProducts } from '@/hooks/useSupabaseDatabase';
 
 interface ProfessionalInvoiceGeneratorProps {
-  saleId?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (saleData: any) => Promise<void>;
+  editingSale?: any;
 }
 
-export const ProfessionalInvoiceGenerator = ({ saleId }: ProfessionalInvoiceGeneratorProps) => {
+export const ProfessionalInvoiceGenerator = ({ 
+  open, 
+  onOpenChange, 
+  onSubmit, 
+  editingSale 
+}: ProfessionalInvoiceGeneratorProps) => {
   const { data: products } = useProducts();
-  const { data: clients } = useClients();
-  const { create: createInvoice } = useInvoices();
-  const [open, setOpen] = useState(false);
   
   const [formData, setFormData] = useState({
-    clientName: '',
-    clientPhone: '',
-    clientAddress: '',
-    invoiceNumber: `FACT-${Date.now()}`,
-    issueDate: new Date().toISOString().split('T')[0],
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    notes: '',
-    includeTax: false,
-    taxRate: 18
+    client_nom: editingSale?.client_nom || '',
+    client_telephone: editingSale?.client_telephone || '',
+    client_adresse: editingSale?.client_adresse || '',
+    items: editingSale?.items || [{ product_id: '', quantity: 1, unit_price: 0 }],
+    use_tva: false,
+    notes: ''
   });
 
-  const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [customProduct, setCustomProduct] = useState({ name: '', price: '' });
 
   const addItem = () => {
-    const newItem: InvoiceItem = {
-      id: crypto.randomUUID(),
-      quantity: 1,
-      unitPrice: 0,
-      total: 0,
-      isCustom: true
-    };
-    setItems([...items, newItem]);
-  };
-
-  const removeItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
-  };
-
-  const updateItem = (id: string, updates: Partial<InvoiceItem>) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updated = { ...item, ...updates };
-        updated.total = updated.quantity * updated.unitPrice;
-        return updated;
-      }
-      return item;
+    setFormData(prev => ({
+      ...prev,
+      items: [...prev.items, { product_id: '', quantity: 1, unit_price: 0 }]
     }));
   };
 
-  const selectProduct = (itemId: string, productId: string) => {
-    if (productId === 'custom') {
-      updateItem(itemId, { 
-        isCustom: true, 
-        productId: undefined, 
-        customName: '', 
-        unitPrice: 0 
-      });
-    } else {
-      const product = products.find(p => p.id === productId);
-      if (product) {
-        updateItem(itemId, {
-          isCustom: false,
-          productId: productId,
-          customName: product.name,
-          unitPrice: product.price
-        });
-      }
+  const removeItem = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateItem = (index: number, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      items: prev.items.map((item, i) => 
+        i === index ? { ...item, [field]: value } : item
+      )
+    }));
+  };
+
+  const addCustomProduct = () => {
+    if (customProduct.name && customProduct.price) {
+      const newItem = {
+        product_id: 'custom',
+        custom_name: customProduct.name,
+        quantity: 1,
+        unit_price: parseFloat(customProduct.price)
+      };
+      setFormData(prev => ({
+        ...prev,
+        items: [...prev.items, newItem]
+      }));
+      setCustomProduct({ name: '', price: '' });
     }
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-  const taxAmount = formData.includeTax ? (subtotal * formData.taxRate) / 100 : 0;
-  const totalAmount = subtotal + taxAmount;
-
-  const generateInvoice = async () => {
-    try {
-      await createInvoice({
-        invoice_number: formData.invoiceNumber,
-        sale_id: saleId || null,
-        issue_date: formData.issueDate,
-        due_date: formData.dueDate,
-        total_amount: totalAmount,
-        tax_rate: formData.includeTax ? formData.taxRate : 0,
-        tax_amount: taxAmount,
-        notes: formData.notes,
-        status: 'draft'
-      });
-
-      // Générer le PDF ou imprimer
-      printInvoice();
-      setOpen(false);
-    } catch (error) {
-      console.error('Erreur lors de la création de la facture:', error);
-    }
+  const calculateSubtotal = () => {
+    return formData.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
   };
 
-  const printInvoice = () => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(getInvoiceHTML());
-      printWindow.document.close();
-      printWindow.print();
-    }
+  const calculateTVA = () => {
+    return formData.use_tva ? calculateSubtotal() * 0.18 : 0;
   };
 
-  const getInvoiceHTML = () => {
-    return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Facture ${formData.invoiceNumber}</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #2563eb; padding-bottom: 20px; }
-            .company-name { font-size: 28px; font-weight: bold; color: #2563eb; margin-bottom: 5px; }
-            .company-info { font-size: 14px; line-height: 1.6; }
-            .invoice-title { font-size: 24px; font-weight: bold; text-align: center; margin: 30px 0; color: #1f2937; }
-            .invoice-details { display: flex; justify-content: space-between; margin-bottom: 30px; }
-            .invoice-info, .client-info { width: 48%; }
-            .section-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; color: #374151; }
-            .info-box { background-color: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #2563eb; }
-            table { width: 100%; border-collapse: collapse; margin: 30px 0; }
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-            th { background-color: #f1f5f9; font-weight: bold; color: #374151; }
-            .amount { text-align: right; font-weight: bold; }
-            .total-section { margin-top: 30px; text-align: right; }
-            .total-row { margin: 8px 0; padding: 8px; }
-            .final-total { font-size: 20px; font-weight: bold; background-color: #2563eb; color: white; padding: 15px; border-radius: 8px; }
-            .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #6b7280; }
-            .notes { margin-top: 30px; padding: 15px; background-color: #f8fafc; border-radius: 8px; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <div class="company-name">CORNERSTONE BRIQUES</div>
-            <div class="company-info">
-                21 Rue Be HEDJE, après les rails non loin de la station d'essence CM<br>
-                Akodésséwa, Lomé - Togo<br>
-                📞 Tél: +228 XX XX XX XX | ✉️ Email: contact@cornerstone-briques.tg
-            </div>
-        </div>
+  const calculateTotal = () => {
+    return calculateSubtotal() + calculateTVA();
+  };
 
-        <div class="invoice-title">FACTURE N° ${formData.invoiceNumber}</div>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const saleData = {
+      numero_vente: `VTE-${Date.now()}`,
+      client_nom: formData.client_nom,
+      client_telephone: formData.client_telephone,
+      client_adresse: formData.client_adresse,
+      items: JSON.stringify(formData.items),
+      montant_ht: calculateSubtotal(),
+      montant_tva: calculateTVA(),
+      montant_total: calculateTotal(),
+      use_tva: formData.use_tva,
+      notes: formData.notes,
+      statut: 'confirmee',
+      date_vente: new Date().toISOString()
+    };
 
-        <div class="invoice-details">
-            <div class="invoice-info">
-                <div class="section-title">Informations de facturation</div>
-                <div class="info-box">
-                    <strong>Date d'émission:</strong> ${new Date(formData.issueDate).toLocaleDateString('fr-FR')}<br>
-                    <strong>Date d'échéance:</strong> ${new Date(formData.dueDate).toLocaleDateString('fr-FR')}<br>
-                    <strong>Facture N°:</strong> ${formData.invoiceNumber}
-                </div>
-            </div>
-            <div class="client-info">
-                <div class="section-title">Facturé à</div>
-                <div class="info-box">
-                    <strong>${formData.clientName}</strong><br>
-                    ${formData.clientPhone ? `📞 ${formData.clientPhone}<br>` : ''}
-                    ${formData.clientAddress ? `📍 ${formData.clientAddress}` : ''}
-                </div>
-            </div>
-        </div>
+    await onSubmit(saleData);
+    onOpenChange(false);
+  };
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Désignation</th>
-                    <th>Quantité</th>
-                    <th>Prix unitaire</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${items.map(item => `
-                    <tr>
-                        <td>${item.customName || 'Article personnalisé'}</td>
-                        <td>${item.quantity}</td>
-                        <td class="amount">${item.unitPrice.toLocaleString()} FCFA</td>
-                        <td class="amount">${item.total.toLocaleString()} FCFA</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-
-        <div class="total-section">
-            <div class="total-row">
-                <strong>Sous-total: ${subtotal.toLocaleString()} FCFA</strong>
-            </div>
-            ${formData.includeTax ? `
-            <div class="total-row">
-                <strong>TVA (${formData.taxRate}%): ${taxAmount.toLocaleString()} FCFA</strong>
-            </div>
-            ` : ''}
-            <div class="final-total">
-                TOTAL À PAYER: ${totalAmount.toLocaleString()} FCFA
-            </div>
-        </div>
-
-        ${formData.notes ? `
-        <div class="notes">
-            <strong>Notes:</strong><br>
-            ${formData.notes}
-        </div>
-        ` : ''}
-
-        <div class="footer">
-            <p>Merci de votre confiance ! Pour toute question, contactez-nous.</p>
-            <p>Conditions de paiement : Règlement à ${new Date(formData.dueDate).toLocaleDateString('fr-FR')}</p>
-        </div>
-    </body>
-    </html>
-    `;
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <FileText className="h-4 w-4 mr-2" />
-          Générer facture
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>🧾 Nouvelle facture professionnelle</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {editingSale ? 'Modifier la facture' : 'Générer une facture professionnelle'}
+          </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6">
-          {/* Informations client */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="clientName">Nom du client</Label>
-              <Input
-                id="clientName"
-                value={formData.clientName}
-                onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
-                placeholder="Nom du client"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="clientPhone">Téléphone</Label>
-              <Input
-                id="clientPhone"
-                value={formData.clientPhone}
-                onChange={(e) => setFormData(prev => ({ ...prev, clientPhone: e.target.value }))}
-                placeholder="Téléphone du client"
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="clientAddress">Adresse</Label>
-            <Textarea
-              id="clientAddress"
-              value={formData.clientAddress}
-              onChange={(e) => setFormData(prev => ({ ...prev, clientAddress: e.target.value }))}
-              placeholder="Adresse du client"
-            />
-          </div>
-
-          {/* Informations facture */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="invoiceNumber">Numéro facture</Label>
-              <Input
-                id="invoiceNumber"
-                value={formData.invoiceNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, invoiceNumber: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="issueDate">Date d'émission</Label>
-              <Input
-                id="issueDate"
-                type="date"
-                value={formData.issueDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, issueDate: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="dueDate">Date d'échéance</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
-                required
-              />
-            </div>
-          </div>
-
-          {/* Articles */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <Label className="text-base font-semibold">🧱 Articles</Label>
-              <Button type="button" onClick={addItem} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Ajouter un article
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {items.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4 space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <Label>Type de produit</Label>
-                      <Select onValueChange={(value) => selectProduct(item.id, value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choisir un produit..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="custom">⚡ Autre (personnalisé)</SelectItem>
-                          {products.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              🧱 {product.name} - {product.dimensions} ({product.price.toLocaleString()} FCFA)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    {item.isCustom && (
-                      <div>
-                        <Label>Nom du produit</Label>
-                        <Input
-                          placeholder="Nom du produit personnalisé"
-                          value={item.customName || ''}
-                          onChange={(e) => updateItem(item.id, { customName: e.target.value })}
-                        />
-                      </div>
-                    )}
+          {/* En-tête facture */}
+          <Card className="border-2">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-blue-900">CORNERSTONE BRIQUES</h2>
+                  <p className="text-sm text-gray-600 mt-2">
+                    21 Rue Be HEDJE, après les rails<br />
+                    non loin de la station d'essence CM<br />
+                    Akodésséwa, Lomé - Togo
+                  </p>
+                </div>
+                <div className="text-right">
+                  <h3 className="text-xl font-bold text-blue-900">FACTURE</h3>
+                  <p className="text-sm text-gray-600">N° VTE-{Date.now()}</p>
+                  <p className="text-sm text-gray-600">{new Date().toLocaleDateString('fr-FR')}</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Informations client */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="client_nom">Nom du client *</Label>
+                    <Input
+                      id="client_nom"
+                      value={formData.client_nom}
+                      onChange={(e) => setFormData(prev => ({ ...prev, client_nom: e.target.value }))}
+                      required
+                    />
                   </div>
+                  <div>
+                    <Label htmlFor="client_telephone">Téléphone</Label>
+                    <Input
+                      id="client_telephone"
+                      value={formData.client_telephone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, client_telephone: e.target.value }))}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="client_adresse">Adresse</Label>
+                    <Input
+                      id="client_adresse"
+                      value={formData.client_adresse}
+                      onChange={(e) => setFormData(prev => ({ ...prev, client_adresse: e.target.value }))}
+                    />
+                  </div>
+                </div>
 
-                  <div className="grid grid-cols-4 gap-3">
-                    <div>
-                      <Label>Quantité</Label>
+                <Separator />
+
+                {/* Ajouter produit personnalisé */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Ajouter un produit personnalisé</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nom du produit"
+                        value={customProduct.name}
+                        onChange={(e) => setCustomProduct(prev => ({ ...prev, name: e.target.value }))}
+                      />
                       <Input
                         type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(item.id, { quantity: parseInt(e.target.value) || 0 })}
+                        placeholder="Prix unitaire"
+                        value={customProduct.price}
+                        onChange={(e) => setCustomProduct(prev => ({ ...prev, price: e.target.value }))}
                       />
-                    </div>
-                    <div>
-                      <Label>Prix unitaire (FCFA)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={item.unitPrice}
-                        onChange={(e) => updateItem(item.id, { unitPrice: parseFloat(e.target.value) || 0 })}
-                        readOnly={!item.isCustom}
-                      />
-                    </div>
-                    <div>
-                      <Label>Total (FCFA)</Label>
-                      <Input
-                        type="number"
-                        value={item.total}
-                        readOnly
-                        className="bg-gray-50 font-bold"
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeItem(item.id)}
-                        className="w-full"
-                      >
-                        <Trash2 className="h-4 w-4" />
+                      <Button type="button" onClick={addCustomProduct}>
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Articles */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">Articles</h3>
+                    <Button type="button" onClick={addItem} variant="outline" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Ajouter un article
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {formData.items.map((item, index) => (
+                      <Card key={index} className="border">
+                        <CardContent className="pt-4">
+                          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                            <div>
+                              <Label>Produit</Label>
+                              {item.product_id === 'custom' ? (
+                                <Input value={item.custom_name} disabled />
+                              ) : (
+                                <Select
+                                  value={item.product_id}
+                                  onValueChange={(value) => {
+                                    const product = products.find(p => p.id === value);
+                                    updateItem(index, 'product_id', value);
+                                    if (product) {
+                                      updateItem(index, 'unit_price', product.prix_unitaire);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choisir un produit" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {products.map((product) => (
+                                      <SelectItem key={product.id} value={product.id}>
+                                        {product.nom}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </div>
+                            <div>
+                              <Label>Quantité</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
+                              />
+                            </div>
+                            <div>
+                              <Label>Prix unitaire (FCFA)</Label>
+                              <Input
+                                type="number"
+                                value={item.unit_price}
+                                onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
+                              />
+                            </div>
+                            <div>
+                              <Label>Total</Label>
+                              <Input
+                                value={`${(item.quantity * item.unit_price).toLocaleString()} FCFA`}
+                                disabled
+                              />
+                            </div>
+                            <div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeItem(index)}
+                                disabled={formData.items.length === 1}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </div>
-              ))}
 
-              {items.length === 0 && (
-                <div className="text-center p-6 bg-gray-50 rounded-lg border-2 border-dashed">
-                  <p className="text-muted-foreground">Aucun article ajouté</p>
-                  <p className="text-sm text-muted-foreground">Cliquez sur "Ajouter un article" pour commencer</p>
+                <Separator />
+
+                {/* Totaux */}
+                <Card className="bg-gray-50">
+                  <CardContent className="pt-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-4 mb-4">
+                        <Switch
+                          checked={formData.use_tva}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, use_tva: checked }))}
+                        />
+                        <Label>Inclure la TVA (18%)</Label>
+                      </div>
+                      
+                      <div className="flex justify-between text-lg">
+                        <span>Sous-total:</span>
+                        <span className="font-semibold">{calculateSubtotal().toLocaleString()} FCFA</span>
+                      </div>
+                      
+                      {formData.use_tva && (
+                        <div className="flex justify-between text-lg">
+                          <span>TVA (18%):</span>
+                          <span className="font-semibold">{calculateTVA().toLocaleString()} FCFA</span>
+                        </div>
+                      )}
+                      
+                      <Separator />
+                      
+                      <div className="flex justify-between text-xl font-bold text-blue-900">
+                        <span>Total:</span>
+                        <span>{calculateTotal().toLocaleString()} FCFA</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Notes */}
+                <div>
+                  <Label htmlFor="notes">Notes / Commentaires</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Conditions de paiement, instructions spéciales..."
+                  />
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Options TVA */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="includeTax"
-                checked={formData.includeTax}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, includeTax: !!checked }))}
-              />
-              <Label htmlFor="includeTax">Inclure la TVA</Label>
-            </div>
-            
-            {formData.includeTax && (
-              <div className="w-32">
-                <Label>Taux TVA (%)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.taxRate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, taxRate: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Résumé des totaux */}
-          {items.length > 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="space-y-2 text-right">
-                <div>Sous-total: <span className="font-bold">{subtotal.toLocaleString()} FCFA</span></div>
-                {formData.includeTax && (
-                  <div>TVA ({formData.taxRate}%): <span className="font-bold">{taxAmount.toLocaleString()} FCFA</span></div>
-                )}
-                <div className="text-lg font-bold text-blue-600 border-t pt-2">
-                  Total: {totalAmount.toLocaleString()} FCFA
+                {/* Actions */}
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    Annuler
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handlePrint}>
+                    <Printer className="h-4 w-4 mr-2" />
+                    Imprimer
+                  </Button>
+                  <Button type="submit">
+                    <FileText className="h-4 w-4 mr-2" />
+                    {editingSale ? 'Mettre à jour' : 'Créer la facture'}
+                  </Button>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Notes */}
-          <div>
-            <Label htmlFor="notes">Notes (optionnel)</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Conditions de paiement, informations supplémentaires..."
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Annuler
-            </Button>
-            <Button type="button" variant="outline" onClick={printInvoice}>
-              <Printer className="h-4 w-4 mr-2" />
-              Aperçu & Imprimer
-            </Button>
-            <Button onClick={generateInvoice} disabled={items.length === 0}>
-              <Download className="h-4 w-4 mr-2" />
-              Générer facture
-            </Button>
-          </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </DialogContent>
     </Dialog>

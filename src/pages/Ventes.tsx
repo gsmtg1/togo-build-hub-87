@@ -28,8 +28,8 @@ const Ventes = () => {
     setShowViewDialog(true);
   };
 
-  const handleCreateInvoice = (sale: Sale) => {
-    setSelectedSale(sale);
+  const handleCreateInvoice = (sale?: Sale) => {
+    setSelectedSale(sale || null);
     setShowInvoiceDialog(true);
   };
 
@@ -70,7 +70,7 @@ const Ventes = () => {
             Gérez toutes vos ventes et générez des factures professionnelles
           </p>
         </div>
-        <Button onClick={() => setShowInvoiceDialog(true)}>
+        <Button onClick={() => handleCreateInvoice()}>
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle vente
         </Button>

@@ -5,17 +5,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useDailyLosses, useProducts } from '@/hooks/useSupabaseData';
+import { useDailyLosses, useProducts } from '@/hooks/useSupabaseDatabase';
 import { DailyLossDialog } from './DailyLossDialog';
 
-export const DailyLossManagement = () => {
-  const { data: losses, loading, remove } = useDailyLosses();
+interface DailyLossManagementProps {
+  losses?: any[];
+  loading?: boolean;
+  onUpdate?: (id: string, updates: any) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
+}
+
+export const DailyLossManagement = ({ 
+  losses: externalLosses,
+  loading: externalLoading,
+  onUpdate: externalOnUpdate,
+  onDelete: externalOnDelete 
+}: DailyLossManagementProps) => {
+  const { data: internalLosses, loading: internalLoading, remove: internalRemove, create } = useDailyLosses();
   const { data: products } = useProducts();
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleDelete = async (id: string) => {
+  // Use external props if provided, otherwise use internal hooks
+  const losses = externalLosses || internalLosses;
+  const loading = externalLoading !== undefined ? externalLoading : internalLoading;
+  const handleDelete = externalOnDelete || internalRemove;
+
+  const handleCreate = async (lossData: any) => {
+    await create(lossData);
+    setDialogOpen(false);
+  };
+
+  const confirmDelete = async (id: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer cette perte ?')) {
-      await remove(id);
+      await handleDelete(id);
     }
   };
 
@@ -127,7 +149,7 @@ export const DailyLossManagement = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(loss.id)}
+                        onClick={() => confirmDelete(loss.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -140,7 +162,11 @@ export const DailyLossManagement = () => {
         </CardContent>
       </Card>
 
-      <DailyLossDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <DailyLossDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen}
+        onSubmit={handleCreate}
+      />
     </div>
   );
 };

@@ -148,7 +148,7 @@ export const useMonthlyGoals = () => useSupabaseDatabase('monthly_goals');
 export const useStockMovements = () => useSupabaseDatabase('stock_movements');
 export const useProductsWithStock = () => {
   const { data: products, ...rest } = useSupabaseDatabase('products');
-  return { products: data, ...rest };
+  return { products, ...rest };
 };
 export const useProductionMaterials = () => useSupabaseDatabase('production_materials');
 export const useBrickTypes = () => useSupabaseDatabase('brick_types');

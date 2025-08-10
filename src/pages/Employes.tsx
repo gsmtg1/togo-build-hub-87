@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, Mail, Phone, MapPin, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Mail, Phone, MapPin, Calendar, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -146,7 +146,7 @@ const Employes = () => {
         <CardContent>
           {employees.length === 0 ? (
             <div className="text-center py-8">
-              <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <UserPlus className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <p className="text-gray-500">Aucun employé enregistré</p>
               <p className="text-sm text-gray-400">Cliquez sur "Nouvel Employé" pour commencer</p>
             </div>

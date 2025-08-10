@@ -75,7 +75,7 @@ export const POSSystem = () => {
     return cart.reduce((sum, item) => sum + item.total, 0);
   };
 
-  const processeSale = async () => {
+  const processSale = async () => {
     if (cart.length === 0) {
       toast({
         title: "Erreur",
@@ -108,7 +108,13 @@ export const POSSystem = () => {
       };
 
       const result = await createSale(saleData);
-      setLastSale({ ...result, items: cart, client: clients.find(c => c.id === selectedClient) });
+      const clientData = clients.find(c => c.id === selectedClient);
+      setLastSale({ 
+        ...result, 
+        items: cart, 
+        client: clientData,
+        total_amount: calculateTotal()
+      });
       setShowReceipt(true);
       clearCart();
 
@@ -118,6 +124,11 @@ export const POSSystem = () => {
       });
     } catch (error) {
       console.error('Erreur lors de la vente:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la vente",
+        variant: "destructive",
+      });
     }
   };
 
@@ -130,7 +141,7 @@ export const POSSystem = () => {
       <div className="max-w-md mx-auto bg-white p-6 print:p-4">
         <div className="text-center mb-4">
           <h2 className="text-lg font-bold">REÇU DE VENTE</h2>
-          <p className="text-sm text-gray-600">#{lastSale.id.slice(0, 8)}</p>
+          <p className="text-sm text-gray-600">#{lastSale.id?.toString().slice(0, 8) || 'N/A'}</p>
           <p className="text-sm">{new Date(lastSale.sale_date).toLocaleString('fr-FR')}</p>
         </div>
 
@@ -163,7 +174,11 @@ export const POSSystem = () => {
             <span>TOTAL:</span>
             <span>{lastSale.total_amount.toLocaleString()} FCFA</span>
           </div>
-          <p className="text-sm text-gray-600">Mode de paiement: {paymentMethod}</p>
+          <p className="text-sm text-gray-600">Mode de paiement: {
+            paymentMethod === 'cash' ? 'Espèces' : 
+            paymentMethod === 'card' ? 'Carte' : 
+            paymentMethod === 'transfer' ? 'Virement' : paymentMethod
+          }</p>
         </div>
 
         <div className="flex gap-2 mt-6 print:hidden">
@@ -294,7 +309,7 @@ export const POSSystem = () => {
                 <select
                   id="payment"
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value as any)}
+                  onChange={(e) => setPaymentMethod(e.target.value as 'cash' | 'card' | 'transfer')}
                   className="w-full p-2 border rounded"
                 >
                   <option value="cash">Espèces</option>
@@ -312,7 +327,7 @@ export const POSSystem = () => {
               </div>
 
               <Button 
-                onClick={processeSale} 
+                onClick={processSale} 
                 className="w-full"
                 disabled={cart.length === 0 || !selectedClient}
               >

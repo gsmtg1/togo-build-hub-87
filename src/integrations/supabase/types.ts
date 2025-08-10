@@ -110,6 +110,36 @@ export type Database = {
         }
         Relationships: []
       }
+      brick_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          dimensions: string
+          id: string
+          name: string
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          dimensions: string
+          id?: string
+          name: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          dimensions?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -643,6 +673,66 @@ export type Database = {
           },
         ]
       }
+      production_costs: {
+        Row: {
+          created_at: string
+          id: string
+          labor_cost: number
+          material_cost: number
+          overhead_cost: number
+          production_id: string
+          total_cost: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          labor_cost?: number
+          material_cost?: number
+          overhead_cost?: number
+          production_id: string
+          total_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          labor_cost?: number
+          material_cost?: number
+          overhead_cost?: number
+          production_id?: string
+          total_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      production_materials: {
+        Row: {
+          cost_per_unit: number
+          created_at: string
+          id: string
+          name: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          cost_per_unit?: number
+          created_at?: string
+          id?: string
+          name: string
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          cost_per_unit?: number
+          created_at?: string
+          id?: string
+          name?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       production_orders: {
         Row: {
           created_at: string
@@ -689,6 +779,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      production_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          product_id: string
+          quantity_needed: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          product_id: string
+          quantity_needed: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          product_id?: string
+          quantity_needed?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -960,6 +1077,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stock_movements: {
+        Row: {
+          commentaire: string | null
+          created_at: string
+          date_mouvement: string
+          id: string
+          motif: string | null
+          product_id: string
+          quantite: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          commentaire?: string | null
+          created_at?: string
+          date_mouvement?: string
+          id?: string
+          motif?: string | null
+          product_id: string
+          quantite: number
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          commentaire?: string | null
+          created_at?: string
+          date_mouvement?: string
+          id?: string
+          motif?: string | null
+          product_id?: string
+          quantite?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {

@@ -1,18 +1,14 @@
 
-// Types temporaires pour l'application jusqu'à ce que Supabase génère automatiquement les types
+// Types pour l'application basés sur les tables Supabase
 export interface Product {
   id: string;
-  nom: string;
-  categorie: string;
-  longueur_cm: number;
-  largeur_cm: number;
-  hauteur_cm: number;
-  prix_unitaire: number;
-  stock_actuel: number;
-  stock_minimum: number;
-  actif: boolean;
-  date_creation: string;
-  date_modification: string;
+  name: string;
+  type: string;
+  dimensions: string;
+  description?: string;
+  price: number;
+  unit: string;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -23,108 +19,91 @@ export interface StockMovement {
   type: 'entree' | 'sortie' | 'perte' | 'ajustement';
   quantite: number;
   motif?: string;
-  reference_document?: string;
-  date_mouvement: string;
-  created_by?: string;
   commentaire?: string;
+  date_mouvement: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface DailyLoss {
   id: string;
   product_id: string;
-  date_perte: string;
-  quantite_cassee: number;
-  motif?: string;
-  valeur_perte?: number;
-  responsable?: string;
-  commentaire?: string;
+  loss_date: string;
+  quantity_lost: number;
+  loss_type: string;
+  loss_value?: number;
+  responsible?: string;
+  comments?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface Sale {
   id: string;
-  numero_vente: string;
-  client_nom: string;
-  client_telephone?: string;
-  client_adresse?: string;
-  date_vente: string;
-  statut: 'en_attente' | 'confirmee' | 'livree' | 'annulee';
-  montant_total: number;
-  vendeur_id?: string;
-  commentaires?: string;
+  client_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  sale_date: string;
+  status: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
+  payment_method?: 'cash' | 'transfer' | 'check' | 'mobile_money';
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface Delivery {
   id: string;
-  numero_livraison: string;
-  sale_id?: string;
-  client_nom: string;
-  client_telephone?: string;
-  client_adresse: string;
-  lieu_livraison: string;
-  date_commande: string;
-  date_livraison_prevue?: string;
-  date_livraison_reelle?: string;
-  statut: 'en_attente' | 'approuve' | 'en_cours' | 'livre' | 'annule';
-  responsable_id?: string;
-  signature_client?: string;
-  commentaires?: string;
-  montant_total: number;
+  sale_id: string;
+  delivery_address: string;
+  delivery_date: string;
+  status: 'scheduled' | 'in_progress' | 'delivered' | 'cancelled';
+  driver_name?: string;
+  vehicle_info?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface Invoice {
   id: string;
-  numero_facture: string;
-  client_nom: string;
-  client_telephone?: string;
-  client_adresse?: string;
-  date_facture: string;
-  date_echeance?: string;
-  statut: 'brouillon' | 'envoyee' | 'payee' | 'en_retard' | 'annulee';
-  montant_total: number;
-  montant_paye: number;
-  vendeur_id?: string;
-  sale_id?: string;
-  delivery_id?: string;
-  commentaires?: string;
+  sale_id: string;
+  invoice_number: string;
+  issue_date: string;
+  due_date: string;
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  total_amount: number;
+  tax_rate: number;
+  tax_amount: number;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface ProductionOrder {
   id: string;
-  numero_ordre: string;
   product_id: string;
-  quantite: number;
-  date_demande: string;
-  date_prevue?: string;
-  date_completion?: string;
-  statut: 'en_attente' | 'approuve' | 'rejete' | 'en_cours' | 'termine' | 'annule';
-  demandeur_id?: string;
-  approbateur_id?: string;
-  commentaires?: string;
-  cout_prevu?: number;
-  cout_reel?: number;
+  planned_quantity: number;
+  produced_quantity: number;
+  start_date: string;
+  end_date?: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface AccountingEntry {
   id: string;
-  type: 'recette' | 'depense' | 'salaire' | 'charge';
-  categorie: string;
+  entry_date: string;
+  account_name: string;
   description: string;
-  montant: number;
-  date_operation: string;
-  methode_paiement?: 'especes' | 'virement' | 'cheque' | 'mobile_money';
-  reference_externe?: string;
-  employee_id?: string;
+  debit_amount?: number;
+  credit_amount?: number;
+  category: string;
+  reference?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
@@ -132,6 +111,7 @@ export interface AccountingEntry {
 export interface AccountingCategory {
   id: string;
   name: string;
+  account_type: string;
   description?: string;
   created_at: string;
   updated_at: string;
@@ -139,14 +119,15 @@ export interface AccountingCategory {
 
 export interface MonthlyGoal {
   id: string;
-  titre: string;
+  title: string;
   description?: string;
-  mois: number;
-  annee: number;
-  objectif_montant: number;
-  montant_realise: number;
-  statut: 'actif' | 'termine' | 'annule';
-  employee_id?: string;
+  category: string;
+  month: number;
+  year: number;
+  target_value: number;
+  current_value: number;
+  unit: string;
+  status: 'active' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
 }
@@ -154,8 +135,77 @@ export interface MonthlyGoal {
 export interface AppSetting {
   id: string;
   cle: string;
-  valeur: any;
+  valeur: string;
   description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  company?: string;
+  is_active: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Employee {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  department?: string;
+  salary?: number;
+  hire_date?: string;
+  is_active: boolean;
+  role: string;
+  address?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionMaterial {
+  id: string;
+  name: string;
+  unit: string;
+  cost_per_unit: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BrickType {
+  id: string;
+  name: string;
+  dimensions: string;
+  weight?: number;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionRecipe {
+  id: string;
+  product_id: string;
+  material_id: string;
+  quantity_needed: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductionCost {
+  id: string;
+  production_id: string;
+  material_cost: number;
+  labor_cost: number;
+  overhead_cost: number;
+  total_cost: number;
   created_at: string;
   updated_at: string;
 }

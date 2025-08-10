@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // Hook générique pour toutes les tables
 export const useSupabaseDatabase = (tableName: string) => {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -143,16 +143,34 @@ export const useLosses = () => useSupabaseDatabase('losses');
 export const useDailyLosses = () => useSupabaseDatabase('daily_losses');
 export const useObjectives = () => useSupabaseDatabase('objectives');
 export const useMonthlyGoals = () => useSupabaseDatabase('monthly_goals');
-
-// Additional hooks for missing exports
 export const useStockMovements = () => useSupabaseDatabase('stock_movements');
-export const useProductsWithStock = () => {
-  const { data: products, ...rest } = useSupabaseDatabase('products');
-  return { products, ...rest };
-};
 export const useProductionMaterials = () => useSupabaseDatabase('production_materials');
 export const useBrickTypes = () => useSupabaseDatabase('brick_types');
 export const useProductionRecipes = () => useSupabaseDatabase('production_recipes');
 export const useProductionCosts = () => useSupabaseDatabase('production_costs');
 export const useAccountingCategories = () => useSupabaseDatabase('accounting_categories');
 export const useAppSettings = () => useSupabaseDatabase('app_settings');
+
+// Hook spécialisé pour les produits avec stock
+export const useProductsWithStock = () => {
+  const { data: products, loading, create, update, remove, reload } = useSupabaseDatabase('products');
+  const { data: stockData } = useSupabaseDatabase('stock');
+
+  const productsWithStock = products.map((product: any) => {
+    const stock = stockData.find((s: any) => s.product_id === product.id);
+    return {
+      ...product,
+      stock_quantity: stock?.quantity || 0,
+      minimum_stock: stock?.minimum_stock || 0
+    };
+  });
+
+  return {
+    products: productsWithStock,
+    loading,
+    create,
+    update,
+    remove,
+    reload
+  };
+};

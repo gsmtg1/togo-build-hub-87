@@ -25,6 +25,7 @@ interface ProductSelectorProps {
 export const ProductSelector = ({ products, onProductsChange }: ProductSelectorProps) => {
   const { products: availableProducts, loading } = useProductsWithStock();
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [showCustomForm, setShowCustomForm] = useState(false);
 
   const addPredefinedProduct = () => {
     if (!selectedProductId) return;
@@ -33,7 +34,7 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
     if (predefined) {
       const newProduct: InvoiceProduct = {
         id: crypto.randomUUID(),
-        name: `${predefined.name} (${predefined.dimensions || ''})`.trim(),
+        name: `${predefined.name}${predefined.dimensions ? ` (${predefined.dimensions})` : ''}`,
         quantity: 1,
         unitPrice: predefined.price || 0,
         totalPrice: predefined.price || 0,
@@ -54,6 +55,7 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
       isCustom: true,
     };
     onProductsChange([...products, newProduct]);
+    setShowCustomForm(false);
   };
 
   const removeProduct = (id: string) => {
@@ -79,67 +81,93 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
             <Package className="h-5 w-5" />
             Sélection des produits
           </CardTitle>
-          <div className="flex gap-2">
-            <Button type="button" onClick={addCustomProduct} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Produit personnalisé
-            </Button>
-          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Sélection de produits prédéfinis */}
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <Label>Ajouter un produit existant</Label>
-            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choisir un produit..." />
-              </SelectTrigger>
-              <SelectContent>
-                {loading ? (
-                  <SelectItem value="loading" disabled>Chargement...</SelectItem>
-                ) : availableProducts.length === 0 ? (
-                  <SelectItem value="empty" disabled>Aucun produit disponible</SelectItem>
-                ) : (
-                  availableProducts.map((product: any) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} - {product.price?.toLocaleString()} FCFA
-                      {product.dimensions && ` (${product.dimensions})`}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button 
-            type="button" 
-            onClick={addPredefinedProduct}
-            disabled={!selectedProductId || loading}
-            className="mt-6"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter
-          </Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="p-4">
+            <h3 className="font-semibold mb-3">Produits disponibles</h3>
+            <div className="space-y-3">
+              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un produit..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {loading ? (
+                    <SelectItem value="loading" disabled>Chargement...</SelectItem>
+                  ) : availableProducts.length === 0 ? (
+                    <SelectItem value="empty" disabled>Aucun produit disponible</SelectItem>
+                  ) : (
+                    availableProducts.map((product: any) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        <div className="flex justify-between items-center w-full">
+                          <span>{product.name}</span>
+                          <div className="text-sm text-gray-500 ml-2">
+                            {product.price?.toLocaleString()} FCFA
+                            {product.dimensions && ` • ${product.dimensions}`}
+                            <span className="ml-1 text-green-600">
+                              (Stock: {product.stock_quantity})
+                            </span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <Button 
+                type="button" 
+                onClick={addPredefinedProduct}
+                disabled={!selectedProductId || loading}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter ce produit
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <h3 className="font-semibold mb-3">Produit personnalisé</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Si le produit n'est pas dans la liste, créez un produit personnalisé
+            </p>
+            <Button 
+              type="button" 
+              onClick={addCustomProduct}
+              variant="outline"
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter un produit personnalisé
+            </Button>
+          </Card>
         </div>
 
         {/* Liste des produits ajoutés */}
         {products.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Aucun produit ajouté. Sélectionnez un produit ou créez un produit personnalisé.
+          <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+            <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+            <p className="text-gray-500 font-medium">Aucun produit ajouté</p>
+            <p className="text-sm text-gray-400">Sélectionnez un produit ou créez un produit personnalisé</p>
           </div>
         ) : (
           <div className="space-y-3">
-            <Label className="text-base font-semibold">Produits ajoutés</Label>
+            <Label className="text-base font-semibold">Produits ajoutés ({products.length})</Label>
             {products.map((product) => (
-              <div key={product.id} className="grid grid-cols-12 gap-2 items-center p-3 border rounded-lg">
-                <div className="col-span-5">
+              <div key={product.id} className="grid grid-cols-12 gap-2 items-center p-3 border rounded-lg bg-gray-50">
+                <div className="col-span-4">
                   <Input
                     placeholder="Nom du produit"
                     value={product.name}
                     onChange={(e) => updateProduct(product.id, { name: e.target.value })}
                     required
+                    className="bg-white"
                   />
+                  {product.isCustom && (
+                    <span className="text-xs text-orange-600">Produit personnalisé</span>
+                  )}
                 </div>
                 <div className="col-span-2">
                   <Input
@@ -149,6 +177,7 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
                     onChange={(e) => updateProduct(product.id, { quantity: parseInt(e.target.value) || 0 })}
                     min="1"
                     required
+                    className="bg-white"
                   />
                 </div>
                 <div className="col-span-2">
@@ -160,16 +189,18 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
                     min="0"
                     step="0.01"
                     required
+                    className="bg-white"
                   />
                 </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    placeholder="Total"
-                    value={product.totalPrice}
-                    readOnly
-                    className="bg-gray-50"
-                  />
+                <div className="col-span-3">
+                  <div className="text-right">
+                    <div className="font-semibold text-green-600">
+                      {product.totalPrice.toLocaleString()} FCFA
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {product.quantity} × {product.unitPrice.toLocaleString()}
+                    </div>
+                  </div>
                 </div>
                 <div className="col-span-1">
                   <Button
@@ -177,6 +208,7 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
                     variant="outline"
                     size="sm"
                     onClick={() => removeProduct(product.id)}
+                    className="text-red-600 hover:text-red-700"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -188,14 +220,24 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
 
         {/* Résumé */}
         {products.length > 0 && (
-          <div className="mt-4 p-4 bg-muted rounded-lg">
-            <div className="flex justify-between items-center">
-              <span className="font-medium">Total des produits:</span>
-              <span className="text-lg font-bold">
-                {products.reduce((sum, product) => sum + product.totalPrice, 0).toLocaleString()} FCFA
-              </span>
-            </div>
-          </div>
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="pt-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="font-medium">Total des produits:</span>
+                  <div className="text-sm text-gray-600">
+                    {products.reduce((sum, product) => sum + product.quantity, 0)} articles
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-2xl font-bold text-green-600">
+                    {products.reduce((sum, product) => sum + product.totalPrice, 0).toLocaleString()} FCFA
+                  </span>
+                  <div className="text-sm text-gray-600">Sous-total HT</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </CardContent>
     </Card>

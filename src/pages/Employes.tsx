@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Plus, Edit, Trash2, Mail, Phone, MapPin, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,18 +6,33 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useDatabase, useLocalStorage } from '@/hooks/useDatabase';
-import { Employee } from '@/lib/database';
+import { useEmployees } from '@/hooks/useSupabaseDatabase';
 import { EmployeeDialog } from '@/components/employees/EmployeeDialog';
 
+interface Employee {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  department?: string;
+  position?: string;
+  role: string;
+  salary?: number;
+  hire_date?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 const Employes = () => {
-  const { isInitialized } = useDatabase();
-  const { data: employees, loading, create, update, remove } = useLocalStorage<Employee>('employees');
+  const { data: employees, loading, create, update, remove } = useEmployees();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  if (!isInitialized || loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-lg">Chargement des employés...</div>
@@ -44,20 +60,10 @@ const Employes = () => {
 
   const handleSubmit = async (employeeData: Partial<Employee>) => {
     if (isEditing && selectedEmployee) {
-      await update({ ...selectedEmployee, ...employeeData, updated_at: new Date().toISOString() });
+      await update(selectedEmployee.id, employeeData);
     } else {
-      const newEmployee: Employee = {
-        id: crypto.randomUUID(),
-        nom: employeeData.nom || '',
-        prenom: employeeData.prenom || '',
-        email: employeeData.email || '',
-        telephone: employeeData.telephone || '',
-        adresse: employeeData.adresse || '',
-        document_identite: employeeData.document_identite || '',
-        role: employeeData.role || 'employe',
-        salaire: employeeData.salaire || 0,
-        date_embauche: employeeData.date_embauche || new Date().toISOString().split('T')[0],
-        actif: employeeData.actif !== undefined ? employeeData.actif : true,
+      const newEmployee = {
+        ...employeeData,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -66,24 +72,24 @@ const Employes = () => {
     setDialogOpen(false);
   };
 
-  const getStatusBadge = (actif: boolean) => {
-    const variant = actif ? 'default' : 'secondary';
-    const label = actif ? 'Actif' : 'Inactif';
+  const getStatusBadge = (is_active: boolean) => {
+    const variant = is_active ? 'default' : 'secondary';
+    const label = is_active ? 'Actif' : 'Inactif';
     return <Badge variant={variant}>{label}</Badge>;
   };
 
-  const getInitials = (prenom: string, nom: string) => {
-    return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
+  const getInitials = (first_name: string, last_name: string) => {
+    return `${first_name.charAt(0)}${last_name.charAt(0)}`.toUpperCase();
   };
 
-  const activeEmployees = employees.filter(emp => emp.actif).length;
-  const totalSalary = employees.reduce((sum, emp) => sum + emp.salaire, 0);
+  const activeEmployees = employees.filter((emp: Employee) => emp.is_active).length;
+  const totalSalary = employees.reduce((sum: number, emp: Employee) => sum + (emp.salary || 0), 0);
 
-  // Group employees by role since department doesn't exist
-  const roleCounts = employees.reduce((acc, emp) => {
+  // Grouper les employés par rôle
+  const roleCounts = employees.reduce((acc: Record<string, number>, emp: Employee) => {
     acc[emp.role] = (acc[emp.role] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
 
   return (
     <div className="space-y-6">
@@ -125,7 +131,7 @@ const Employes = () => {
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Rôles</CardTitle>
+            <CardTitle className="text-sm font-medium">Départements</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Object.keys(roleCounts).length}</div>
@@ -138,78 +144,101 @@ const Employes = () => {
           <CardTitle>Liste des Employés</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employé</TableHead>
-                <TableHead>Rôle</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Date d'embauche</TableHead>
-                <TableHead>Salaire</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {employees.map((employee) => (
-                <TableRow key={employee.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarFallback>
-                          {getInitials(employee.prenom, employee.nom)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">
-                          {employee.prenom} {employee.nom}
-                        </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {employee.email}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{employee.role}</TableCell>
-                  <TableCell>
-                    <div className="text-sm space-y-1">
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {employee.telephone}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(employee.date_embauche).toLocaleDateString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>{employee.salaire.toLocaleString()} FCFA</TableCell>
-                  <TableCell>{getStatusBadge(employee.actif)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(employee)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(employee.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {employees.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-500">Aucun employé enregistré</p>
+              <p className="text-sm text-gray-400">Cliquez sur "Nouvel Employé" pour commencer</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employé</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Date d'embauche</TableHead>
+                  <TableHead>Salaire</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {employees.map((employee: Employee) => (
+                  <TableRow key={employee.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarFallback>
+                            {getInitials(employee.first_name, employee.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">
+                            {employee.first_name} {employee.last_name}
+                          </div>
+                          {employee.email && (
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              {employee.email}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{employee.role}</div>
+                        {employee.department && (
+                          <div className="text-sm text-muted-foreground">{employee.department}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {employee.phone && (
+                        <div className="text-sm">
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {employee.phone}
+                          </div>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {employee.hire_date && (
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(employee.hire_date).toLocaleDateString('fr-FR')}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {employee.salary ? `${employee.salary.toLocaleString()} FCFA` : 'Non défini'}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(employee.is_active)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(employee)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(employee.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

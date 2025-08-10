@@ -5,7 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Employee } from '@/lib/database';
+
+interface Employee {
+  id?: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  department?: string;
+  position?: string;
+  role: string;
+  salary?: number;
+  hire_date?: string;
+  is_active: boolean;
+}
 
 interface EmployeeDialogProps {
   open: boolean;
@@ -16,45 +30,48 @@ interface EmployeeDialogProps {
 }
 
 export const EmployeeDialog = ({ open, onOpenChange, employee, onSubmit, isEditing }: EmployeeDialogProps) => {
-  const [formData, setFormData] = useState({
-    nom: '',
-    prenom: '',
+  const [formData, setFormData] = useState<Employee>({
+    first_name: '',
+    last_name: '',
     email: '',
-    telephone: '',
-    adresse: '',
-    document_identite: '',
-    role: 'employe' as Employee['role'],
-    salaire: 0,
-    date_embauche: new Date().toISOString().split('T')[0],
-    actif: true,
+    phone: '',
+    address: '',
+    department: '',
+    position: '',
+    role: 'user',
+    salary: 0,
+    hire_date: new Date().toISOString().split('T')[0],
+    is_active: true,
   });
 
   useEffect(() => {
     if (employee && isEditing) {
       setFormData({
-        nom: employee.nom,
-        prenom: employee.prenom,
+        first_name: employee.first_name || '',
+        last_name: employee.last_name || '',
         email: employee.email || '',
-        telephone: employee.telephone || '',
-        adresse: employee.adresse || '',
-        document_identite: employee.document_identite || '',
-        role: employee.role,
-        salaire: employee.salaire,
-        date_embauche: employee.date_embauche,
-        actif: employee.actif,
+        phone: employee.phone || '',
+        address: employee.address || '',
+        department: employee.department || '',
+        position: employee.position || '',
+        role: employee.role || 'user',
+        salary: employee.salary || 0,
+        hire_date: employee.hire_date || new Date().toISOString().split('T')[0],
+        is_active: employee.is_active !== undefined ? employee.is_active : true,
       });
     } else {
       setFormData({
-        nom: '',
-        prenom: '',
+        first_name: '',
+        last_name: '',
         email: '',
-        telephone: '',
-        adresse: '',
-        document_identite: '',
-        role: 'employe',
-        salaire: 0,
-        date_embauche: new Date().toISOString().split('T')[0],
-        actif: true,
+        phone: '',
+        address: '',
+        department: '',
+        position: '',
+        role: 'user',
+        salary: 0,
+        hire_date: new Date().toISOString().split('T')[0],
+        is_active: true,
       });
     }
   }, [employee, isEditing, open]);
@@ -76,20 +93,20 @@ export const EmployeeDialog = ({ open, onOpenChange, employee, onSubmit, isEditi
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="prenom">Prénom</Label>
+              <Label htmlFor="first_name">Prénom *</Label>
               <Input
-                id="prenom"
-                value={formData.prenom}
-                onChange={(e) => setFormData(prev => ({ ...prev, prenom: e.target.value }))}
+                id="first_name"
+                value={formData.first_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="nom">Nom</Label>
+              <Label htmlFor="last_name">Nom *</Label>
               <Input
-                id="nom"
-                value={formData.nom}
-                onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
+                id="last_name"
+                value={formData.last_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
                 required
               />
             </div>
@@ -106,36 +123,47 @@ export const EmployeeDialog = ({ open, onOpenChange, employee, onSubmit, isEditi
               />
             </div>
             <div>
-              <Label htmlFor="telephone">Téléphone</Label>
+              <Label htmlFor="phone">Téléphone</Label>
               <Input
-                id="telephone"
-                value={formData.telephone}
-                onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="adresse">Adresse</Label>
+            <Label htmlFor="address">Adresse</Label>
             <Input
-              id="adresse"
-              value={formData.adresse}
-              onChange={(e) => setFormData(prev => ({ ...prev, adresse: e.target.value }))}
+              id="address"
+              value={formData.address}
+              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="document_identite">Document d'identité</Label>
+              <Label htmlFor="department">Département</Label>
               <Input
-                id="document_identite"
-                value={formData.document_identite}
-                onChange={(e) => setFormData(prev => ({ ...prev, document_identite: e.target.value }))}
+                id="department"
+                value={formData.department}
+                onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
               />
             </div>
             <div>
+              <Label htmlFor="position">Poste</Label>
+              <Input
+                id="position"
+                value={formData.position}
+                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               <Label htmlFor="role">Rôle</Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData(prev => ({ ...prev, role: value as Employee['role'] }))}>
+              <Select value={formData.role} onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -145,46 +173,43 @@ export const EmployeeDialog = ({ open, onOpenChange, employee, onSubmit, isEditi
                   <SelectItem value="vendeur">Vendeur</SelectItem>
                   <SelectItem value="production">Production</SelectItem>
                   <SelectItem value="livraison">Livraison</SelectItem>
-                  <SelectItem value="employe">Employé</SelectItem>
+                  <SelectItem value="user">Employé</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label htmlFor="salary">Salaire (FCFA)</Label>
+              <Input
+                id="salary"
+                type="number"
+                value={formData.salary}
+                onChange={(e) => setFormData(prev => ({ ...prev, salary: parseFloat(e.target.value) || 0 }))}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="date_embauche">Date d'embauche</Label>
+              <Label htmlFor="hire_date">Date d'embauche</Label>
               <Input
-                id="date_embauche"
+                id="hire_date"
                 type="date"
-                value={formData.date_embauche}
-                onChange={(e) => setFormData(prev => ({ ...prev, date_embauche: e.target.value }))}
-                required
+                value={formData.hire_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, hire_date: e.target.value }))}
               />
             </div>
             <div>
-              <Label htmlFor="salaire">Salaire (FCFA)</Label>
-              <Input
-                id="salaire"
-                type="number"
-                value={formData.salaire}
-                onChange={(e) => setFormData(prev => ({ ...prev, salaire: parseFloat(e.target.value) || 0 }))}
-                required
-              />
+              <Label htmlFor="is_active">Statut</Label>
+              <Select value={formData.is_active ? 'true' : 'false'} onValueChange={(value) => setFormData(prev => ({ ...prev, is_active: value === 'true' }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Actif</SelectItem>
+                  <SelectItem value="false">Inactif</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="actif">Statut</Label>
-            <Select value={formData.actif ? 'true' : 'false'} onValueChange={(value) => setFormData(prev => ({ ...prev, actif: value === 'true' }))}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">Actif</SelectItem>
-                <SelectItem value="false">Inactif</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <DialogFooter>

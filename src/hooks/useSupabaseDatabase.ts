@@ -13,7 +13,7 @@ export const useSupabaseDatabase = (tableName: string) => {
     try {
       setLoading(true);
       const { data: result, error } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .select('*')
         .order('created_at', { ascending: false });
       
@@ -39,7 +39,7 @@ export const useSupabaseDatabase = (tableName: string) => {
   const create = async (item: any) => {
     try {
       const { data: result, error } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .insert([item])
         .select()
         .single();
@@ -66,7 +66,7 @@ export const useSupabaseDatabase = (tableName: string) => {
   const update = async (id: string, updates: any) => {
     try {
       const { error } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id);
       
@@ -91,7 +91,7 @@ export const useSupabaseDatabase = (tableName: string) => {
   const remove = async (id: string) => {
     try {
       const { error } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .delete()
         .eq('id', id);
       
@@ -143,3 +143,16 @@ export const useLosses = () => useSupabaseDatabase('losses');
 export const useDailyLosses = () => useSupabaseDatabase('daily_losses');
 export const useObjectives = () => useSupabaseDatabase('objectives');
 export const useMonthlyGoals = () => useSupabaseDatabase('monthly_goals');
+
+// Additional hooks for missing exports
+export const useStockMovements = () => useSupabaseDatabase('stock_movements');
+export const useProductsWithStock = () => {
+  const { data: products, ...rest } = useSupabaseDatabase('products');
+  return { products: data, ...rest };
+};
+export const useProductionMaterials = () => useSupabaseDatabase('production_materials');
+export const useBrickTypes = () => useSupabaseDatabase('brick_types');
+export const useProductionRecipes = () => useSupabaseDatabase('production_recipes');
+export const useProductionCosts = () => useSupabaseDatabase('production_costs');
+export const useAccountingCategories = () => useSupabaseDatabase('accounting_categories');
+export const useAppSettings = () => useSupabaseDatabase('app_settings');

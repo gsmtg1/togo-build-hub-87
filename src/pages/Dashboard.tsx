@@ -14,11 +14,11 @@ import {
 import { useProducts, useProductionOrders, useDeliveries, useSales, useEmployees } from '@/hooks/useSupabaseDatabase';
 
 export default function Dashboard() {
-  const { data: products } = useProducts();
-  const { data: orders } = useProductionOrders();
-  const { data: deliveries } = useDeliveries();
-  const { data: sales } = useSales();
-  const { data: employees } = useEmployees();
+  const { data: products = [] } = useProducts();
+  const { data: orders = [] } = useProductionOrders();
+  const { data: deliveries = [] } = useDeliveries();
+  const { data: sales = [] } = useSales();
+  const { data: employees = [] } = useEmployees();
 
   const stats = [
     {
@@ -37,25 +37,25 @@ export default function Dashboard() {
     },
     {
       title: 'Livraisons',
-      value: deliveries.filter(d => d.statut === 'en_cours').length,
+      value: deliveries.filter(d => d.status === 'in_progress').length,
       icon: Truck,
       color: 'bg-green-500',
-      detail: `${deliveries.filter(d => d.statut === 'livre').length} livrées`
+      detail: `${deliveries.filter(d => d.status === 'delivered').length} livrées`
     },
     {
       title: 'Ventes du mois',
       value: sales.filter(s => {
-        const saleDate = new Date(s.date_vente);
+        const saleDate = new Date(s.sale_date);
         const now = new Date();
         return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
       }).length,
       icon: ShoppingCart,
       color: 'bg-purple-500',
-      detail: `${sales.reduce((sum, s) => sum + s.montant_total, 0).toLocaleString()} FCFA`
+      detail: `${sales.reduce((sum, s) => sum + s.total_amount, 0).toLocaleString()} FCFA`
     },
     {
       title: 'Employés actifs',
-      value: employees.filter(e => e.actif).length,
+      value: employees.filter(e => e.is_active).length,
       icon: Users,
       color: 'bg-indigo-500',
       detail: `${employees.length} au total`
@@ -194,7 +194,7 @@ export default function Dashboard() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Chiffre d'affaires</span>
                 <span className="font-semibold">
-                  {sales.reduce((sum, s) => sum + s.montant_total, 0).toLocaleString()} FCFA
+                  {sales.reduce((sum, s) => sum + s.total_amount, 0).toLocaleString()} FCFA
                 </span>
               </div>
               <div className="flex justify-between">
@@ -203,7 +203,7 @@ export default function Dashboard() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Livraisons en attente</span>
-                <span className="font-semibold">{deliveries.filter(d => d.statut === 'en_attente').length}</span>
+                <span className="font-semibold">{deliveries.filter(d => d.status === 'pending').length}</span>
               </div>
             </div>
           </CardContent>

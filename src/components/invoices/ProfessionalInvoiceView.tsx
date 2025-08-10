@@ -301,11 +301,11 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
   const handleSendEmail = () => {
     const subject = `Facture ${invoice.numero_facture || invoice.id.slice(-8)} - ${COMPANY_INFO.name}`;
     const body = `Bonjour ${invoice.client_nom},\n\nVeuillez trouver ci-joint votre facture.\n\nCordialement,\n${COMPANY_INFO.name}`;
-    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    window.open(`mailto:${COMPANY_INFO.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
   const products = (invoice as any).products || [];
-  const subtotal = products.reduce((sum, product) => sum + product.totalPrice, 0);
+  const subtotal = products.reduce((sum, product) => sum + (product.totalPrice || 0), 0);
   const tvaRate = 0.18;
   const tvaAmount = subtotal * tvaRate;
   const total = subtotal + tvaAmount;
@@ -362,6 +362,9 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
                 <div>
                   <Mail className="inline w-3 h-3 mr-1" />
                   {COMPANY_INFO.email}
+                </div>
+                <div>
+                  Site: {COMPANY_INFO.website}
                 </div>
               </div>
             </div>
@@ -428,8 +431,8 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
                   <tr key={product.id || index}>
                     <td><strong>{product.name}</strong></td>
                     <td style={{textAlign: 'center'}}>{product.quantity}</td>
-                    <td style={{textAlign: 'right'}}>{formatCurrency(product.unitPrice)}</td>
-                    <td style={{textAlign: 'right'}}><strong>{formatCurrency(product.totalPrice)}</strong></td>
+                    <td style={{textAlign: 'right'}}>{formatCurrency(product.unitPrice || 0)}</td>
+                    <td style={{textAlign: 'right'}}><strong>{formatCurrency(product.totalPrice || 0)}</strong></td>
                   </tr>
                 ))}
               </tbody>

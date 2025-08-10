@@ -176,11 +176,11 @@ export const CornerstoneInvoiceTemplate = ({ open, onOpenChange, invoice }: Corn
   const handleSendEmail = () => {
     const subject = `Facture ${invoice.numero_facture || invoice.id.slice(-8)} - ${COMPANY_INFO.name}`;
     const body = `Bonjour ${invoice.client_nom},\n\nVeuillez trouver ci-joint votre facture.\n\nCordialement,\n${COMPANY_INFO.name}`;
-    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    window.open(`mailto:${COMPANY_INFO.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
   const products = (invoice as any).products || [];
-  const subtotal = products.reduce((sum, product) => sum + product.totalPrice, 0);
+  const subtotal = products.reduce((sum, product) => sum + (product.totalPrice || 0), 0);
   const tva = subtotal * 0.18;
   const total = subtotal + tva;
 
@@ -229,6 +229,7 @@ export const CornerstoneInvoiceTemplate = ({ open, onOpenChange, invoice }: Corn
                   <div>{COMPANY_INFO.city}, {COMPANY_INFO.country}</div>
                   <div>Tél: {COMPANY_INFO.phones.join(' / ')}</div>
                   <div>Email: {COMPANY_INFO.email}</div>
+                  <div>Site: {COMPANY_INFO.website}</div>
                 </div>
               </div>
               <div className="invoice-number text-right">
@@ -284,8 +285,8 @@ export const CornerstoneInvoiceTemplate = ({ open, onOpenChange, invoice }: Corn
                   <tr key={product.id || index} className={index % 2 === 1 ? 'bg-orange-50' : ''}>
                     <td className="p-2 text-xs">{product.name}</td>
                     <td className="p-2 text-xs text-center">{product.quantity}</td>
-                    <td className="p-2 text-xs text-right">{formatNumber(product.unitPrice)} FCFA</td>
-                    <td className="p-2 text-xs text-right font-semibold">{formatNumber(product.totalPrice)} FCFA</td>
+                    <td className="p-2 text-xs text-right">{formatNumber(product.unitPrice || 0)} FCFA</td>
+                    <td className="p-2 text-xs text-right font-semibold">{formatNumber(product.totalPrice || 0)} FCFA</td>
                   </tr>
                 ))}
               </tbody>
@@ -339,6 +340,9 @@ export const CornerstoneInvoiceTemplate = ({ open, onOpenChange, invoice }: Corn
             </div>
             <div className="text-xs mt-1">
               {COMPANY_INFO.address} - {COMPANY_INFO.phones.join(' / ')} - {COMPANY_INFO.email}
+            </div>
+            <div className="text-xs mt-1">
+              Site web: {COMPANY_INFO.website}
             </div>
             <div className="text-xs mt-2 opacity-90">
               Merci de votre confiance ! Cette facture est générée électroniquement.

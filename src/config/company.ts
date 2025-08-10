@@ -6,8 +6,8 @@ export const COMPANY_INFO = {
   address: 'Akodessewa, après les rails, non loin de la station d\'essence CM',
   city: 'Lomé',
   country: 'Togo',
-  email: 'contact@cornerstonebriques.tg',
-  website: 'www.cornerstonebriques.tg'
+  email: 'contact@cornerstonebriques.com',
+  website: 'www.cornerstonebriques.com'
 };
 
 export const PRODUCT_CATEGORIES = {

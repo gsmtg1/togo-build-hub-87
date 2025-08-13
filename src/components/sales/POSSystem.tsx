@@ -104,8 +104,8 @@ export const POSSystem = () => {
           notes: 'Client créé depuis POS'
         });
         
-        if (result && typeof result === 'object' && 'id' in result) {
-          setSelectedClient(result.id);
+        if (result && result !== null && typeof result === 'object' && 'id' in result) {
+          setSelectedClient(result.id as string);
           setNewClientName('');
           toast({
             title: "Succès",
@@ -150,8 +150,8 @@ export const POSSystem = () => {
           notes: 'Client créé depuis POS'
         });
         
-        if (result && typeof result === 'object' && 'id' in result) {
-          clientId = result.id;
+        if (result && result !== null && typeof result === 'object' && 'id' in result) {
+          clientId = result.id as string;
         } else {
           throw new Error('Échec de la création du client');
         }
@@ -190,12 +190,12 @@ export const POSSystem = () => {
 
       const result = await createSale(saleData);
       
-      if (result && typeof result === 'object' && 'id' in result) {
+      if (result && result !== null && typeof result === 'object' && 'id' in result) {
         const clientData = clients.find(c => c.id === clientId);
         
         setLastSale({ 
-          id: result.id,
-          sale_date: result.sale_date || new Date().toISOString(),
+          id: result.id as string,
+          sale_date: (result as any).sale_date || new Date().toISOString(),
           items: cart, 
           client: clientData,
           total_amount: calculateTotal(),

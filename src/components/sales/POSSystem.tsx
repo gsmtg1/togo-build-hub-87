@@ -33,6 +33,15 @@ export const POSSystem = () => {
   const [lastSale, setLastSale] = useState<any>(null);
 
   const addToCart = (product: any) => {
+    if (product.stock_quantity <= 0) {
+      toast({
+        title: "Stock insuffisant",
+        description: "Ce produit n'est plus en stock",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const existingItem = cart.find(item => item.product_id === product.id);
     
     if (existingItem) {
@@ -85,7 +94,7 @@ export const POSSystem = () => {
   const handleClientCreation = async () => {
     if (newClientName.trim()) {
       try {
-        const newClient = await createClient({
+        const result = await createClient({
           name: newClientName.trim(),
           phone: '',
           email: '',
@@ -94,12 +103,17 @@ export const POSSystem = () => {
           is_active: true,
           notes: 'Client créé depuis POS'
         });
-        setSelectedClient(newClient.id);
-        setNewClientName('');
-        toast({
-          title: "Succès",
-          description: "Nouveau client créé",
-        });
+        
+        if (result && typeof result === 'object' && 'id' in result) {
+          setSelectedClient(result.id);
+          setNewClientName('');
+          toast({
+            title: "Succès",
+            description: "Nouveau client créé",
+          });
+        } else {
+          throw new Error('Échec de la création du client');
+        }
       } catch (error) {
         console.error('Erreur création client:', error);
         toast({
@@ -126,7 +140,7 @@ export const POSSystem = () => {
     // Créer un nouveau client si nécessaire
     if (!clientId && newClientName.trim()) {
       try {
-        const newClient = await createClient({
+        const result = await createClient({
           name: newClientName.trim(),
           phone: '',
           email: '',
@@ -135,7 +149,12 @@ export const POSSystem = () => {
           is_active: true,
           notes: 'Client créé depuis POS'
         });
-        clientId = newClient.id;
+        
+        if (result && typeof result === 'object' && 'id' in result) {
+          clientId = result.id;
+        } else {
+          throw new Error('Échec de la création du client');
+        }
       } catch (error) {
         console.error('Erreur création client:', error);
         toast({
@@ -170,15 +189,17 @@ export const POSSystem = () => {
       };
 
       const result = await createSale(saleData);
-      const clientData = clients.find(c => c.id === clientId);
       
-      if (result) {
+      if (result && typeof result === 'object' && 'id' in result) {
+        const clientData = clients.find(c => c.id === clientId);
+        
         setLastSale({ 
           id: result.id,
-          sale_date: result.sale_date,
+          sale_date: result.sale_date || new Date().toISOString(),
           items: cart, 
           client: clientData,
-          total_amount: calculateTotal()
+          total_amount: calculateTotal(),
+          payment_method: paymentMethod
         });
         setShowReceipt(true);
         clearCart();
@@ -187,6 +208,8 @@ export const POSSystem = () => {
           title: "Succès",
           description: "Vente effectuée avec succès",
         });
+      } else {
+        throw new Error('Échec de la création de la vente');
       }
     } catch (error) {
       console.error('Erreur lors de la vente:', error);
@@ -241,9 +264,9 @@ export const POSSystem = () => {
             <span>{lastSale.total_amount.toLocaleString()} FCFA</span>
           </div>
           <p className="text-sm text-gray-600">Mode de paiement: {
-            paymentMethod === 'cash' ? 'Espèces' : 
-            paymentMethod === 'card' ? 'Carte' : 
-            paymentMethod === 'transfer' ? 'Virement' : paymentMethod
+            lastSale.payment_method === 'cash' ? 'Espèces' : 
+            lastSale.payment_method === 'card' ? 'Carte' : 
+            lastSale.payment_method === 'transfer' ? 'Virement' : lastSale.payment_method
           }</p>
         </div>
 
@@ -277,8 +300,10 @@ export const POSSystem = () => {
               {products.map((product) => (
                 <Card 
                   key={product.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => addToCart(product)}
+                  className={`cursor-pointer hover:shadow-md transition-shadow ${
+                    product.stock_quantity <= 0 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  onClick={() => product.stock_quantity > 0 && addToCart(product)}
                 >
                   <CardContent className="p-4">
                     <h3 className="font-semibold text-sm mb-2">{product.name}</h3>

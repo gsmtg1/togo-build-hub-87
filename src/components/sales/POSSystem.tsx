@@ -45,6 +45,20 @@ export const POSSystem = () => {
     const existingItem = cart.find(item => item.product_id === product.id);
     
     if (existingItem) {
+      // Check if adding one more would exceed stock
+      const currentCartQuantity = cart
+        .filter(item => item.product_id === product.id)
+        .reduce((sum, item) => sum + item.quantity, 0);
+      
+      if (currentCartQuantity >= product.stock_quantity) {
+        toast({
+          title: "Stock insuffisant",
+          description: `Stock disponible: ${product.stock_quantity}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       updateQuantity(existingItem.id, existingItem.quantity + 1);
     } else {
       const newItem: CartItem = {
@@ -63,6 +77,20 @@ export const POSSystem = () => {
     if (newQuantity <= 0) {
       removeFromCart(itemId);
       return;
+    }
+
+    // Check stock availability
+    const cartItem = cart.find(item => item.id === itemId);
+    if (cartItem) {
+      const product = products.find(p => p.id === cartItem.product_id);
+      if (product && newQuantity > product.stock_quantity) {
+        toast({
+          title: "Stock insuffisant",
+          description: `Stock disponible: ${product.stock_quantity}`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setCart(cart.map(item => 
@@ -104,7 +132,7 @@ export const POSSystem = () => {
           notes: 'Client créé depuis POS'
         });
         
-        if (result && result !== null && typeof result === 'object' && 'id' in result) {
+        if (result && result !== null && typeof result === 'object' && 'id' in result && result.id) {
           setSelectedClient(result.id as string);
           setNewClientName('');
           toast({
@@ -150,7 +178,7 @@ export const POSSystem = () => {
           notes: 'Client créé depuis POS'
         });
         
-        if (result && result !== null && typeof result === 'object' && 'id' in result) {
+        if (result && result !== null && typeof result === 'object' && 'id' in result && result.id) {
           clientId = result.id as string;
         } else {
           throw new Error('Échec de la création du client');
@@ -190,7 +218,7 @@ export const POSSystem = () => {
 
       const result = await createSale(saleData);
       
-      if (result && result !== null && typeof result === 'object' && 'id' in result) {
+      if (result && result !== null && typeof result === 'object' && 'id' in result && result.id) {
         const clientData = clients.find(c => c.id === clientId);
         
         setLastSale({ 
@@ -301,7 +329,7 @@ export const POSSystem = () => {
                 <Card 
                   key={product.id} 
                   className={`cursor-pointer hover:shadow-md transition-shadow ${
-                    product.stock_quantity <= 0 ? 'opacity-50 cursor-not-allowed' : ''
+                    product.stock_quantity <= 0 ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
                   }`}
                   onClick={() => product.stock_quantity > 0 && addToCart(product)}
                 >
@@ -314,6 +342,9 @@ export const POSSystem = () => {
                         Stock: {product.stock_quantity}
                       </Badge>
                     </div>
+                    {product.stock_quantity <= 0 && (
+                      <p className="text-xs text-red-500 mt-1">Rupture de stock</p>
+                    )}
                   </CardContent>
                 </Card>
               ))}

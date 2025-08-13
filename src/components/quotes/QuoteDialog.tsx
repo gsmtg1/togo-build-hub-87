@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2 } from 'lucide-react';
+import { ProductSelector } from '@/components/invoices/ProductSelector';
 import { Quote, QuoteProduct } from '@/lib/database';
 
 interface QuoteDialogProps {
@@ -52,40 +52,6 @@ export const QuoteDialog = ({ open, onOpenChange, quote, onSubmit, isEditing }: 
     }
   }, [quote, isEditing, open]);
 
-  const addProduct = () => {
-    setFormData(prev => ({
-      ...prev,
-      products: [...prev.products, {
-        id: crypto.randomUUID(),
-        name: '',
-        quantity: 1,
-        unitPrice: 0,
-        totalPrice: 0,
-      }],
-    }));
-  };
-
-  const removeProduct = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      products: prev.products.filter(p => p.id !== id),
-    }));
-  };
-
-  const updateProduct = (id: string, updates: Partial<QuoteProduct>) => {
-    setFormData(prev => ({
-      ...prev,
-      products: prev.products.map(p => {
-        if (p.id === id) {
-          const updated = { ...p, ...updates };
-          updated.totalPrice = updated.quantity * updated.unitPrice;
-          return updated;
-        }
-        return p;
-      }),
-    }));
-  };
-
   const montant_total = formData.products.reduce((sum, product) => sum + product.totalPrice, 0);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -98,7 +64,7 @@ export const QuoteDialog = ({ open, onOpenChange, quote, onSubmit, isEditing }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Modifier le devis' : 'Nouveau devis'}
@@ -175,69 +141,10 @@ export const QuoteDialog = ({ open, onOpenChange, quote, onSubmit, isEditing }: 
             </div>
           </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <Label>Produits</Label>
-              <Button type="button" onClick={addProduct} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Ajouter un produit
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {formData.products.map((product) => (
-                <div key={product.id} className="grid grid-cols-12 gap-2 items-center">
-                  <div className="col-span-4">
-                    <Input
-                      placeholder="Nom du produit"
-                      value={product.name}
-                      onChange={(e) => updateProduct(product.id, { name: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      placeholder="Qté"
-                      value={product.quantity}
-                      onChange={(e) => updateProduct(product.id, { quantity: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      placeholder="Prix unitaire"
-                      value={product.unitPrice}
-                      onChange={(e) => updateProduct(product.id, { unitPrice: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      placeholder="Total"
-                      value={product.totalPrice}
-                      readOnly
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeProduct(product.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 p-4 bg-muted rounded-lg">
-              <div className="text-lg font-semibold">
-                Total: {montant_total.toLocaleString()} FCFA
-              </div>
-            </div>
-          </div>
+          <ProductSelector 
+            products={formData.products}
+            onProductsChange={(products) => setFormData(prev => ({ ...prev, products }))}
+          />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

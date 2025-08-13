@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Package } from 'lucide-react';
+import { Plus, Minus, Trash2, Package } from 'lucide-react';
 import { useProductsWithStock } from '@/hooks/useSupabaseDatabase';
 
 interface InvoiceProduct {
@@ -25,7 +25,6 @@ interface ProductSelectorProps {
 export const ProductSelector = ({ products, onProductsChange }: ProductSelectorProps) => {
   const { products: availableProducts, loading } = useProductsWithStock();
   const [selectedProductId, setSelectedProductId] = useState<string>('');
-  const [showCustomForm, setShowCustomForm] = useState(false);
 
   const addPredefinedProduct = () => {
     if (!selectedProductId) return;
@@ -55,7 +54,6 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
       isCustom: true,
     };
     onProductsChange([...products, newProduct]);
-    setShowCustomForm(false);
   };
 
   const removeProduct = (id: string) => {
@@ -73,6 +71,14 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
     }));
   };
 
+  const updateQuantityWithButtons = (id: string, increment: boolean) => {
+    const product = products.find(p => p.id === id);
+    if (product) {
+      const newQuantity = increment ? product.quantity + 1 : Math.max(1, product.quantity - 1);
+      updateProduct(id, { quantity: newQuantity });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -87,7 +93,7 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
         {/* Sélection de produits prédéfinis */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="p-4">
-            <h3 className="font-semibold mb-3">Produits disponibles</h3>
+            <h3 className="font-semibold mb-3">📦 Produits disponibles</h3>
             <div className="space-y-3">
               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                 <SelectTrigger>
@@ -102,13 +108,19 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
                     availableProducts.map((product: any) => (
                       <SelectItem key={product.id} value={product.id}>
                         <div className="flex justify-between items-center w-full">
-                          <span>{product.name}</span>
+                          <span className="font-medium">{product.name}</span>
                           <div className="text-sm text-gray-500 ml-2">
-                            {product.price?.toLocaleString()} FCFA
-                            {product.dimensions && ` • ${product.dimensions}`}
-                            <span className="ml-1 text-green-600">
-                              (Stock: {product.stock_quantity})
+                            <span className="font-semibold text-green-600">
+                              {product.price?.toLocaleString()} FCFA
                             </span>
+                            {product.dimensions && (
+                              <span className="ml-1 text-gray-400">• {product.dimensions}</span>
+                            )}
+                            <div className="text-xs">
+                              <span className={`${product.stock_quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                Stock: {product.stock_quantity}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </SelectItem>
@@ -129,9 +141,9 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
           </Card>
 
           <Card className="p-4">
-            <h3 className="font-semibold mb-3">Produit personnalisé</h3>
+            <h3 className="font-semibold mb-3">✏️ Produit personnalisé</h3>
             <p className="text-sm text-gray-600 mb-3">
-              Si le produit n'est pas dans la liste, créez un produit personnalisé
+              Pour un produit non listé ou une prestation spéciale
             </p>
             <Button 
               type="button" 
@@ -166,19 +178,39 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
                     className="bg-white"
                   />
                   {product.isCustom && (
-                    <span className="text-xs text-orange-600">Produit personnalisé</span>
+                    <span className="text-xs text-orange-600">✏️ Personnalisé</span>
                   )}
                 </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    placeholder="Quantité"
-                    value={product.quantity}
-                    onChange={(e) => updateProduct(product.id, { quantity: parseInt(e.target.value) || 0 })}
-                    min="1"
-                    required
-                    className="bg-white"
-                  />
+                <div className="col-span-3">
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateQuantityWithButtons(product.id, false)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <Input
+                      type="number"
+                      placeholder="Qté"
+                      value={product.quantity}
+                      onChange={(e) => updateProduct(product.id, { quantity: parseInt(e.target.value) || 1 })}
+                      min="1"
+                      required
+                      className="bg-white text-center"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateQuantityWithButtons(product.id, true)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="col-span-2">
                   <Input
@@ -192,7 +224,7 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
                     className="bg-white"
                   />
                 </div>
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <div className="text-right">
                     <div className="font-semibold text-green-600">
                       {product.totalPrice.toLocaleString()} FCFA

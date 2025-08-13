@@ -22,11 +22,12 @@ interface CartItem {
 export const POSSystem = () => {
   const { products } = useProductsWithStock();
   const { create: createSale } = useSales();
-  const { data: clients } = useClients();
+  const { data: clients, create: createClient } = useClients();
   const { toast } = useToast();
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>('');
+  const [newClientName, setNewClientName] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
@@ -62,6 +63,11 @@ export const POSSystem = () => {
     ));
   };
 
+  const updateQuantityInput = (itemId: string, value: string) => {
+    const newQuantity = parseInt(value) || 0;
+    updateQuantity(itemId, newQuantity);
+  };
+
   const removeFromCart = (itemId: string) => {
     setCart(cart.filter(item => item.id !== itemId));
   };
@@ -69,10 +75,40 @@ export const POSSystem = () => {
   const clearCart = () => {
     setCart([]);
     setSelectedClient('');
+    setNewClientName('');
   };
 
   const calculateTotal = () => {
     return cart.reduce((sum, item) => sum + item.total, 0);
+  };
+
+  const handleClientCreation = async () => {
+    if (newClientName.trim()) {
+      try {
+        const newClient = await createClient({
+          name: newClientName.trim(),
+          phone: '',
+          email: '',
+          address: '',
+          company: '',
+          is_active: true,
+          notes: 'Client créé depuis POS'
+        });
+        setSelectedClient(newClient.id);
+        setNewClientName('');
+        toast({
+          title: "Succès",
+          description: "Nouveau client créé",
+        });
+      } catch (error) {
+        console.error('Erreur création client:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de créer le client",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const processSale = async () => {
@@ -85,10 +121,36 @@ export const POSSystem = () => {
       return;
     }
 
-    if (!selectedClient) {
+    let clientId = selectedClient;
+
+    // Créer un nouveau client si nécessaire
+    if (!clientId && newClientName.trim()) {
+      try {
+        const newClient = await createClient({
+          name: newClientName.trim(),
+          phone: '',
+          email: '',
+          address: '',
+          company: '',
+          is_active: true,
+          notes: 'Client créé depuis POS'
+        });
+        clientId = newClient.id;
+      } catch (error) {
+        console.error('Erreur création client:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de créer le client",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (!clientId) {
       toast({
         title: "Erreur",
-        description: "Veuillez sélectionner un client",
+        description: "Veuillez sélectionner ou créer un client",
         variant: "destructive",
       });
       return;
@@ -96,7 +158,7 @@ export const POSSystem = () => {
 
     try {
       const saleData = {
-        client_id: selectedClient,
+        client_id: clientId,
         product_id: cart[0].product_id, // Pour compatibilité avec le schéma actuel
         quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
         unit_price: calculateTotal() / cart.reduce((sum, item) => sum + item.quantity, 0),
@@ -108,20 +170,24 @@ export const POSSystem = () => {
       };
 
       const result = await createSale(saleData);
-      const clientData = clients.find(c => c.id === selectedClient);
-      setLastSale({ 
-        ...result, 
-        items: cart, 
-        client: clientData,
-        total_amount: calculateTotal()
-      });
-      setShowReceipt(true);
-      clearCart();
+      const clientData = clients.find(c => c.id === clientId);
+      
+      if (result) {
+        setLastSale({ 
+          id: result.id,
+          sale_date: result.sale_date,
+          items: cart, 
+          client: clientData,
+          total_amount: calculateTotal()
+        });
+        setShowReceipt(true);
+        clearCart();
 
-      toast({
-        title: "Succès",
-        description: "Vente effectuée avec succès",
-      });
+        toast({
+          title: "Succès",
+          description: "Vente effectuée avec succès",
+        });
+      }
     } catch (error) {
       console.error('Erreur lors de la vente:', error);
       toast({
@@ -199,14 +265,14 @@ export const POSSystem = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-screen p-4">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-screen p-4">
       {/* Liste des produits */}
       <div className="lg:col-span-2">
         <Card className="h-full">
           <CardHeader>
             <CardTitle>Produits disponibles</CardTitle>
           </CardHeader>
-          <CardContent className="overflow-y-auto">
+          <CardContent className="overflow-y-auto max-h-[70vh]">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {products.map((product) => (
                 <Card 
@@ -247,7 +313,7 @@ export const POSSystem = () => {
               )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 max-h-[40vh] overflow-y-auto">
             {cart.length === 0 ? (
               <p className="text-center text-gray-500 py-8">Panier vide</p>
             ) : (
@@ -265,7 +331,13 @@ export const POSSystem = () => {
                     >
                       <Minus className="h-3 w-3" />
                     </Button>
-                    <span className="w-8 text-center">{item.quantity}</span>
+                    <Input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => updateQuantityInput(item.id, e.target.value)}
+                      className="w-16 text-center"
+                      min="1"
+                    />
                     <Button 
                       size="sm" 
                       variant="outline"
@@ -292,16 +364,32 @@ export const POSSystem = () => {
                   id="client"
                   value={selectedClient}
                   onChange={(e) => setSelectedClient(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  required
+                  className="w-full p-2 border rounded mb-2"
                 >
-                  <option value="">Sélectionner un client</option>
+                  <option value="">Sélectionner un client existant</option>
                   {clients.map((client) => (
                     <option key={client.id} value={client.id}>
                       {client.name}
                     </option>
                   ))}
                 </select>
+                
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Ou créer un nouveau client..."
+                    value={newClientName}
+                    onChange={(e) => setNewClientName(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={handleClientCreation} 
+                    variant="outline" 
+                    size="sm"
+                    disabled={!newClientName.trim()}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               <div>
@@ -329,7 +417,7 @@ export const POSSystem = () => {
               <Button 
                 onClick={processSale} 
                 className="w-full"
-                disabled={cart.length === 0 || !selectedClient}
+                disabled={cart.length === 0 || (!selectedClient && !newClientName.trim())}
               >
                 Finaliser la vente
               </Button>

@@ -132,13 +132,18 @@ export const POSSystem = () => {
           notes: 'Client créé depuis POS'
         });
         
-        if (result && result !== null && typeof result === 'object' && 'id' in result && result.id !== null && result.id !== undefined) {
-          setSelectedClient(result.id as string);
-          setNewClientName('');
-          toast({
-            title: "Succès",
-            description: "Nouveau client créé",
-          });
+        if (result && typeof result === 'object' && 'id' in result) {
+          const clientId = result.id;
+          if (clientId && typeof clientId === 'string') {
+            setSelectedClient(clientId);
+            setNewClientName('');
+            toast({
+              title: "Succès",
+              description: "Nouveau client créé",
+            });
+          } else {
+            throw new Error('ID client invalide');
+          }
         } else {
           throw new Error('Échec de la création du client');
         }
@@ -178,8 +183,13 @@ export const POSSystem = () => {
           notes: 'Client créé depuis POS'
         });
         
-        if (result && result !== null && typeof result === 'object' && 'id' in result && result.id !== null && result.id !== undefined) {
-          clientId = result.id as string;
+        if (result && typeof result === 'object' && 'id' in result) {
+          const newClientId = result.id;
+          if (newClientId && typeof newClientId === 'string') {
+            clientId = newClientId;
+          } else {
+            throw new Error('ID client invalide');
+          }
         } else {
           throw new Error('Échec de la création du client');
         }
@@ -218,24 +228,29 @@ export const POSSystem = () => {
 
       const result = await createSale(saleData);
       
-      if (result && result !== null && typeof result === 'object' && 'id' in result && result.id !== null && result.id !== undefined) {
-        const clientData = clients.find(c => c.id === clientId);
-        
-        setLastSale({ 
-          id: result.id as string,
-          sale_date: (result as any).sale_date || new Date().toISOString(),
-          items: cart, 
-          client: clientData,
-          total_amount: calculateTotal(),
-          payment_method: paymentMethod
-        });
-        setShowReceipt(true);
-        clearCart();
+      if (result && typeof result === 'object' && 'id' in result) {
+        const saleId = result.id;
+        if (saleId && typeof saleId === 'string') {
+          const clientData = clients.find(c => c.id === clientId);
+          
+          setLastSale({ 
+            id: saleId,
+            sale_date: (result as any).sale_date || new Date().toISOString(),
+            items: cart, 
+            client: clientData,
+            total_amount: calculateTotal(),
+            payment_method: paymentMethod
+          });
+          setShowReceipt(true);
+          clearCart();
 
-        toast({
-          title: "Succès",
-          description: "Vente effectuée avec succès",
-        });
+          toast({
+            title: "Succès",
+            description: "Vente effectuée avec succès",
+          });
+        } else {
+          throw new Error('ID vente invalide');
+        }
       } else {
         throw new Error('Échec de la création de la vente');
       }

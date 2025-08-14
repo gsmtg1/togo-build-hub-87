@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -131,7 +132,7 @@ export const POSSystem = () => {
           notes: 'Client créé depuis POS'
         });
         
-        if (result && result !== null && typeof result === 'object' && 'id' in result) {
+        if (result && result !== null) {
           const clientId = (result as any).id;
           if (clientId && typeof clientId === 'string') {
             setSelectedClient(clientId);
@@ -182,7 +183,7 @@ export const POSSystem = () => {
           notes: 'Client créé depuis POS'
         });
         
-        if (result && result !== null && typeof result === 'object' && 'id' in result) {
+        if (result && result !== null) {
           const newClientId = (result as any).id;
           if (newClientId && typeof newClientId === 'string') {
             clientId = newClientId;
@@ -227,7 +228,7 @@ export const POSSystem = () => {
 
       const result = await createSale(saleData);
       
-      if (result && result !== null && typeof result === 'object' && 'id' in result) {
+      if (result && result !== null) {
         const saleId = (result as any).id;
         if (saleId && typeof saleId === 'string') {
           const clientData = clients.find(c => c.id === clientId);

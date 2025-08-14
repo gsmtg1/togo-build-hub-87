@@ -88,17 +88,17 @@ export const ClassicDashboardStats = () => {
       {stats.map((stat, index) => (
         <Card 
           key={index} 
-          className="hover:shadow-lg transition-shadow cursor-pointer"
+          className="hover:shadow-lg transition-all cursor-pointer bg-white border border-gray-200"
           onClick={() => navigate(stat.route)}
         >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
+                <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
                 <p className="text-xs text-gray-500">{stat.detail}</p>
               </div>
-              <div className={`p-3 rounded-full ${stat.color}`}>
+              <div className={`w-12 h-12 rounded-full ${stat.color} flex items-center justify-center ml-4 flex-shrink-0`}>
                 <stat.icon className="h-6 w-6 text-white" />
               </div>
             </div>

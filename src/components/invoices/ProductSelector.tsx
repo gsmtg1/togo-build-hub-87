@@ -26,9 +26,6 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
   const { products: availableProducts, loading } = useProductsWithStock();
   const [selectedProductId, setSelectedProductId] = useState<string>('');
 
-  console.log('Available products:', availableProducts);
-  console.log('Loading state:', loading);
-
   const addPredefinedProduct = () => {
     if (!selectedProductId) return;
     
@@ -82,6 +79,19 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
     }
   };
 
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Chargement des produits...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -103,14 +113,7 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
                   <SelectValue placeholder="Choisir un produit..." />
                 </SelectTrigger>
                 <SelectContent className="bg-white border shadow-lg z-50">
-                  {loading ? (
-                    <SelectItem value="loading" disabled>
-                      <div className="flex items-center">
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Chargement...
-                      </div>
-                    </SelectItem>
-                  ) : availableProducts.length === 0 ? (
+                  {availableProducts.length === 0 ? (
                     <SelectItem value="empty" disabled>Aucun produit disponible</SelectItem>
                   ) : (
                     availableProducts.map((product: any) => (
@@ -126,7 +129,7 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
                             )}
                             <div className="text-xs">
                               <span className={`${product.stock_quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                Stock: {product.stock_quantity}
+                                Stock: {product.stock_quantity || 0}
                               </span>
                             </div>
                           </div>
@@ -139,7 +142,7 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
               <Button 
                 type="button" 
                 onClick={addPredefinedProduct}
-                disabled={!selectedProductId || loading}
+                disabled={!selectedProductId}
                 className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />

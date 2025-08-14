@@ -14,21 +14,17 @@ import type { Delivery } from '@/types/database';
 const Livraisons = () => {
   const { data: deliveries, loading, create, update, remove } = useDeliveries();
   const [showDialog, setShowDialog] = useState(false);
-  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
+  const [selectedDelivery, setSelectedDelivery] = useState<any | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const handleCreate = async (deliveryData: Partial<Delivery>) => {
+  const handleCreate = async (deliveryData: any) => {
     try {
-      // Ensure required fields have default values
       const completeDeliveryData = {
         ...deliveryData,
-        statut: deliveryData.statut || 'en_attente',
-        numero_livraison: deliveryData.numero_livraison || `LIV-${Date.now()}`,
-        client_nom: deliveryData.client_nom || '',
-        client_adresse: deliveryData.client_adresse || '',
-        lieu_livraison: deliveryData.lieu_livraison || '',
-        date_commande: deliveryData.date_commande || new Date().toISOString(),
-        montant_total: deliveryData.montant_total || 0
+        status: deliveryData.status || 'scheduled',
+        delivery_date: deliveryData.delivery_date || new Date().toISOString(),
+        delivery_address: deliveryData.delivery_address || '',
+        sale_id: deliveryData.sale_id || crypto.randomUUID(), // Temporary sale_id
       };
       
       await create(completeDeliveryData);
@@ -38,7 +34,7 @@ const Livraisons = () => {
     }
   };
 
-  const handleUpdate = async (deliveryData: Partial<Delivery>) => {
+  const handleUpdate = async (deliveryData: any) => {
     if (selectedDelivery) {
       try {
         await update(selectedDelivery.id, deliveryData);
@@ -50,7 +46,7 @@ const Livraisons = () => {
     }
   };
 
-  const handleEdit = (delivery: Delivery) => {
+  const handleEdit = (delivery: any) => {
     setSelectedDelivery(delivery);
     setShowDialog(true);
   };
@@ -72,19 +68,18 @@ const Livraisons = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
-      approuve: { label: 'Approuvée', color: 'bg-blue-100 text-blue-800' },
-      en_cours: { label: 'En cours', color: 'bg-orange-100 text-orange-800' },
-      livre: { label: 'Livrée', color: 'bg-green-100 text-green-800' },
-      annule: { label: 'Annulée', color: 'bg-red-100 text-red-800' }
+      scheduled: { label: 'Programmée', color: 'bg-yellow-100 text-yellow-800' },
+      in_transit: { label: 'En transit', color: 'bg-blue-100 text-blue-800' },
+      delivered: { label: 'Livrée', color: 'bg-green-100 text-green-800' },
+      cancelled: { label: 'Annulée', color: 'bg-red-100 text-red-800' }
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.en_attente;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.scheduled;
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
   const activeDeliveries = deliveries.filter(delivery => 
-    ['en_attente', 'approuve', 'en_cours'].includes(delivery.statut)
+    ['scheduled', 'in_transit'].includes(delivery.status)
   );
 
   if (loading) {

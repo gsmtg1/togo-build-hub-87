@@ -1,30 +1,20 @@
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, Eye, Send } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useDatabase, useLocalStorage } from '@/hooks/useDatabase';
-import { Quote } from '@/lib/database';
+import { useQuotations } from '@/hooks/useSupabaseDatabase';
 import { QuoteDialog } from '@/components/quotes/QuoteDialog';
 import { QuoteViewDialog } from '@/components/quotes/QuoteViewDialog';
 
 const Devis = () => {
-  const { isInitialized } = useDatabase();
-  const { data: quotes, loading, create, update, remove } = useLocalStorage<Quote>('quotes');
-  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const { data: quotes, loading, create, update, remove } = useQuotations();
+  const [selectedQuote, setSelectedQuote] = useState<any | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-
-  if (!isInitialized || loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Chargement des devis...</div>
-      </div>
-    );
-  }
 
   const handleCreate = () => {
     setSelectedQuote(null);
@@ -32,13 +22,13 @@ const Devis = () => {
     setDialogOpen(true);
   };
 
-  const handleEdit = (quote: Quote) => {
+  const handleEdit = (quote: any) => {
     setSelectedQuote(quote);
     setIsEditing(true);
     setDialogOpen(true);
   };
 
-  const handleView = (quote: Quote) => {
+  const handleView = (quote: any) => {
     setSelectedQuote(quote);
     setViewDialogOpen(true);
   };
@@ -49,22 +39,13 @@ const Devis = () => {
     }
   };
 
-  const handleSubmit = async (quoteData: Partial<Quote>) => {
+  const handleSubmit = async (quoteData: any) => {
     if (isEditing && selectedQuote) {
-      await update({ ...selectedQuote, ...quoteData, updated_at: new Date().toISOString() });
+      await update(selectedQuote.id, { ...quoteData, updated_at: new Date().toISOString() });
     } else {
-      const newQuote: Quote = {
-        id: crypto.randomUUID(),
-        numero_devis: `DEV-${Date.now()}`,
-        client_nom: quoteData.client_nom || '',
-        client_telephone: quoteData.client_telephone || '',
-        client_adresse: quoteData.client_adresse || '',
-        date_devis: quoteData.date_devis || new Date().toISOString().split('T')[0],
-        date_validite: quoteData.date_validite || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        statut: quoteData.statut || 'brouillon',
-        montant_total: quoteData.montant_total || 0,
-        vendeur_id: quoteData.vendeur_id,
-        commentaires: quoteData.commentaires,
+      const newQuote = {
+        ...quoteData,
+        status: quoteData.status || 'draft',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -73,28 +54,36 @@ const Devis = () => {
     setDialogOpen(false);
   };
 
-  const getStatusBadge = (statut: Quote['statut']) => {
-    const variants: Record<Quote['statut'], 'default' | 'secondary' | 'destructive'> = {
-      brouillon: 'secondary',
-      envoye: 'default',
-      accepte: 'default',
-      refuse: 'destructive',
-      expire: 'destructive',
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
+      draft: 'secondary',
+      sent: 'default',
+      accepted: 'default',
+      rejected: 'destructive',
+      expired: 'destructive',
     };
     
-    const labels: Record<Quote['statut'], string> = {
-      brouillon: 'Brouillon',
-      envoye: 'Envoyé',
-      accepte: 'Accepté',
-      refuse: 'Refusé',
-      expire: 'Expiré',
+    const labels: Record<string, string> = {
+      draft: 'Brouillon',
+      sent: 'Envoyé',
+      accepted: 'Accepté',
+      rejected: 'Refusé',
+      expired: 'Expiré',
     };
 
-    return <Badge variant={variants[statut]}>{labels[statut]}</Badge>;
+    return <Badge variant={variants[status] || 'secondary'}>{labels[status] || status}</Badge>;
   };
 
-  const totalQuotes = quotes.reduce((sum, quote) => sum + quote.montant_total, 0);
-  const acceptedQuotes = quotes.filter(quote => quote.statut === 'accepte').length;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Chargement des devis...</div>
+      </div>
+    );
+  }
+
+  const totalQuotes = quotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
+  const acceptedQuotes = quotes.filter(quote => quote.status === 'accepted').length;
 
   return (
     <div className="space-y-6">
@@ -140,56 +129,66 @@ const Devis = () => {
           <CardTitle>Liste des Devis</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Téléphone</TableHead>
-                <TableHead>Montant</TableHead>
-                <TableHead>Valide jusqu'à</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {quotes.map((quote) => (
-                <TableRow key={quote.id}>
-                  <TableCell>{new Date(quote.date_devis).toLocaleDateString()}</TableCell>
-                  <TableCell>{quote.client_nom}</TableCell>
-                  <TableCell>{quote.client_telephone}</TableCell>
-                  <TableCell>{quote.montant_total.toLocaleString()} FCFA</TableCell>
-                  <TableCell>{quote.date_validite ? new Date(quote.date_validite).toLocaleDateString() : 'Non définie'}</TableCell>
-                  <TableCell>{getStatusBadge(quote.statut)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleView(quote)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(quote)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(quote.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {quotes.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Aucun devis trouvé
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Produit</TableHead>
+                  <TableHead>Quantité</TableHead>
+                  <TableHead>Montant</TableHead>
+                  <TableHead>Valide jusqu'à</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {quotes.map((quote) => (
+                  <TableRow key={quote.id}>
+                    <TableCell>{new Date(quote.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>{quote.client_id || 'N/A'}</TableCell>
+                    <TableCell>{quote.product_id || 'N/A'}</TableCell>
+                    <TableCell>{quote.quantity || 0}</TableCell>
+                    <TableCell>{(quote.total_amount || 0).toLocaleString()} FCFA</TableCell>
+                    <TableCell>
+                      {quote.valid_until ? new Date(quote.valid_until).toLocaleDateString() : 'Non définie'}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(quote.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleView(quote)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(quote)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(quote.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

@@ -25,12 +25,8 @@ export const useSupabaseDatabase = (tableName: string) => {
       setData(result || []);
     } catch (error) {
       console.error(`Error loading ${tableName}:`, error);
-      toast({
-        title: "Erreur",
-        description: `Impossible de charger les données de ${tableName}`,
-        variant: "destructive",
-      });
       setData([]);
+      // Ne pas afficher de toast d'erreur lors du chargement initial
     } finally {
       setLoading(false);
     }
@@ -127,7 +123,7 @@ export const useSupabaseDatabase = (tableName: string) => {
   };
 };
 
-// Hooks spécifiques pour chaque table
+// Hooks spécifiques pour chaque table avec les bons noms de tables
 export const useProducts = () => useSupabaseDatabase('products');
 export const useProductionOrders = () => useSupabaseDatabase('production_orders');
 export const useDeliveries = () => useSupabaseDatabase('deliveries');
@@ -150,7 +146,7 @@ export const useProductionRecipes = () => useSupabaseDatabase('production_recipe
 export const useProductionCosts = () => useSupabaseDatabase('production_costs');
 export const useAccountingCategories = () => useSupabaseDatabase('accounting_categories');
 
-// Hook pour les paramètres d'application avec meilleure gestion
+// Hook pour les paramètres d'application
 export const useAppSettings = () => {
   const { data, loading, create, update, remove, reload } = useSupabaseDatabase('app_settings');
   
@@ -185,7 +181,7 @@ export const useAppSettings = () => {
   };
 };
 
-// Hook spécialisé pour les produits avec stock - corrigé
+// Hook spécialisé pour les produits avec stock
 export const useProductsWithStock = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,12 +219,8 @@ export const useProductsWithStock = () => {
       setProducts(productsWithStock);
     } catch (error) {
       console.error('Error loading products with stock:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les produits",
-        variant: "destructive",
-      });
       setProducts([]);
+      // Ne pas afficher de toast d'erreur lors du chargement initial
     } finally {
       setLoading(false);
     }

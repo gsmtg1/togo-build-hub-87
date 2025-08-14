@@ -1,230 +1,201 @@
+
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Invoice, Product } from '@/lib/database';
-import { ProductSelector } from './ProductSelector';
-import { DeliverySection } from './DeliverySection';
-import { useLocalStorage } from '@/hooks/useDatabase';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EnhancedProductSelector } from './EnhancedProductSelector';
+import { useInvoices, useSales } from '@/hooks/useSupabaseDatabase';
+
+interface InvoiceProduct {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  isCustom?: boolean;
+}
 
 interface EnhancedInvoiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  invoice: Invoice | null;
-  onSubmit: (data: Partial<Invoice>) => void;
-  isEditing: boolean;
+  invoice?: any;
+  onClose: () => void;
 }
 
-export const EnhancedInvoiceDialog = ({ open, onOpenChange, invoice, onSubmit, isEditing }: EnhancedInvoiceDialogProps) => {
-  const { data: predefinedProducts } = useLocalStorage('products');
-  
+export const EnhancedInvoiceDialog = ({ open, onOpenChange, invoice, onClose }: EnhancedInvoiceDialogProps) => {
+  const { create, update } = useInvoices();
+  const { data: sales } = useSales();
+  const [products, setProducts] = useState<InvoiceProduct[]>([]);
   const [formData, setFormData] = useState({
-    client_nom: '',
-    client_telephone: '',
-    client_adresse: '',
-    date_facture: new Date().toISOString().split('T')[0],
-    date_echeance: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    statut: 'brouillon' as Invoice['statut'],
-    products: [],
-    deliveryType: 'pickup' as 'free' | 'paid' | 'pickup',
-    deliveryFee: 0,
-    notes: '',
-    sale_id: undefined as string | undefined,
+    sale_id: '',
+    invoice_number: '',
+    issue_date: new Date().toISOString().split('T')[0],
+    due_date: '',
+    tax_rate: 18,
+    notes: ''
   });
 
   useEffect(() => {
-    if (invoice && isEditing) {
+    if (invoice) {
       setFormData({
-        client_nom: invoice.client_nom,
-        client_telephone: invoice.client_telephone || '',
-        client_adresse: invoice.client_adresse || '',
-        date_facture: invoice.date_facture,
-        date_echeance: invoice.date_echeance || '',
-        statut: invoice.statut,
-        products: (invoice as any).products || [],
-        deliveryType: (invoice as any).deliveryType || 'pickup',
-        deliveryFee: (invoice as any).deliveryFee || 0,
-        notes: (invoice as any).notes || '',
-        sale_id: invoice.sale_id,
+        sale_id: invoice.sale_id || '',
+        invoice_number: invoice.invoice_number || '',
+        issue_date: invoice.issue_date || new Date().toISOString().split('T')[0],
+        due_date: invoice.due_date || '',
+        tax_rate: invoice.tax_rate || 18,
+        notes: invoice.notes || ''
       });
     } else {
+      // Generate automatic invoice number
+      const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
       setFormData({
-        client_nom: '',
-        client_telephone: '',
-        client_adresse: '',
-        date_facture: new Date().toISOString().split('T')[0],
-        date_echeance: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        statut: 'brouillon',
-        products: [],
-        deliveryType: 'pickup',
-        deliveryFee: 0,
-        notes: '',
-        sale_id: undefined,
+        sale_id: '',
+        invoice_number: invoiceNumber,
+        issue_date: new Date().toISOString().split('T')[0],
+        due_date: '',
+        tax_rate: 18,
+        notes: ''
       });
+      setProducts([]);
     }
-  }, [invoice, isEditing, open]);
+  }, [invoice]);
 
-  const subtotal = formData.products.reduce((sum, product) => sum + product.totalPrice, 0);
-  const deliveryAmount = formData.deliveryType === 'paid' ? formData.deliveryFee : 0;
-  const montant_total = subtotal + deliveryAmount;
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Remove deliveryType and other extended properties from the Invoice object
-    const { deliveryType, deliveryFee: _, products, notes, ...invoiceData } = formData;
-    onSubmit({
-      ...invoiceData,
-      montant_total,
-      montant_paye: 0,
-      // Store extended properties as part of the invoice object but not in the type
-      ...(formData as any)
-    });
+    
+    if (products.length === 0) {
+      return;
+    }
+
+    const subtotal = products.reduce((sum, product) => sum + product.totalPrice, 0);
+    const taxAmount = (subtotal * formData.tax_rate) / 100;
+    const totalAmount = subtotal + taxAmount;
+
+    try {
+      const invoiceData = {
+        sale_id: formData.sale_id || null,
+        invoice_number: formData.invoice_number,
+        issue_date: formData.issue_date,
+        due_date: formData.due_date,
+        tax_rate: formData.tax_rate,
+        tax_amount: taxAmount,
+        total_amount: totalAmount,
+        status: 'draft' as const,
+        notes: `${formData.notes}\n\nProduits: ${products.map(p => `${p.name} (${p.quantity}x${p.unitPrice})`).join(', ')}`
+      };
+
+      if (invoice) {
+        await update(invoice.id, invoiceData);
+      } else {
+        await create(invoiceData);
+      }
+      
+      onClose();
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">
-            {isEditing ? '✏️ Modifier la facture' : '📄 Nouvelle facture'}
-          </DialogTitle>
+          <DialogTitle>{invoice ? 'Modifier la facture' : 'Nouvelle facture'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Informations client */}
-          <div className="border rounded-lg p-4 space-y-4">
-            <Label className="text-base font-semibold">👤 Informations Client</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="client_nom">Nom du client *</Label>
-                <Input
-                  id="client_nom"
-                  value={formData.client_nom}
-                  onChange={(e) => setFormData(prev => ({ ...prev, client_nom: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="client_telephone">Téléphone *</Label>
-                <Input
-                  id="client_telephone"
-                  value={formData.client_telephone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, client_telephone: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="client_adresse">Adresse complète *</Label>
-              <Textarea
-                id="client_adresse"
-                value={formData.client_adresse}
-                onChange={(e) => setFormData(prev => ({ ...prev, client_adresse: e.target.value }))}
+              <Label htmlFor="invoice_number">Numéro de facture *</Label>
+              <Input
+                id="invoice_number"
+                value={formData.invoice_number}
+                onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
                 required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="sale_id">Vente associée</Label>
+              <Select 
+                value={formData.sale_id} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, sale_id: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir une vente (optionnel)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sales.map((sale) => (
+                    <SelectItem key={sale.id} value={sale.id}>
+                      Vente #{sale.id.slice(0, 8)} - {sale.total_amount.toLocaleString()} FCFA
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="issue_date">Date d'émission *</Label>
+              <Input
+                id="issue_date"
+                type="date"
+                value={formData.issue_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="due_date">Date d'échéance *</Label>
+              <Input
+                id="due_date"
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="tax_rate">Taux de taxe (%)</Label>
+              <Input
+                id="tax_rate"
+                type="number"
+                value={formData.tax_rate}
+                onChange={(e) => setFormData(prev => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }))}
+                min="0"
+                max="100"
+                step="0.1"
               />
             </div>
           </div>
 
-          {/* Dates et statut */}
-          <div className="border rounded-lg p-4 space-y-4">
-            <Label className="text-base font-semibold">📅 Informations Facture</Label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="date_facture">Date d'émission</Label>
-                <Input
-                  id="date_facture"
-                  type="date"
-                  value={formData.date_facture}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date_facture: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="date_echeance">Date d'échéance</Label>
-                <Input
-                  id="date_echeance"
-                  type="date"
-                  value={formData.date_echeance}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date_echeance: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="statut">Statut</Label>
-                <Select value={formData.statut} onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value as Invoice['statut'] }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="brouillon">📝 Brouillon</SelectItem>
-                    <SelectItem value="envoyee">📤 Envoyée</SelectItem>
-                    <SelectItem value="payee">✅ Payée</SelectItem>
-                    <SelectItem value="en_retard">⏰ En retard</SelectItem>
-                    <SelectItem value="annulee">❌ Annulée</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Sélection des produits */}
-          <ProductSelector
-            products={formData.products}
-            onProductsChange={(products) => setFormData(prev => ({ ...prev, products }))}
+          <EnhancedProductSelector
+            products={products}
+            onProductsChange={setProducts}
           />
 
-          {/* Livraison */}
-          <DeliverySection
-            deliveryType={formData.deliveryType}
-            deliveryFee={formData.deliveryFee}
-            onDeliveryTypeChange={(type) => setFormData(prev => ({ ...prev, deliveryType: type }))}
-            onDeliveryFeeChange={(fee) => setFormData(prev => ({ ...prev, deliveryFee: fee }))}
-          />
-
-          {/* Notes */}
-          <div className="border rounded-lg p-4 space-y-3">
-            <Label className="text-base font-semibold">📝 Notes et commentaires</Label>
+          <div>
+            <Label htmlFor="notes">Notes</Label>
             <Textarea
-              placeholder="Informations supplémentaires, conditions particulières..."
+              id="notes"
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Notes supplémentaires pour la facture..."
             />
           </div>
 
-          {/* Résumé financier */}
-          <div className="border rounded-lg p-4 bg-gray-50">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Sous-total produits:</span>
-                <span className="font-medium">{subtotal.toLocaleString()} FCFA</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Livraison:</span>
-                <span className="font-medium">
-                  {formData.deliveryType === 'free' ? 'Gratuite' : 
-                   formData.deliveryType === 'pickup' ? 'Retrait' :
-                   `${deliveryAmount.toLocaleString()} FCFA`}
-                </span>
-              </div>
-              <hr />
-              <div className="flex justify-between text-lg font-bold text-orange-600">
-                <span>TOTAL:</span>
-                <span>{montant_total.toLocaleString()} FCFA</span>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
               Annuler
             </Button>
-            <Button type="submit" className="bg-orange-600 hover:bg-orange-700">
-              {isEditing ? 'Mettre à jour' : 'Créer la facture'}
+            <Button type="submit" disabled={products.length === 0 || !formData.invoice_number}>
+              {invoice ? 'Mettre à jour' : 'Créer la facture'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

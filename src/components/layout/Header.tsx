@@ -1,82 +1,49 @@
 
-import { Menu, Bell, User, Settings, LogOut } from 'lucide-react';
+import { Bell, Menu, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
+import { useSystemAlerts } from '@/hooks/useSupabaseDatabase';
 
 interface HeaderProps {
   onMenuToggle: () => void;
 }
 
 export const Header = ({ onMenuToggle }: HeaderProps) => {
-  const navigate = useNavigate();
+  const { stockAlerts, pendingOrders } = useSystemAlerts();
+  const totalAlerts = stockAlerts.length + pendingOrders.length;
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onMenuToggle}
-          className="md:hidden"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-        
-        <div className="flex items-center gap-2">
-          <img 
-            src="/lovable-uploads/88a45ebe-a412-4b63-9bc9-9ac71a9120cf.png" 
-            alt="Cornerstone Briques" 
-            className="h-8 w-8"
-          />
-          <h1 className="text-xl font-bold text-orange-600">Cornerstone Briques</h1>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-4">
-        {/* Indicateur de connexion */}
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span className="text-sm text-gray-600">En ligne</span>
-        </div>
-
-        {/* Notifications */}
-        <Button variant="ghost" size="sm" className="relative">
-          <Bell className="h-5 w-5" />
-          <Badge 
-            variant="destructive" 
-            className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+    <header className="bg-white shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMenuToggle}
+            className="lg:hidden"
           >
-            3
-          </Badge>
-        </Button>
+            <Menu className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold text-gray-900">BrickFlow</h1>
+        </div>
 
-        {/* Menu utilisateur */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <User className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => navigate('/parametres')}>
-              <Settings className="h-4 w-4 mr-2" />
-              Paramètres
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut className="h-4 w-4 mr-2" />
-              Déconnexion
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Bell className={`h-5 w-5 text-gray-600 ${totalAlerts > 0 ? 'animate-pulse text-red-500' : ''}`} />
+            {totalAlerts > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-xs"
+              >
+                {totalAlerts}
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <User className="h-5 w-5 text-gray-600" />
+            <span className="text-sm text-gray-700">Admin</span>
+          </div>
+        </div>
       </div>
     </header>
   );

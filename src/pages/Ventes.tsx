@@ -1,16 +1,16 @@
 
 import { useState } from 'react';
-import { Plus, Eye, Edit, Trash2, ShoppingCart } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Eye, ShoppingCart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { SaleViewDialog } from '@/components/sales/SaleViewDialog';
-import { POSSystem } from '@/components/sales/POSSystem';
+import { EnhancedPOSSystem } from '@/components/sales/EnhancedPOSSystem';
 import { useSales } from '@/hooks/useSupabaseDatabase';
 
 const Ventes = () => {
-  const { data: sales, loading, create, update, remove } = useSales();
+  const { data: sales, loading } = useSales();
   const [selectedSale, setSelectedSale] = useState<any | null>(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
 
@@ -24,12 +24,6 @@ const Ventes = () => {
   const handleView = (sale: any) => {
     setSelectedSale(sale);
     setShowViewDialog(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette vente ?')) {
-      await remove(id);
-    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -58,7 +52,7 @@ const Ventes = () => {
         <div>
           <h1 className="text-3xl font-bold">Gestion des Ventes</h1>
           <p className="text-muted-foreground">
-            Système de point de vente et gestion des ventes
+            Système de point de vente avancé avec gestion des remises et crédits
           </p>
         </div>
       </div>
@@ -76,7 +70,7 @@ const Ventes = () => {
         </TabsList>
 
         <TabsContent value="pos" className="mt-6">
-          <POSSystem />
+          <EnhancedPOSSystem />
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
@@ -104,14 +98,10 @@ const Ventes = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         {getStatusBadge(sale.status)}
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="outline" onClick={() => handleView(sale)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleDelete(sale.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Button size="sm" variant="outline" onClick={() => handleView(sale)}>
+                          <Eye className="h-4 w-4 mr-1" />
+                          Voir
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
@@ -135,7 +125,8 @@ const Ventes = () => {
                         <span className="font-medium">Paiement:</span><br />
                         {sale.payment_method === 'cash' ? 'Espèces' : 
                          sale.payment_method === 'card' ? 'Carte' : 
-                         sale.payment_method === 'transfer' ? 'Virement' : sale.payment_method}
+                         sale.payment_method === 'transfer' ? 'Virement' : 
+                         sale.payment_method === 'credit' ? 'Crédit' : sale.payment_method}
                       </div>
                     </div>
                     {sale.notes && (

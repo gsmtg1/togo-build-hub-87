@@ -1,326 +1,162 @@
 
 import { useState } from 'react';
-import { Plus, Search, Filter, Eye, Edit, Trash2, FileText } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { TaxableInvoiceDialog } from '@/components/invoices/TaxableInvoiceDialog';
+import { EnhancedInvoiceDialog } from '@/components/invoices/EnhancedInvoiceDialog';
+import { InvoiceViewDialog } from '@/components/invoices/InvoiceViewDialog';
 import { useInvoices } from '@/hooks/useSupabaseDatabase';
-import { useToast } from '@/hooks/use-toast';
 
-const statusLabels = {
-  'draft': { label: '📝 Brouillon', variant: 'secondary' as const },
-  'sent': { label: '📤 Envoyée', variant: 'default' as const },
-  'paid': { label: '✅ Payée', variant: 'default' as const },
-  'overdue': { label: '⏰ En retard', variant: 'destructive' as const },
-  'cancelled': { label: '❌ Annulée', variant: 'outline' as const },
-};
+const Factures = () => {
+  const { data: invoices, loading, remove } = useInvoices();
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [showViewDialog, setShowViewDialog] = useState(false);
 
-export default function Factures() {
-  const { data: invoices, loading, create, update, remove } = useInvoices();
-  const { toast } = useToast();
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingInvoice, setEditingInvoice] = useState<any>(null);
-
-  const filteredInvoices = invoices.filter((invoice: any) => {
-    const matchesSearch = !searchTerm || 
-      invoice.client_nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = !selectedStatus || invoice.status === selectedStatus;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  const handleCreateInvoice = async (invoiceData: any) => {
-    try {
-      const invoiceNumber = `FAC-${Date.now()}`;
-      await create({
-        ...invoiceData,
-        invoice_number: invoiceNumber,
-        issue_date: invoiceData.date_facture,
-        due_date: invoiceData.date_echeance,
-        status: invoiceData.statut || 'draft',
-        total_amount: invoiceData.montant_total,
-        tax_amount: invoiceData.tax_amount || 0,
-        tax_rate: invoiceData.useTax ? (invoiceData.defaultTaxRate || 18) : 0,
-        notes: invoiceData.notes,
-        // Ajouter un sale_id temporaire pour satisfaire la contrainte
-        sale_id: crypto.randomUUID()
-      });
-      
-      toast({
-        title: "Succès",
-        description: "Facture créée avec succès",
-      });
-      setDialogOpen(false);
-    } catch (error) {
-      console.error('Error creating invoice:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de créer la facture",
-        variant: "destructive",
-      });
-    }
+  const handleEdit = (invoice: any) => {
+    setSelectedInvoice(invoice);
+    setShowDialog(true);
   };
 
-  const handleUpdateInvoice = async (invoiceData: any) => {
-    try {
-      if (editingInvoice) {
-        await update(editingInvoice.id, {
-          ...invoiceData,
-          issue_date: invoiceData.date_facture,
-          due_date: invoiceData.date_echeance,
-          status: invoiceData.statut || editingInvoice.status,
-          total_amount: invoiceData.montant_total,
-          tax_amount: invoiceData.tax_amount || 0,
-          tax_rate: invoiceData.useTax ? (invoiceData.defaultTaxRate || 18) : 0,
-          notes: invoiceData.notes
-        });
-        
-        toast({
-          title: "Succès",
-          description: "Facture mise à jour avec succès",
-        });
-        setEditingInvoice(null);
-        setDialogOpen(false);
-      }
-    } catch (error) {
-      console.error('Error updating invoice:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour la facture",
-        variant: "destructive",
-      });
-    }
+  const handleView = (invoice: any) => {
+    setSelectedInvoice(invoice);
+    setShowViewDialog(true);
   };
 
-  const handleDeleteInvoice = async (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
-      try {
-        await remove(id);
-        toast({
-          title: "Succès",
-          description: "Facture supprimée avec succès",
-        });
-      } catch (error) {
-        console.error('Error deleting invoice:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de supprimer la facture",
-          variant: "destructive",
-        });
-      }
+      await remove(id);
     }
   };
 
-  const openCreateDialog = () => {
-    setEditingInvoice(null);
-    setDialogOpen(true);
-  };
-
-  const openEditDialog = (invoice: any) => {
-    setEditingInvoice(invoice);
-    setDialogOpen(true);
-  };
-
-  const getTotalStats = () => {
-    const total = filteredInvoices.reduce((sum: number, invoice: any) => sum + (invoice.total_amount || 0), 0);
-    const paid = filteredInvoices.filter((inv: any) => inv.status === 'paid').reduce((sum: number, invoice: any) => sum + (invoice.total_amount || 0), 0);
-    const pending = total - paid;
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
+      draft: 'secondary',
+      sent: 'default',
+      paid: 'default',
+      overdue: 'destructive',
+      cancelled: 'destructive',
+    };
     
-    return { total, paid, pending };
+    const labels: Record<string, string> = {
+      draft: 'Brouillon',
+      sent: 'Envoyée',
+      paid: 'Payée',
+      overdue: 'En retard',
+      cancelled: 'Annulée',
+    };
+
+    return <Badge variant={variants[status] || 'secondary'}>{labels[status] || status}</Badge>;
   };
 
-  const { total, paid, pending } = getTotalStats();
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Chargement...</div>;
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* En-tête */}
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">📄 Gestion des Factures</h1>
+          <h1 className="text-3xl font-bold">Gestion des Factures</h1>
           <p className="text-muted-foreground">
-            Créez et gérez vos factures avec ou sans TVA
+            Créez et gérez vos factures avec sélection avancée de produits
           </p>
         </div>
-        <Button onClick={openCreateDialog} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nouvelle Facture
+        <Button onClick={() => setShowDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle facture
         </Button>
       </div>
 
-      {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total des factures</p>
-                <p className="text-2xl font-bold">{total.toLocaleString()} FCFA</p>
+      <div className="grid gap-4">
+        {invoices.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <Receipt className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500">Aucune facture créée</p>
+                <p className="text-sm text-gray-400">Commencez par créer votre première facture</p>
               </div>
-              <FileText className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Factures payées</p>
-                <p className="text-2xl font-bold text-green-600">{paid.toLocaleString()} FCFA</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                <span className="text-green-600">✓</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">En attente</p>
-                <p className="text-2xl font-bold text-orange-600">{pending.toLocaleString()} FCFA</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
-                <span className="text-orange-600">⏳</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          invoices.map((invoice) => (
+            <Card key={invoice.id}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">Facture {invoice.invoice_number}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Émise le {new Date(invoice.issue_date).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(invoice.status)}
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="outline" onClick={() => handleView(invoice)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(invoice)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleDelete(invoice.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Montant HT:</span><br />
+                    {(invoice.total_amount - invoice.tax_amount).toLocaleString()} FCFA
+                  </div>
+                  <div>
+                    <span className="font-medium">TVA ({invoice.tax_rate}%):</span><br />
+                    {invoice.tax_amount?.toLocaleString()} FCFA
+                  </div>
+                  <div>
+                    <span className="font-medium">Montant total:</span><br />
+                    <span className="font-bold text-green-600">
+                      {invoice.total_amount?.toLocaleString()} FCFA
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Échéance:</span><br />
+                    {new Date(invoice.due_date).toLocaleDateString('fr-FR')}
+                  </div>
+                </div>
+                {invoice.notes && (
+                  <div className="mt-3 pt-3 border-t">
+                    <span className="font-medium text-sm">Notes:</span>
+                    <p className="text-sm text-gray-600">{invoice.notes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
-      {/* Filtres et recherche */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher par client ou numéro de facture..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 border border-input rounded-md bg-white"
-            >
-              <option value="">Tous les statuts</option>
-              <option value="draft">Brouillon</option>
-              <option value="sent">Envoyée</option>
-              <option value="paid">Payée</option>
-              <option value="overdue">En retard</option>
-              <option value="cancelled">Annulée</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
+      <EnhancedInvoiceDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        invoice={selectedInvoice}
+        onClose={() => {
+          setShowDialog(false);
+          setSelectedInvoice(null);
+        }}
+      />
 
-      {/* Table des factures */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Liste des Factures ({filteredInvoices.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">Chargement des factures...</div>
-          ) : filteredInvoices.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Aucune facture trouvée
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Numéro</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Échéance</TableHead>
-                    <TableHead>Montant</TableHead>
-                    <TableHead>TVA</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredInvoices.map((invoice: any) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="font-mono">
-                        {invoice.invoice_number || `FAC-${invoice.id.slice(0, 8)}`}
-                      </TableCell>
-                      <TableCell>
-                        {invoice.issue_date ? new Date(invoice.issue_date).toLocaleDateString() : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        {(invoice.total_amount || 0).toLocaleString()} FCFA
-                      </TableCell>
-                      <TableCell>
-                        {invoice.tax_amount ? (
-                          <span className="text-sm">
-                            {invoice.tax_amount.toLocaleString()} FCFA
-                            <br />
-                            <span className="text-muted-foreground">({invoice.tax_rate}%)</span>
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">Sans TVA</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={(statusLabels as any)[invoice.status]?.variant || 'secondary'}>
-                          {(statusLabels as any)[invoice.status]?.label || invoice.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditDialog(invoice)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteInvoice(invoice.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Dialog pour créer/modifier les factures */}
-      <TaxableInvoiceDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        invoice={editingInvoice}
-        onSubmit={editingInvoice ? handleUpdateInvoice : handleCreateInvoice}
-        isEditing={!!editingInvoice}
+      <InvoiceViewDialog
+        open={showViewDialog}
+        onOpenChange={setShowViewDialog}
+        invoice={selectedInvoice}
       />
     </div>
   );
-}
+};
+
+export default Factures;

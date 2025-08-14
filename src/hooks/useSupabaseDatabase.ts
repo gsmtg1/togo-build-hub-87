@@ -145,7 +145,7 @@ export const useProductionRecipes = () => useSupabaseDatabase('production_recipe
 export const useProductionCosts = () => useSupabaseDatabase('production_costs');
 export const useAccountingCategories = () => useSupabaseDatabase('accounting_categories');
 
-// Hook pour les produits avec stock
+// Hook optimisé pour les produits avec stock
 export const useProductsWithStock = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,15 +155,10 @@ export const useProductsWithStock = () => {
     try {
       setLoading(true);
       
+      // Charger les produits
       const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select(`
-          *,
-          stock (
-            quantity,
-            minimum_stock
-          )
-        `)
+        .select('*')
         .eq('is_active', true)
         .order('name');
 
@@ -172,11 +167,27 @@ export const useProductsWithStock = () => {
         throw productsError;
       }
 
-      const productsWithStock = (productsData || []).map(product => ({
-        ...product,
-        stock_quantity: product.stock?.[0]?.quantity || 0,
-        minimum_stock: product.stock?.[0]?.minimum_stock || 0
-      }));
+      // Charger les stocks séparément
+      const { data: stockData, error: stockError } = await supabase
+        .from('stock')
+        .select('product_id, quantity, minimum_stock');
+
+      if (stockError) {
+        console.error('Error loading stock:', stockError);
+        throw stockError;
+      }
+
+      // Créer une map des stocks
+      const stockMap = new Map(stockData?.map(s => [s.product_id, s]) || []);
+
+      const productsWithStock = (productsData || []).map(product => {
+        const stock = stockMap.get(product.id);
+        return {
+          ...product,
+          stock_quantity: stock?.quantity || 0,
+          minimum_stock: stock?.minimum_stock || 0
+        };
+      });
 
       setProducts(productsWithStock);
     } catch (error) {
@@ -189,6 +200,7 @@ export const useProductsWithStock = () => {
 
   const create = async (productData: any) => {
     try {
+      // Créer le produit
       const { data: result, error } = await supabase
         .from('products')
         .insert([productData])
@@ -196,6 +208,15 @@ export const useProductsWithStock = () => {
         .single();
       
       if (error) throw error;
+      
+      // Créer l'entrée stock initiale
+      await supabase
+        .from('stock')
+        .insert([{
+          product_id: result.id,
+          quantity: 0,
+          minimum_stock: 10
+        }]);
       
       await loadProductsWithStock();
       toast({
@@ -278,7 +299,7 @@ export const useProductsWithStock = () => {
   };
 };
 
-// Hook pour les alertes système
+// Hook optimisé pour les alertes système
 export const useSystemAlerts = () => {
   const [stockAlerts, setStockAlerts] = useState<any[]>([]);
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
@@ -288,78 +309,76 @@ export const useSystemAlerts = () => {
     try {
       setLoading(true);
 
-      // Charger les alertes de stock en utilisant une requête directe
-      const { data: stockData, error: stockError } = await supabase
+      // Charger les produits avec stock faible
+      const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select(`
-          id,
-          name,
-          type,
-          stock!inner (
-            quantity,
-            minimum_stock
-          )
-        `)
-        .lt('stock.quantity', 'stock.minimum_stock')
+        .select('id, name, type')
         .eq('is_active', true);
 
+      if (productsError) {
+        console.error('Error loading products:', productsError);
+      }
+
+      const { data: stockData, error: stockError } = await supabase
+        .from('stock')
+        .select('product_id, quantity, minimum_stock');
+
       if (stockError) {
-        console.error('Error loading stock alerts:', stockError);
-      } else {
-        const alerts = (stockData || []).map(item => ({
-          product_id: item.id,
-          product_name: item.name,
-          type: item.type,
-          current_stock: item.stock[0]?.quantity || 0,
-          minimum_stock: item.stock[0]?.minimum_stock || 0
-        }));
+        console.error('Error loading stock:', stockError);
+      }
+
+      if (productsData && stockData) {
+        const stockMap = new Map(stockData.map(s => [s.product_id, s]));
+        const alerts = productsData
+          .map(product => {
+            const stock = stockMap.get(product.id);
+            if (stock && stock.quantity <= stock.minimum_stock) {
+              return {
+                product_id: product.id,
+                product_name: product.name,
+                type: product.type,
+                current_stock: stock.quantity,
+                minimum_stock: stock.minimum_stock
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
+        
         setStockAlerts(alerts);
       }
 
-      // Charger les commandes en attente - requête simplifiée
+      // Charger les commandes en attente (simplifiée)
       const { data: ordersData, error: ordersError } = await supabase
         .from('sales')
-        .select(`
-          id,
-          sale_date,
-          quantity,
-          total_amount,
-          product_id,
-          status
-        `)
+        .select('id, sale_date, quantity, total_amount, product_id, status')
         .eq('status', 'pending')
-        .order('sale_date', { ascending: true });
+        .order('sale_date', { ascending: true })
+        .limit(10); // Limiter pour les performances
 
       if (ordersError) {
         console.error('Error loading pending orders:', ordersError);
-      } else {
-        // Charger les noms des produits séparément
-        const productIds = (ordersData || []).map(order => order.product_id);
-        const { data: productsData } = await supabase
+      } else if (ordersData && ordersData.length > 0) {
+        // Charger les noms des produits pour les commandes
+        const productIds = ordersData.map(order => order.product_id);
+        const { data: orderProductsData } = await supabase
           .from('products')
           .select('id, name')
           .in('id', productIds);
 
-        const productsMap = new Map((productsData || []).map(p => [p.id, p.name]));
+        const productsMap = new Map((orderProductsData || []).map(p => [p.id, p.name]));
 
-        // Charger les statuts de livraison séparément
-        const saleIds = (ordersData || []).map(order => order.id);
-        const { data: deliveriesData } = await supabase
-          .from('deliveries')
-          .select('sale_id, status')
-          .in('sale_id', saleIds);
-
-        const deliveriesMap = new Map((deliveriesData || []).map(d => [d.sale_id, d.status]));
-
-        const orders = (ordersData || []).map(order => ({
+        const orders = ordersData.map(order => ({
           id: order.id,
           product_name: productsMap.get(order.product_id) || 'Produit inconnu',
           quantity: order.quantity,
           total_amount: order.total_amount,
-          delivery_status: deliveriesMap.get(order.id) || 'pending',
+          delivery_status: 'pending',
           hours_pending: Math.floor((new Date().getTime() - new Date(order.sale_date).getTime()) / (1000 * 60 * 60))
         }));
         setPendingOrders(orders);
+      } else {
+        setPendingOrders([]);
       }
 
     } catch (error) {
@@ -372,8 +391,8 @@ export const useSystemAlerts = () => {
   useEffect(() => {
     loadAlerts();
     
-    // Rafraîchir les alertes toutes les 30 secondes
-    const interval = setInterval(loadAlerts, 30000);
+    // Rafraîchir les alertes toutes les 5 minutes seulement
+    const interval = setInterval(loadAlerts, 300000);
     return () => clearInterval(interval);
   }, []);
 

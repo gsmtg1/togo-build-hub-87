@@ -1,57 +1,33 @@
 
 import { useState } from 'react';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useQuotations } from '@/hooks/useSupabaseDatabase';
-import { QuoteDialog } from '@/components/quotes/QuoteDialog';
+import { EnhancedQuoteDialog } from '@/components/quotes/EnhancedQuoteDialog';
 import { QuoteViewDialog } from '@/components/quotes/QuoteViewDialog';
+import { useQuotations } from '@/hooks/useSupabaseDatabase';
 
 const Devis = () => {
-  const { data: quotes, loading, create, update, remove } = useQuotations();
+  const { data: quotations, loading, remove } = useQuotations();
   const [selectedQuote, setSelectedQuote] = useState<any | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-
-  const handleCreate = () => {
-    setSelectedQuote(null);
-    setIsEditing(false);
-    setDialogOpen(true);
-  };
+  const [showDialog, setShowDialog] = useState(false);
+  const [showViewDialog, setShowViewDialog] = useState(false);
 
   const handleEdit = (quote: any) => {
     setSelectedQuote(quote);
-    setIsEditing(true);
-    setDialogOpen(true);
+    setShowDialog(true);
   };
 
   const handleView = (quote: any) => {
     setSelectedQuote(quote);
-    setViewDialogOpen(true);
+    setShowViewDialog(true);
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce devis ?')) {
       await remove(id);
     }
-  };
-
-  const handleSubmit = async (quoteData: any) => {
-    if (isEditing && selectedQuote) {
-      await update(selectedQuote.id, { ...quoteData, updated_at: new Date().toISOString() });
-    } else {
-      const newQuote = {
-        ...quoteData,
-        status: quoteData.status || 'draft',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      await create(newQuote);
-    }
-    setDialogOpen(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -67,7 +43,7 @@ const Devis = () => {
       draft: 'Brouillon',
       sent: 'Envoyé',
       accepted: 'Accepté',
-      rejected: 'Refusé',
+      rejected: 'Rejeté',
       expired: 'Expiré',
     };
 
@@ -75,134 +51,108 @@ const Devis = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Chargement des devis...</div>
-      </div>
-    );
+    return <div className="flex justify-center items-center h-64">Chargement...</div>;
   }
-
-  const totalQuotes = quotes.reduce((sum, quote) => sum + (quote.total_amount || 0), 0);
-  const acceptedQuotes = quotes.filter(quote => quote.status === 'accepted').length;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gestion des Devis</h1>
-        <Button onClick={handleCreate} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nouveau Devis
+        <div>
+          <h1 className="text-3xl font-bold">Gestion des Devis</h1>
+          <p className="text-muted-foreground">
+            Créez et gérez vos devis avec sélection avancée de produits
+          </p>
+        </div>
+        <Button onClick={() => setShowDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouveau devis
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total des Devis</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalQuotes.toLocaleString()} FCFA</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Nombre de Devis</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{quotes.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Devis Acceptés</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{acceptedQuotes}</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4">
+        {quotations.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500">Aucun devis créé</p>
+                <p className="text-sm text-gray-400">Commencez par créer votre premier devis</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          quotations.map((quote) => (
+            <Card key={quote.id}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">Devis #{quote.id.slice(0, 8)}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Créé le {new Date(quote.created_at).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(quote.status)}
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="outline" onClick={() => handleView(quote)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(quote)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleDelete(quote.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Quantité:</span><br />
+                    {quote.quantity} unités
+                  </div>
+                  <div>
+                    <span className="font-medium">Prix unitaire:</span><br />
+                    {quote.unit_price?.toLocaleString()} FCFA
+                  </div>
+                  <div>
+                    <span className="font-medium">Montant total:</span><br />
+                    <span className="font-bold text-green-600">
+                      {quote.total_amount?.toLocaleString()} FCFA
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Valide jusqu'au:</span><br />
+                    {new Date(quote.valid_until).toLocaleDateString('fr-FR')}
+                  </div>
+                </div>
+                {quote.notes && (
+                  <div className="mt-3 pt-3 border-t">
+                    <span className="font-medium text-sm">Notes:</span>
+                    <p className="text-sm text-gray-600">{quote.notes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Liste des Devis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {quotes.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Aucun devis trouvé
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Produit</TableHead>
-                  <TableHead>Quantité</TableHead>
-                  <TableHead>Montant</TableHead>
-                  <TableHead>Valide jusqu'à</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {quotes.map((quote) => (
-                  <TableRow key={quote.id}>
-                    <TableCell>{new Date(quote.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>{quote.client_id || 'N/A'}</TableCell>
-                    <TableCell>{quote.product_id || 'N/A'}</TableCell>
-                    <TableCell>{quote.quantity || 0}</TableCell>
-                    <TableCell>{(quote.total_amount || 0).toLocaleString()} FCFA</TableCell>
-                    <TableCell>
-                      {quote.valid_until ? new Date(quote.valid_until).toLocaleDateString() : 'Non définie'}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(quote.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleView(quote)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(quote)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(quote.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <QuoteDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+      <EnhancedQuoteDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
         quote={selectedQuote}
-        onSubmit={handleSubmit}
-        isEditing={isEditing}
+        onClose={() => {
+          setShowDialog(false);
+          setSelectedQuote(null);
+        }}
       />
 
       <QuoteViewDialog
-        open={viewDialogOpen}
-        onOpenChange={setViewDialogOpen}
+        open={showViewDialog}
+        onOpenChange={setShowViewDialog}
         quote={selectedQuote}
       />
     </div>

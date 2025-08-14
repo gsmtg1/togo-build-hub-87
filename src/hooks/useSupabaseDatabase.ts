@@ -288,26 +288,60 @@ export const useSystemAlerts = () => {
     try {
       setLoading(true);
 
-      // Charger les alertes de stock
+      // Charger les alertes de stock en utilisant une requête directe
       const { data: stockData, error: stockError } = await supabase
-        .from('stock_alerts')
-        .select('*');
+        .from('products')
+        .select(`
+          id,
+          name,
+          type,
+          stock!inner (
+            quantity,
+            minimum_stock
+          )
+        `)
+        .lt('stock.quantity', 'stock.minimum_stock')
+        .eq('is_active', true);
 
       if (stockError) {
         console.error('Error loading stock alerts:', stockError);
       } else {
-        setStockAlerts(stockData || []);
+        const alerts = (stockData || []).map(item => ({
+          product_id: item.id,
+          product_name: item.name,
+          type: item.type,
+          current_stock: item.stock[0]?.quantity || 0,
+          minimum_stock: item.stock[0]?.minimum_stock || 0
+        }));
+        setStockAlerts(alerts);
       }
 
       // Charger les commandes en attente
       const { data: ordersData, error: ordersError } = await supabase
-        .from('pending_orders')
-        .select('*');
+        .from('sales')
+        .select(`
+          id,
+          sale_date,
+          quantity,
+          total_amount,
+          products!inner (name),
+          deliveries (status)
+        `)
+        .or('status.eq.pending,deliveries.status.neq.delivered')
+        .order('sale_date', { ascending: true });
 
       if (ordersError) {
         console.error('Error loading pending orders:', ordersError);
       } else {
-        setPendingOrders(ordersData || []);
+        const orders = (ordersData || []).map(order => ({
+          id: order.id,
+          product_name: order.products.name,
+          quantity: order.quantity,
+          total_amount: order.total_amount,
+          delivery_status: order.deliveries?.[0]?.status || 'pending',
+          hours_pending: Math.floor((new Date().getTime() - new Date(order.sale_date).getTime()) / (1000 * 60 * 60))
+        }));
+        setPendingOrders(orders);
       }
 
     } catch (error) {

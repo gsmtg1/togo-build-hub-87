@@ -11,10 +11,10 @@ export const AppLayout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+      <Header />
       
       <div className="flex">
-        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar />
         
         <main className="flex-1 p-6 lg:ml-64">
           <div className="max-w-7xl mx-auto">

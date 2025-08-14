@@ -13,9 +13,12 @@ export const ProductionAlerts = () => {
   useEffect(() => {
     const updateGoals = async () => {
       try {
-        await supabase.rpc('update_monthly_goals');
+        const { error } = await supabase.rpc('update_monthly_goals');
+        if (error) {
+          console.error('Error updating monthly goals:', error);
+        }
       } catch (error) {
-        console.error('Error updating monthly goals:', error);
+        console.error('Error calling update_monthly_goals:', error);
       }
     };
 

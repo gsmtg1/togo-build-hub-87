@@ -25,6 +25,12 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const AppWithLayout = () => (
+  <AppLayout>
+    <Outlet />
+  </AppLayout>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -32,7 +38,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<AppLayout><Outlet /></AppLayout>}>
+          <Route path="/" element={<AppWithLayout />}>
             <Route index element={<Index />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="stock" element={<Stock />} />

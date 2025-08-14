@@ -4,24 +4,24 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { AppLayout } from '@/components/layout/AppLayout';
 
-// Pages existantes
-import { Index } from '@/pages/Index';
-import { Dashboard } from '@/pages/Dashboard';
-import { Stock } from '@/pages/Stock';
-import { Ventes } from '@/pages/Ventes';
-import { Production } from '@/pages/Production';
-import { OrdresProduction } from '@/pages/OrdresProduction';
-import { Livraisons } from '@/pages/Livraisons';
-import { Factures } from '@/pages/Factures';
-import { Devis } from '@/pages/Devis';
-import { Employes } from '@/pages/Employes';
-import { Comptabilite } from '@/pages/Comptabilite';
-import { Objectifs } from '@/pages/Objectifs';
-import { Rapports } from '@/pages/Rapports';
-import { Pertes } from '@/pages/Pertes';
-import { Notifications } from '@/pages/Notifications';
-import { Parametres } from '@/pages/Parametres';
-import { NotFound } from '@/pages/NotFound';
+// Pages existantes - utilisation d'imports par défaut
+import Index from '@/pages/Index';
+import Dashboard from '@/pages/Dashboard';
+import Stock from '@/pages/Stock';
+import Ventes from '@/pages/Ventes';
+import Production from '@/pages/Production';
+import OrdresProduction from '@/pages/OrdresProduction';
+import Livraisons from '@/pages/Livraisons';
+import Factures from '@/pages/Factures';
+import Devis from '@/pages/Devis';
+import Employes from '@/pages/Employes';
+import Comptabilite from '@/pages/Comptabilite';
+import Objectifs from '@/pages/Objectifs';
+import Rapports from '@/pages/Rapports';
+import Pertes from '@/pages/Pertes';
+import Notifications from '@/pages/Notifications';
+import Parametres from '@/pages/Parametres';
+import NotFound from '@/pages/NotFound';
 
 // Nouveaux modules
 import { FacturesProfessionnelles } from '@/pages/FacturesProfessionnelles';
@@ -36,7 +36,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      cacheTime: 1000 * 60 * 10, // 10 minutes
+      gcTime: 1000 * 60 * 10, // 10 minutes (remplace cacheTime)
     },
   },
 });

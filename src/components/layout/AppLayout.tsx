@@ -15,7 +15,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
       
       <div className="flex pt-16">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar />
         
         <main className="flex-1 p-6 lg:ml-64">
           <div className="max-w-7xl mx-auto">

@@ -29,13 +29,16 @@ const Parametres = () => {
 
   useEffect(() => {
     if (!loading && data.length >= 0) {
-      const loadedSettings: { [key: string]: string } = {};
-      
-      // Charger les paramètres existants
-      Object.keys(defaultSettings).forEach(key => {
-        const setting = getSetting(key);
-        loadedSettings[key] = setting?.valeur || defaultSettings[key as keyof typeof defaultSettings];
-      });
+      const loadedSettings = {
+        app_name: getSetting('app_name')?.valeur || defaultSettings.app_name,
+        theme: getSetting('theme')?.valeur || defaultSettings.theme,
+        notifications_enabled: getSetting('notifications_enabled')?.valeur || defaultSettings.notifications_enabled,
+        default_language: getSetting('default_language')?.valeur || defaultSettings.default_language,
+        default_tax_rate: getSetting('default_tax_rate')?.valeur || defaultSettings.default_tax_rate,
+        company_address: getSetting('company_address')?.valeur || defaultSettings.company_address,
+        company_phone: getSetting('company_phone')?.valeur || defaultSettings.company_phone,
+        company_email: getSetting('company_email')?.valeur || defaultSettings.company_email,
+      };
       
       setSettings(loadedSettings);
     }

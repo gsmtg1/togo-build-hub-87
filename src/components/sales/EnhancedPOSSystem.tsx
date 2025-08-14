@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Minus, ShoppingCart, Receipt, Trash2, User, CreditCard, Banknote, Clock } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Receipt, Trash2, User, CreditCard, Banknote, Clock, Package } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProductsWithStock, useSales, useClients } from '@/hooks/useSupabaseDatabase';
 import { useToast } from '@/hooks/use-toast';

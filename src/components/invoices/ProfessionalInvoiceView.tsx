@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer, Download, Send, Mail, Phone, MapPin } from 'lucide-react';
@@ -87,11 +86,6 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
                   margin-bottom: 3px;
                   display: flex;
                   align-items: center;
-                }
-                .company-info svg {
-                  width: 12px;
-                  height: 12px;
-                  margin-right: 6px;
                 }
                 .invoice-header-right { 
                   text-align: right;
@@ -342,7 +336,7 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
           <div className="header-section">
             <div className="logo-container">
               <img 
-                src="/lovable-uploads/e960775f-1b0b-4dfe-8666-5154b7b3dd11.png" 
+                src="/lovable-uploads/98d0456f-d0db-42ee-9486-b6f874061b8b.png" 
                 alt="Cornerstone Briques Logo" 
                 className="logo-image"
               />
@@ -358,6 +352,10 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
                 <div>
                   <MapPin className="inline w-3 h-3 mr-1" />
                   {COMPANY_INFO.address}
+                </div>
+                <div>
+                  <MapPin className="inline w-3 h-3 mr-1" />
+                  {COMPANY_INFO.city}, {COMPANY_INFO.country}
                 </div>
                 <div>
                   <Mail className="inline w-3 h-3 mr-1" />
@@ -476,10 +474,12 @@ export const ProfessionalInvoiceView = ({ open, onOpenChange, invoice }: Profess
             </div>
 
             <div className="payment-info">
-              <h4>📍 Informations de retrait</h4>
+              <h4>📍 Informations de contact</h4>
               <p><strong>Adresse:</strong> {COMPANY_INFO.address}</p>
               <p><strong>Ville:</strong> {COMPANY_INFO.city}, {COMPANY_INFO.country}</p>
               <p><strong>Contact:</strong> {COMPANY_INFO.phones.join(' / ')}</p>
+              <p><strong>Email:</strong> {COMPANY_INFO.email}</p>
+              <p><strong>Site web:</strong> {COMPANY_INFO.website}</p>
             </div>
           </div>
 

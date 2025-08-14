@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { COMPANY_INFO } from '@/config/company';
 
 interface InvoiceProduct {
   id: string;
@@ -47,13 +48,16 @@ export const CornerstoneInvoiceTemplate = ({
         {/* En-tête avec logo et informations entreprise */}
         <div className="flex justify-between items-start mb-8">
           <div className="flex items-center space-x-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">CB</span>
+            <div className="w-24 h-24 bg-white rounded-lg flex items-center justify-center border">
+              <img 
+                src="/lovable-uploads/98d0456f-d0db-42ee-9486-b6f874061b8b.png" 
+                alt="Cornerstone Briques Logo" 
+                className="w-20 h-20 object-contain"
+              />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">CORNERSTONE</h1>
-              <h2 className="text-xl font-semibold text-orange-600">BRIQUES</h2>
-              <p className="text-sm text-gray-600 mt-1">Excellence en matériaux de construction</p>
+              <h1 className="text-3xl font-bold text-gray-800">{COMPANY_INFO.name}</h1>
+              <p className="text-sm text-orange-600 mt-1 italic">{COMPANY_INFO.slogan}</p>
             </div>
           </div>
           <div className="text-right">
@@ -84,14 +88,14 @@ export const CornerstoneInvoiceTemplate = ({
         <div className="grid grid-cols-2 gap-8 mb-8">
           <div>
             <h4 className="font-semibold text-gray-800 mb-3 border-b border-orange-200 pb-1">
-              DE : CORNERSTONE BRIQUES
+              DE : {COMPANY_INFO.name}
             </h4>
             <div className="text-sm text-gray-600 space-y-1">
-              <p>📍 Zone Industrielle de Kigali</p>
-              <p>📞 +250 788 123 456</p>
-              <p>✉️ info@cornerstonebriques.rw</p>
-              <p>🌐 www.cornerstonebriques.rw</p>
-              <p className="font-semibold">NIF: 123456789</p>
+              <p>📍 {COMPANY_INFO.address}</p>
+              <p>🏙️ {COMPANY_INFO.city}, {COMPANY_INFO.country}</p>
+              <p>📞 {COMPANY_INFO.phones.join(' / ')}</p>
+              <p>✉️ {COMPANY_INFO.email}</p>
+              <p>🌐 {COMPANY_INFO.website}</p>
             </div>
           </div>
           <div>
@@ -176,15 +180,15 @@ export const CornerstoneInvoiceTemplate = ({
             <h4 className="font-semibold text-gray-800 mb-2">Conditions de paiement:</h4>
             <div className="text-xs text-gray-600 space-y-1">
               <p>• Paiement à {type === 'facture' ? '30 jours' : 'la commande'}</p>
-              <p>• Mobile Money: +250 788 123 456</p>
-              <p>• Compte bancaire: BK 123456789</p>
-              <p>• Chèque à l'ordre de "Cornerstone Briques"</p>
+              <p>• Mobile Money: {COMPANY_INFO.phones[0]}</p>
+              <p>• Virement bancaire accepté</p>
+              <p>• Chèque à l'ordre de "{COMPANY_INFO.name}"</p>
             </div>
           </div>
           <div className="text-right">
             <div className="border-t border-gray-300 pt-4 mt-8">
               <p className="text-sm font-semibold text-gray-800">Signature et cachet</p>
-              <p className="text-xs text-gray-600 mt-2">Cornerstone Briques</p>
+              <p className="text-xs text-gray-600 mt-2">{COMPANY_INFO.name}</p>
             </div>
           </div>
         </div>
@@ -192,8 +196,10 @@ export const CornerstoneInvoiceTemplate = ({
         {/* Pied de page */}
         <div className="mt-8 pt-4 border-t border-gray-200 text-center">
           <div className="text-xs text-gray-500">
-            <p className="font-semibold">CORNERSTONE BRIQUES - Excellence en matériaux de construction</p>
-            <p>Zone Industrielle de Kigali | +250 788 123 456 | info@cornerstonebriques.rw</p>
+            <p className="font-semibold">{COMPANY_INFO.name} - {COMPANY_INFO.slogan}</p>
+            <p>{COMPANY_INFO.address} | {COMPANY_INFO.city}, {COMPANY_INFO.country}</p>
+            <p>{COMPANY_INFO.phones.join(' / ')} | {COMPANY_INFO.email}</p>
+            <p>{COMPANY_INFO.website}</p>
             <p className="mt-1">Merci de votre confiance !</p>
           </div>
         </div>

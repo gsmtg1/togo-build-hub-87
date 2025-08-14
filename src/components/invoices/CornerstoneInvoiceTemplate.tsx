@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer, Download, Send } from 'lucide-react';
@@ -215,7 +214,7 @@ export const CornerstoneInvoiceTemplate = ({ open, onOpenChange, invoice }: Corn
             <div className="flex items-center">
               <div className="company-logo bg-white rounded-lg w-20 h-20 flex items-center justify-center mr-5">
                 <img 
-                  src="/lovable-uploads/e960775f-1b0b-4dfe-8666-5154b7b3dd11.png" 
+                  src="/lovable-uploads/98d0456f-d0db-42ee-9486-b6f874061b8b.png" 
                   alt="Cornerstone Briques Logo" 
                   className="w-16 h-16 object-contain"
                 />
@@ -225,6 +224,7 @@ export const CornerstoneInvoiceTemplate = ({ open, onOpenChange, invoice }: Corn
                   {COMPANY_INFO.name}
                 </div>
                 <div className="company-info text-xs leading-tight">
+                  <div>{COMPANY_INFO.slogan}</div>
                   <div>{COMPANY_INFO.address}</div>
                   <div>{COMPANY_INFO.city}, {COMPANY_INFO.country}</div>
                   <div>Tél: {COMPANY_INFO.phones.join(' / ')}</div>
@@ -320,6 +320,7 @@ export const CornerstoneInvoiceTemplate = ({ open, onOpenChange, invoice }: Corn
                 <div className="text-sm font-bold text-orange-600 mb-2">INFORMATIONS DE PAIEMENT:</div>
                 <div className="text-xs text-gray-600">
                   <div>• Paiement par espèces, chèque ou virement bancaire</div>
+                  <div>• Mobile Money: {COMPANY_INFO.phones[0]}</div>
                   <div>• Délai de paiement: {invoice.date_echeance ? new Date(invoice.date_echeance).toLocaleDateString('fr-FR') : 'À réception'}</div>
                   <div>• Toute facture impayée donnera lieu à des pénalités de retard</div>
                 </div>

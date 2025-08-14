@@ -316,7 +316,7 @@ export const useSystemAlerts = () => {
         setStockAlerts(alerts);
       }
 
-      // Charger les commandes en attente
+      // Charger les commandes en attente - requête simplifiée
       const { data: ordersData, error: ordersError } = await supabase
         .from('sales')
         .select(`
@@ -324,21 +324,39 @@ export const useSystemAlerts = () => {
           sale_date,
           quantity,
           total_amount,
-          products!inner (name),
-          deliveries (status)
+          product_id,
+          status
         `)
-        .or('status.eq.pending,deliveries.status.neq.delivered')
+        .eq('status', 'pending')
         .order('sale_date', { ascending: true });
 
       if (ordersError) {
         console.error('Error loading pending orders:', ordersError);
       } else {
+        // Charger les noms des produits séparément
+        const productIds = (ordersData || []).map(order => order.product_id);
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('id, name')
+          .in('id', productIds);
+
+        const productsMap = new Map((productsData || []).map(p => [p.id, p.name]));
+
+        // Charger les statuts de livraison séparément
+        const saleIds = (ordersData || []).map(order => order.id);
+        const { data: deliveriesData } = await supabase
+          .from('deliveries')
+          .select('sale_id, status')
+          .in('sale_id', saleIds);
+
+        const deliveriesMap = new Map((deliveriesData || []).map(d => [d.sale_id, d.status]));
+
         const orders = (ordersData || []).map(order => ({
           id: order.id,
-          product_name: order.products.name,
+          product_name: productsMap.get(order.product_id) || 'Produit inconnu',
           quantity: order.quantity,
           total_amount: order.total_amount,
-          delivery_status: order.deliveries?.[0]?.status || 'pending',
+          delivery_status: deliveriesMap.get(order.id) || 'pending',
           hours_pending: Math.floor((new Date().getTime() - new Date(order.sale_date).getTime()) / (1000 * 60 * 60))
         }));
         setPendingOrders(orders);

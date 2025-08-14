@@ -4,31 +4,18 @@ import { TrendingDown, Target, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useMonthlyGoals } from '@/hooks/useSupabaseDatabase';
-import { supabase } from '@/integrations/supabase/client';
 
 export const ProductionAlerts = () => {
-  const { data: goals, loading } = useMonthlyGoals();
+  const { data: goals, loading, reload } = useMonthlyGoals();
 
   // Mettre à jour automatiquement les objectifs
   useEffect(() => {
-    const updateGoals = async () => {
-      try {
-        const { error } = await supabase.rpc('update_monthly_goals');
-        if (error) {
-          console.error('Error updating monthly goals:', error);
-        }
-      } catch (error) {
-        console.error('Error calling update_monthly_goals:', error);
-      }
-    };
-
-    // Mise à jour initiale
-    updateGoals();
-
-    // Mise à jour toutes les heures
-    const interval = setInterval(updateGoals, 3600000);
+    // Recharger les données toutes les heures
+    const interval = setInterval(() => {
+      reload();
+    }, 3600000);
     return () => clearInterval(interval);
-  }, []);
+  }, [reload]);
 
   if (loading || !goals.length) return null;
 

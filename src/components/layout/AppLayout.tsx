@@ -1,33 +1,33 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
-import { Toaster } from '@/components/ui/toaster';
+import { SystemAlerts } from '@/components/notifications/SystemAlerts';
+import { ProductionAlerts } from '@/components/dashboard/ProductionAlerts';
 
-export const AppLayout: React.FC = () => {
+export const AppLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const handleMenuToggle = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const handleSidebarClose = () => {
-    setSidebarOpen(false);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header onMenuToggle={handleMenuToggle} />
-      <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} />
+      <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       
-      <main className="md:ml-64 pt-16">
-        <div className="p-6">
-          <Outlet />
-        </div>
-      </main>
+      <div className="flex">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        
+        <main className="flex-1 p-6 lg:ml-64">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+
+      {/* Alertes système en temps réel */}
+      <SystemAlerts />
       
-      <Toaster />
+      {/* Alertes de production sur le dashboard uniquement */}
+      {window.location.pathname === '/' && <ProductionAlerts />}
     </div>
   );
 };

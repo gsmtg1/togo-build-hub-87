@@ -26,7 +26,6 @@ export const useSupabaseDatabase = (tableName: string) => {
     } catch (error) {
       console.error(`Error loading ${tableName}:`, error);
       setData([]);
-      // Ne pas afficher de toast d'erreur lors du chargement initial
     } finally {
       setLoading(false);
     }
@@ -123,7 +122,7 @@ export const useSupabaseDatabase = (tableName: string) => {
   };
 };
 
-// Hooks spécifiques pour chaque table avec les bons noms de tables
+// Hooks spécialisés avec fonctionnalités business
 export const useProducts = () => useSupabaseDatabase('products');
 export const useProductionOrders = () => useSupabaseDatabase('production_orders');
 export const useDeliveries = () => useSupabaseDatabase('deliveries');
@@ -146,42 +145,7 @@ export const useProductionRecipes = () => useSupabaseDatabase('production_recipe
 export const useProductionCosts = () => useSupabaseDatabase('production_costs');
 export const useAccountingCategories = () => useSupabaseDatabase('accounting_categories');
 
-// Hook pour les paramètres d'application
-export const useAppSettings = () => {
-  const { data, loading, create, update, remove, reload } = useSupabaseDatabase('app_settings');
-  
-  const getSetting = (key: string) => {
-    return data.find(setting => setting.cle === key);
-  };
-
-  const updateSetting = async (key: string, value: string, description?: string) => {
-    const existing = getSetting(key);
-    const settingData = {
-      cle: key,
-      valeur: value,
-      description: description || existing?.description || ''
-    };
-
-    if (existing) {
-      await update(existing.id, settingData);
-    } else {
-      await create(settingData);
-    }
-  };
-
-  return {
-    data,
-    loading,
-    create,
-    update,
-    remove,
-    reload,
-    getSetting,
-    updateSetting
-  };
-};
-
-// Hook spécialisé pour les produits avec stock
+// Hook pour les produits avec stock
 export const useProductsWithStock = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,7 +155,6 @@ export const useProductsWithStock = () => {
     try {
       setLoading(true);
       
-      // Requête pour récupérer les produits avec leurs stocks
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select(`
@@ -209,7 +172,6 @@ export const useProductsWithStock = () => {
         throw productsError;
       }
 
-      // Transformer les données pour inclure stock_quantity
       const productsWithStock = (productsData || []).map(product => ({
         ...product,
         stock_quantity: product.stock?.[0]?.quantity || 0,
@@ -220,7 +182,6 @@ export const useProductsWithStock = () => {
     } catch (error) {
       console.error('Error loading products with stock:', error);
       setProducts([]);
-      // Ne pas afficher de toast d'erreur lors du chargement initial
     } finally {
       setLoading(false);
     }
@@ -314,5 +275,95 @@ export const useProductsWithStock = () => {
     update,
     remove,
     reload: loadProductsWithStock
+  };
+};
+
+// Hook pour les alertes système
+export const useSystemAlerts = () => {
+  const [stockAlerts, setStockAlerts] = useState<any[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadAlerts = async () => {
+    try {
+      setLoading(true);
+
+      // Charger les alertes de stock
+      const { data: stockData, error: stockError } = await supabase
+        .from('stock_alerts')
+        .select('*');
+
+      if (stockError) {
+        console.error('Error loading stock alerts:', stockError);
+      } else {
+        setStockAlerts(stockData || []);
+      }
+
+      // Charger les commandes en attente
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('pending_orders')
+        .select('*');
+
+      if (ordersError) {
+        console.error('Error loading pending orders:', ordersError);
+      } else {
+        setPendingOrders(ordersData || []);
+      }
+
+    } catch (error) {
+      console.error('Error loading alerts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAlerts();
+    
+    // Rafraîchir les alertes toutes les 30 secondes
+    const interval = setInterval(loadAlerts, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return {
+    stockAlerts,
+    pendingOrders,
+    loading,
+    reload: loadAlerts
+  };
+};
+
+// Hook pour les paramètres d'application
+export const useAppSettings = () => {
+  const { data, loading, create, update, remove, reload } = useSupabaseDatabase('app_settings');
+  
+  const getSetting = (key: string) => {
+    return data.find(setting => setting.cle === key);
+  };
+
+  const updateSetting = async (key: string, value: string, description?: string) => {
+    const existing = getSetting(key);
+    const settingData = {
+      cle: key,
+      valeur: value,
+      description: description || existing?.description || ''
+    };
+
+    if (existing) {
+      await update(existing.id, settingData);
+    } else {
+      await create(settingData);
+    }
+  };
+
+  return {
+    data,
+    loading,
+    create,
+    update,
+    remove,
+    reload,
+    getSetting,
+    updateSetting
   };
 };

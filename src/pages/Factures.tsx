@@ -11,11 +11,11 @@ import { useInvoices } from '@/hooks/useSupabaseDatabase';
 import { useToast } from '@/hooks/use-toast';
 
 const statusLabels = {
-  'brouillon': { label: '📝 Brouillon', variant: 'secondary' as const },
-  'envoyee': { label: '📤 Envoyée', variant: 'default' as const },
-  'payee': { label: '✅ Payée', variant: 'success' as const },
-  'en_retard': { label: '⏰ En retard', variant: 'destructive' as const },
-  'annulee': { label: '❌ Annulée', variant: 'outline' as const },
+  'draft': { label: '📝 Brouillon', variant: 'secondary' as const },
+  'sent': { label: '📤 Envoyée', variant: 'default' as const },
+  'paid': { label: '✅ Payée', variant: 'default' as const },
+  'overdue': { label: '⏰ En retard', variant: 'destructive' as const },
+  'cancelled': { label: '❌ Annulée', variant: 'outline' as const },
 };
 
 export default function Factures() {
@@ -45,19 +45,27 @@ export default function Factures() {
         invoice_number: invoiceNumber,
         issue_date: invoiceData.date_facture,
         due_date: invoiceData.date_echeance,
-        status: invoiceData.statut,
+        status: invoiceData.statut || 'draft',
         total_amount: invoiceData.montant_total,
         tax_amount: invoiceData.tax_amount || 0,
-        tax_rate: invoiceData.useTax ? invoiceData.defaultTaxRate : 0,
-        notes: invoiceData.notes
+        tax_rate: invoiceData.useTax ? (invoiceData.defaultTaxRate || 18) : 0,
+        notes: invoiceData.notes,
+        // Ajouter un sale_id temporaire pour satisfaire la contrainte
+        sale_id: crypto.randomUUID()
       });
       
       toast({
         title: "Succès",
         description: "Facture créée avec succès",
       });
+      setDialogOpen(false);
     } catch (error) {
       console.error('Error creating invoice:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la facture",
+        variant: "destructive",
+      });
     }
   };
 
@@ -68,10 +76,10 @@ export default function Factures() {
           ...invoiceData,
           issue_date: invoiceData.date_facture,
           due_date: invoiceData.date_echeance,
-          status: invoiceData.statut,
+          status: invoiceData.statut || editingInvoice.status,
           total_amount: invoiceData.montant_total,
           tax_amount: invoiceData.tax_amount || 0,
-          tax_rate: invoiceData.useTax ? invoiceData.defaultTaxRate : 0,
+          tax_rate: invoiceData.useTax ? (invoiceData.defaultTaxRate || 18) : 0,
           notes: invoiceData.notes
         });
         
@@ -80,21 +88,34 @@ export default function Factures() {
           description: "Facture mise à jour avec succès",
         });
         setEditingInvoice(null);
+        setDialogOpen(false);
       }
     } catch (error) {
       console.error('Error updating invoice:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la facture",
+        variant: "destructive",
+      });
     }
   };
 
   const handleDeleteInvoice = async (id: string) => {
-    try {
-      await remove(id);
-      toast({
-        title: "Succès",
-        description: "Facture supprimée avec succès",
-      });
-    } catch (error) {
-      console.error('Error deleting invoice:', error);
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
+      try {
+        await remove(id);
+        toast({
+          title: "Succès",
+          description: "Facture supprimée avec succès",
+        });
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer la facture",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -195,7 +216,7 @@ export default function Factures() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 border border-input rounded-md"
+              className="px-3 py-2 border border-input rounded-md bg-white"
             >
               <option value="">Tous les statuts</option>
               <option value="draft">Brouillon</option>
@@ -226,7 +247,6 @@ export default function Factures() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Numéro</TableHead>
-                    <TableHead>Client</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Échéance</TableHead>
                     <TableHead>Montant</TableHead>
@@ -240,14 +260,6 @@ export default function Factures() {
                     <TableRow key={invoice.id}>
                       <TableCell className="font-mono">
                         {invoice.invoice_number || `FAC-${invoice.id.slice(0, 8)}`}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{invoice.client_nom || 'N/A'}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {invoice.client_telephone}
-                          </div>
-                        </div>
                       </TableCell>
                       <TableCell>
                         {invoice.issue_date ? new Date(invoice.issue_date).toLocaleDateString() : 'N/A'}

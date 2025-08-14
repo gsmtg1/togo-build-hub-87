@@ -149,28 +149,178 @@ export const useBrickTypes = () => useSupabaseDatabase('brick_types');
 export const useProductionRecipes = () => useSupabaseDatabase('production_recipes');
 export const useProductionCosts = () => useSupabaseDatabase('production_costs');
 export const useAccountingCategories = () => useSupabaseDatabase('accounting_categories');
-export const useAppSettings = () => useSupabaseDatabase('app_settings');
 
-// Hook spécialisé pour les produits avec stock
-export const useProductsWithStock = () => {
-  const { data: products, loading, create, update, remove, reload } = useSupabaseDatabase('products');
-  const { data: stockData } = useSupabaseDatabase('stock');
+// Hook pour les paramètres d'application avec meilleure gestion
+export const useAppSettings = () => {
+  const { data, loading, create, update, remove, reload } = useSupabaseDatabase('app_settings');
+  
+  const getSetting = (key: string) => {
+    return data.find(setting => setting.cle === key);
+  };
 
-  const productsWithStock = products.map((product: any) => {
-    const stock = stockData.find((s: any) => s.product_id === product.id);
-    return {
-      ...product,
-      stock_quantity: stock?.quantity || 0,
-      minimum_stock: stock?.minimum_stock || 0
+  const updateSetting = async (key: string, value: string, description?: string) => {
+    const existing = getSetting(key);
+    const settingData = {
+      cle: key,
+      valeur: value,
+      description: description || existing?.description || ''
     };
-  });
+
+    if (existing) {
+      await update(existing.id, settingData);
+    } else {
+      await create(settingData);
+    }
+  };
 
   return {
-    products: productsWithStock,
+    data,
     loading,
     create,
     update,
     remove,
-    reload
+    reload,
+    getSetting,
+    updateSetting
+  };
+};
+
+// Hook spécialisé pour les produits avec stock - corrigé
+export const useProductsWithStock = () => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const loadProductsWithStock = async () => {
+    try {
+      setLoading(true);
+      
+      // Requête pour récupérer les produits avec leurs stocks
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select(`
+          *,
+          stock (
+            quantity,
+            minimum_stock
+          )
+        `)
+        .eq('is_active', true)
+        .order('name');
+
+      if (productsError) {
+        console.error('Error loading products:', productsError);
+        throw productsError;
+      }
+
+      // Transformer les données pour inclure stock_quantity
+      const productsWithStock = (productsData || []).map(product => ({
+        ...product,
+        stock_quantity: product.stock?.[0]?.quantity || 0,
+        minimum_stock: product.stock?.[0]?.minimum_stock || 0
+      }));
+
+      setProducts(productsWithStock);
+    } catch (error) {
+      console.error('Error loading products with stock:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les produits",
+        variant: "destructive",
+      });
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const create = async (productData: any) => {
+    try {
+      const { data: result, error } = await supabase
+        .from('products')
+        .insert([productData])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      await loadProductsWithStock();
+      toast({
+        title: "Succès",
+        description: "Produit créé avec succès",
+      });
+      return result;
+    } catch (error) {
+      console.error('Error creating product:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le produit",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const update = async (id: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      await loadProductsWithStock();
+      toast({
+        title: "Succès",
+        description: "Produit mis à jour avec succès",
+      });
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le produit",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const remove = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      await loadProductsWithStock();
+      toast({
+        title: "Succès",
+        description: "Produit supprimé avec succès",
+      });
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le produit",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    loadProductsWithStock();
+  }, []);
+
+  return {
+    products,
+    loading,
+    create,
+    update,
+    remove,
+    reload: loadProductsWithStock
   };
 };

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Minus, Trash2, Package } from 'lucide-react';
+import { Plus, Minus, Trash2, Package, Loader2 } from 'lucide-react';
 import { useProductsWithStock } from '@/hooks/useSupabaseDatabase';
 
 interface InvoiceProduct {
@@ -25,6 +25,9 @@ interface ProductSelectorProps {
 export const ProductSelector = ({ products, onProductsChange }: ProductSelectorProps) => {
   const { products: availableProducts, loading } = useProductsWithStock();
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+
+  console.log('Available products:', availableProducts);
+  console.log('Loading state:', loading);
 
   const addPredefinedProduct = () => {
     if (!selectedProductId) return;
@@ -99,9 +102,14 @@ export const ProductSelector = ({ products, onProductsChange }: ProductSelectorP
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir un produit..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border shadow-lg z-50">
                   {loading ? (
-                    <SelectItem value="loading" disabled>Chargement...</SelectItem>
+                    <SelectItem value="loading" disabled>
+                      <div className="flex items-center">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Chargement...
+                      </div>
+                    </SelectItem>
                   ) : availableProducts.length === 0 ? (
                     <SelectItem value="empty" disabled>Aucun produit disponible</SelectItem>
                   ) : (

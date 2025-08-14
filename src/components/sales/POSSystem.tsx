@@ -132,7 +132,7 @@ export const POSSystem = () => {
           notes: 'Client créé depuis POS'
         });
         
-        if (result && typeof result === 'object' && 'id' in result) {
+        if (result && result !== null && typeof result === 'object' && 'id' in result) {
           const clientId = result.id;
           if (clientId && typeof clientId === 'string') {
             setSelectedClient(clientId);
@@ -183,7 +183,7 @@ export const POSSystem = () => {
           notes: 'Client créé depuis POS'
         });
         
-        if (result && typeof result === 'object' && 'id' in result) {
+        if (result && result !== null && typeof result === 'object' && 'id' in result) {
           const newClientId = result.id;
           if (newClientId && typeof newClientId === 'string') {
             clientId = newClientId;
@@ -228,7 +228,7 @@ export const POSSystem = () => {
 
       const result = await createSale(saleData);
       
-      if (result && typeof result === 'object' && 'id' in result) {
+      if (result && result !== null && typeof result === 'object' && 'id' in result) {
         const saleId = result.id;
         if (saleId && typeof saleId === 'string') {
           const clientData = clients.find(c => c.id === clientId);

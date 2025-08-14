@@ -179,6 +179,39 @@ export type Database = {
         }
         Relationships: []
       }
+      clients_complets: {
+        Row: {
+          adresse: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nom_complet: string
+          notes: string | null
+          telephone: string | null
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom_complet: string
+          notes?: string | null
+          telephone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom_complet?: string
+          notes?: string | null
+          telephone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_losses: {
         Row: {
           comments: string | null
@@ -280,6 +313,120 @@ export type Database = {
           },
         ]
       }
+      devis_items: {
+        Row: {
+          created_at: string
+          devis_id: string
+          id: string
+          nom_produit: string
+          prix_unitaire: number
+          product_id: string | null
+          quantite: number
+          total_ligne: number
+        }
+        Insert: {
+          created_at?: string
+          devis_id: string
+          id?: string
+          nom_produit: string
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          total_ligne?: number
+        }
+        Update: {
+          created_at?: string
+          devis_id?: string
+          id?: string
+          nom_produit?: string
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          total_ligne?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_items_devis_id_fkey"
+            columns: ["devis_id"]
+            isOneToOne: false
+            referencedRelation: "devis_professionnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devis_professionnels: {
+        Row: {
+          client_adresse: string | null
+          client_id: string | null
+          client_nom: string
+          client_telephone: string | null
+          commentaires: string | null
+          created_at: string
+          date_devis: string
+          date_echeance: string
+          id: string
+          montant_total: number
+          numero_devis: string
+          statut: string
+          updated_at: string
+          vendeur_id: string | null
+        }
+        Insert: {
+          client_adresse?: string | null
+          client_id?: string | null
+          client_nom: string
+          client_telephone?: string | null
+          commentaires?: string | null
+          created_at?: string
+          date_devis?: string
+          date_echeance: string
+          id?: string
+          montant_total?: number
+          numero_devis: string
+          statut?: string
+          updated_at?: string
+          vendeur_id?: string | null
+        }
+        Update: {
+          client_adresse?: string | null
+          client_id?: string | null
+          client_nom?: string
+          client_telephone?: string | null
+          commentaires?: string | null
+          created_at?: string
+          date_devis?: string
+          date_echeance?: string
+          id?: string
+          montant_total?: number
+          numero_devis?: string
+          statut?: string
+          updated_at?: string
+          vendeur_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_professionnels_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_complets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_professionnels_vendeur_id_fkey"
+            columns: ["vendeur_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           address: string | null
@@ -366,6 +513,143 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      facture_items: {
+        Row: {
+          created_at: string
+          facture_id: string
+          id: string
+          nom_produit: string
+          prix_unitaire: number
+          product_id: string | null
+          quantite: number
+          total_ligne: number
+        }
+        Insert: {
+          created_at?: string
+          facture_id: string
+          id?: string
+          nom_produit: string
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          total_ligne?: number
+        }
+        Update: {
+          created_at?: string
+          facture_id?: string
+          id?: string
+          nom_produit?: string
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          total_ligne?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facture_items_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures_professionnelles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facture_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      factures_professionnelles: {
+        Row: {
+          client_adresse: string | null
+          client_id: string | null
+          client_nom: string
+          client_telephone: string | null
+          commentaires: string | null
+          created_at: string
+          date_echeance: string | null
+          date_facture: string
+          delivery_id: string | null
+          id: string
+          montant_paye: number
+          montant_total: number
+          numero_facture: string
+          sale_id: string | null
+          statut: string
+          updated_at: string
+          vendeur_id: string | null
+        }
+        Insert: {
+          client_adresse?: string | null
+          client_id?: string | null
+          client_nom: string
+          client_telephone?: string | null
+          commentaires?: string | null
+          created_at?: string
+          date_echeance?: string | null
+          date_facture?: string
+          delivery_id?: string | null
+          id?: string
+          montant_paye?: number
+          montant_total?: number
+          numero_facture: string
+          sale_id?: string | null
+          statut?: string
+          updated_at?: string
+          vendeur_id?: string | null
+        }
+        Update: {
+          client_adresse?: string | null
+          client_id?: string | null
+          client_nom?: string
+          client_telephone?: string | null
+          commentaires?: string | null
+          created_at?: string
+          date_echeance?: string | null
+          date_facture?: string
+          delivery_id?: string | null
+          id?: string
+          montant_paye?: number
+          montant_total?: number
+          numero_facture?: string
+          sale_id?: string | null
+          statut?: string
+          updated_at?: string
+          vendeur_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factures_professionnelles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_complets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_professionnelles_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_professionnelles_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_professionnelles_vendeur_id_fkey"
+            columns: ["vendeur_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoices: {
         Row: {
@@ -567,6 +851,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ordres_production_briques: {
+        Row: {
+          cout_main_oeuvre: number | null
+          cout_materiel: number | null
+          cout_total: number | null
+          created_at: string
+          date_fin_prevue: string | null
+          date_fin_reelle: string | null
+          date_lancement: string
+          id: string
+          notes: string | null
+          numero_ordre: string
+          product_id: string
+          quantite_planifiee: number
+          quantite_produite: number
+          responsable_production: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          cout_main_oeuvre?: number | null
+          cout_materiel?: number | null
+          cout_total?: number | null
+          created_at?: string
+          date_fin_prevue?: string | null
+          date_fin_reelle?: string | null
+          date_lancement?: string
+          id?: string
+          notes?: string | null
+          numero_ordre: string
+          product_id: string
+          quantite_planifiee: number
+          quantite_produite?: number
+          responsable_production?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          cout_main_oeuvre?: number | null
+          cout_materiel?: number | null
+          cout_total?: number | null
+          created_at?: string
+          date_fin_prevue?: string | null
+          date_fin_reelle?: string | null
+          date_lancement?: string
+          id?: string
+          notes?: string | null
+          numero_ordre?: string
+          product_id?: string
+          quantite_planifiee?: number
+          quantite_produite?: number
+          responsable_production?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordres_production_briques_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       overtime_hours: {
         Row: {
@@ -958,7 +1307,11 @@ export type Database = {
       }
       sales: {
         Row: {
+          client_adresse: string | null
           client_id: string
+          client_nom: string | null
+          client_telephone: string | null
+          commentaires: string | null
           created_at: string
           id: string
           notes: string | null
@@ -970,9 +1323,14 @@ export type Database = {
           total_amount: number
           unit_price: number
           updated_at: string
+          vendeur_nom: string | null
         }
         Insert: {
+          client_adresse?: string | null
           client_id: string
+          client_nom?: string | null
+          client_telephone?: string | null
+          commentaires?: string | null
           created_at?: string
           id?: string
           notes?: string | null
@@ -984,9 +1342,14 @@ export type Database = {
           total_amount: number
           unit_price: number
           updated_at?: string
+          vendeur_nom?: string | null
         }
         Update: {
+          client_adresse?: string | null
           client_id?: string
+          client_nom?: string | null
+          client_telephone?: string | null
+          commentaires?: string | null
           created_at?: string
           id?: string
           notes?: string | null
@@ -998,6 +1361,7 @@ export type Database = {
           total_amount?: number
           unit_price?: number
           updated_at?: string
+          vendeur_nom?: string | null
         }
         Relationships: [
           {

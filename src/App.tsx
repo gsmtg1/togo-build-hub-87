@@ -1,66 +1,80 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Stock from "./pages/Stock";
-import Production from "./pages/Production";
-import OrdresProduction from "./pages/OrdresProduction";
-import Ventes from "./pages/Ventes";
-import Livraisons from "./pages/Livraisons";
-import Factures from "./pages/Factures";
-import Devis from "./pages/Devis";
-import Comptabilite from "./pages/Comptabilite";
-import Employes from "./pages/Employes";
-import Pertes from "./pages/Pertes";
-import Objectifs from "./pages/Objectifs";
-import Rapports from "./pages/Rapports";
-import Notifications from "./pages/Notifications";
-import Parametres from "./pages/Parametres";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/toaster';
+import { AppLayout } from '@/components/layout/AppLayout';
 
-const queryClient = new QueryClient();
+// Pages existantes
+import { Index } from '@/pages/Index';
+import { Dashboard } from '@/pages/Dashboard';
+import { Stock } from '@/pages/Stock';
+import { Ventes } from '@/pages/Ventes';
+import { Production } from '@/pages/Production';
+import { OrdresProduction } from '@/pages/OrdresProduction';
+import { Livraisons } from '@/pages/Livraisons';
+import { Factures } from '@/pages/Factures';
+import { Devis } from '@/pages/Devis';
+import { Employes } from '@/pages/Employes';
+import { Comptabilite } from '@/pages/Comptabilite';
+import { Objectifs } from '@/pages/Objectifs';
+import { Rapports } from '@/pages/Rapports';
+import { Pertes } from '@/pages/Pertes';
+import { Notifications } from '@/pages/Notifications';
+import { Parametres } from '@/pages/Parametres';
+import { NotFound } from '@/pages/NotFound';
 
-const AppWithLayout = () => (
-  <AppLayout>
-    <Outlet />
-  </AppLayout>
-);
+// Nouveaux modules
+import { FacturesProfessionnelles } from '@/pages/FacturesProfessionnelles';
+import { DevisProfessionnels } from '@/pages/DevisProfessionnels';
+import { GestionClients } from '@/pages/GestionClients';
+import { VentesAméliorées } from '@/pages/VentesAméliorées';
+import { GestionProductionBriques } from '@/components/production/GestionProductionBriques';
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AppWithLayout />}>
-            <Route index element={<Index />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="stock" element={<Stock />} />
-            <Route path="production" element={<Production />} />
-            <Route path="ordres-production" element={<OrdresProduction />} />
-            <Route path="ventes" element={<Ventes />} />
-            <Route path="livraisons" element={<Livraisons />} />
-            <Route path="factures" element={<Factures />} />
-            <Route path="devis" element={<Devis />} />
-            <Route path="comptabilite" element={<Comptabilite />} />
-            <Route path="employes" element={<Employes />} />
-            <Route path="pertes" element={<Pertes />} />
-            <Route path="objectifs" element={<Objectifs />} />
-            <Route path="rapports" element={<Rapports />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="parametres" element={<Parametres />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+import './App.css';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      cacheTime: 1000 * 60 * 10, // 10 minutes
+    },
+  },
+});
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/stock" element={<Stock />} />
+            <Route path="/ventes" element={<VentesAméliorées />} />
+            <Route path="/ventes-pos" element={<Ventes />} />
+            <Route path="/production" element={<Production />} />
+            <Route path="/ordres-production" element={<OrdresProduction />} />
+            <Route path="/production-briques" element={<GestionProductionBriques />} />
+            <Route path="/livraisons" element={<Livraisons />} />
+            <Route path="/factures" element={<FacturesProfessionnelles />} />
+            <Route path="/factures-anciennes" element={<Factures />} />
+            <Route path="/devis" element={<DevisProfessionnels />} />
+            <Route path="/devis-anciens" element={<Devis />} />
+            <Route path="/clients" element={<GestionClients />} />
+            <Route path="/employes" element={<Employes />} />
+            <Route path="/comptabilite" element={<Comptabilite />} />
+            <Route path="/objectifs" element={<Objectifs />} />
+            <Route path="/rapports" element={<Rapports />} />
+            <Route path="/pertes" element={<Pertes />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/parametres" element={<Parametres />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AppLayout>
+        <Toaster />
+      </Router>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

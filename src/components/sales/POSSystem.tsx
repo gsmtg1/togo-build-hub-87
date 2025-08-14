@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -133,7 +132,7 @@ export const POSSystem = () => {
         });
         
         if (result && result !== null && typeof result === 'object' && 'id' in result) {
-          const clientId = result.id;
+          const clientId = (result as any).id;
           if (clientId && typeof clientId === 'string') {
             setSelectedClient(clientId);
             setNewClientName('');
@@ -184,7 +183,7 @@ export const POSSystem = () => {
         });
         
         if (result && result !== null && typeof result === 'object' && 'id' in result) {
-          const newClientId = result.id;
+          const newClientId = (result as any).id;
           if (newClientId && typeof newClientId === 'string') {
             clientId = newClientId;
           } else {
@@ -229,7 +228,7 @@ export const POSSystem = () => {
       const result = await createSale(saleData);
       
       if (result && result !== null && typeof result === 'object' && 'id' in result) {
-        const saleId = result.id;
+        const saleId = (result as any).id;
         if (saleId && typeof saleId === 'string') {
           const clientData = clients.find(c => c.id === clientId);
           

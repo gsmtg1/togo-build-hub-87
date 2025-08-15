@@ -597,6 +597,7 @@ export type Database = {
       }
       factures_professionnelles: {
         Row: {
+          adresse_livraison: string | null
           client_adresse: string | null
           client_id: string | null
           client_nom: string
@@ -606,16 +607,21 @@ export type Database = {
           date_echeance: string | null
           date_facture: string
           delivery_id: string | null
+          frais_livraison: number | null
           id: string
+          mode_livraison: string | null
           montant_paye: number
           montant_total: number
           numero_facture: string
+          remise_globale_montant: number | null
           sale_id: string | null
+          sous_total: number | null
           statut: string
           updated_at: string
           vendeur_id: string | null
         }
         Insert: {
+          adresse_livraison?: string | null
           client_adresse?: string | null
           client_id?: string | null
           client_nom: string
@@ -625,16 +631,21 @@ export type Database = {
           date_echeance?: string | null
           date_facture?: string
           delivery_id?: string | null
+          frais_livraison?: number | null
           id?: string
+          mode_livraison?: string | null
           montant_paye?: number
           montant_total?: number
           numero_facture: string
+          remise_globale_montant?: number | null
           sale_id?: string | null
+          sous_total?: number | null
           statut?: string
           updated_at?: string
           vendeur_id?: string | null
         }
         Update: {
+          adresse_livraison?: string | null
           client_adresse?: string | null
           client_id?: string | null
           client_nom?: string
@@ -644,11 +655,15 @@ export type Database = {
           date_echeance?: string | null
           date_facture?: string
           delivery_id?: string | null
+          frais_livraison?: number | null
           id?: string
+          mode_livraison?: string | null
           montant_paye?: number
           montant_total?: number
           numero_facture?: string
+          remise_globale_montant?: number | null
           sale_id?: string | null
+          sous_total?: number | null
           statut?: string
           updated_at?: string
           vendeur_id?: string | null

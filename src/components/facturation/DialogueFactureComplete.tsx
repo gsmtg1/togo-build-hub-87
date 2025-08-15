@@ -69,7 +69,7 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
         date_facture: facture.date_facture || new Date().toISOString().split('T')[0],
         date_echeance: facture.date_echeance || '',
         remise_pourcentage: facture.remise_pourcentage || 0,
-        remise_montant: facture.remise_montant || 0,
+        remise_montant: facture.remise_globale_montant || 0,
         mode_livraison: facture.mode_livraison || 'retrait_usine',
         frais_livraison: facture.frais_livraison || 0,
         adresse_livraison: facture.adresse_livraison || '',
@@ -145,9 +145,9 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Début de soumission de facture');
-    console.log('Produits:', produits);
-    console.log('FormData:', formData);
+    console.log('=== DÉBUT CRÉATION FACTURE ===');
+    console.log('Produits sélectionnés:', produits);
+    console.log('Données du formulaire:', formData);
     
     if (produits.length === 0) {
       toast({
@@ -206,7 +206,7 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
         product_id: p.id.startsWith('custom-') ? null : p.id
       }));
 
-      console.log('Données à sauvegarder:', factureData);
+      console.log('Données facture à sauvegarder:', factureData);
       console.log('Items à sauvegarder:', produitsData);
 
       let result;
@@ -231,13 +231,17 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
       });
 
       // Fermer le dialogue principal et ouvrir l'aperçu
+      onOpenChange(false);
       setShowPreview(true);
       
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
+      console.error('=== ERREUR CRÉATION FACTURE ===');
+      console.error('Erreur complète:', error);
+      console.error('Stack trace:', error);
+      
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder la facture. Vérifiez la console pour plus de détails.",
+        description: `Impossible de sauvegarder la facture: ${error.message || 'Erreur inconnue'}`,
         variant: "destructive",
       });
     } finally {

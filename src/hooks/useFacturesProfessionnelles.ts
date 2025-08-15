@@ -45,12 +45,18 @@ export const useFacturesProfessionnelles = () => {
             nom_produit,
             quantite,
             prix_unitaire,
-            total_ligne
+            total_ligne,
+            product_id
           )
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors du chargement des factures:', error);
+        throw error;
+      }
+      
+      console.log('Factures chargées:', data);
       setFactures(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des factures:', error);
@@ -71,12 +77,28 @@ export const useFacturesProfessionnelles = () => {
   const create = async (factureData: FactureData, items: FactureItem[]) => {
     try {
       console.log('Création de facture avec données:', factureData);
-      console.log('Items:', items);
+      console.log('Items à créer:', items);
 
       // Créer la facture principale
       const { data: factureCreated, error: factureError } = await supabase
         .from('factures_professionnelles')
-        .insert([factureData])
+        .insert([{
+          numero_facture: factureData.numero_facture,
+          client_id: factureData.client_id,
+          client_nom: factureData.client_nom,
+          client_telephone: factureData.client_telephone || '',
+          client_adresse: factureData.client_adresse || '',
+          date_facture: factureData.date_facture,
+          date_echeance: factureData.date_echeance,
+          montant_total: factureData.montant_total,
+          statut: factureData.statut,
+          commentaires: factureData.commentaires || '',
+          mode_livraison: factureData.mode_livraison || 'retrait_usine',
+          frais_livraison: factureData.frais_livraison || 0,
+          adresse_livraison: factureData.adresse_livraison || '',
+          sous_total: factureData.sous_total || 0,
+          remise_globale_montant: factureData.remise_globale_montant || 0
+        }])
         .select()
         .single();
 
@@ -85,7 +107,7 @@ export const useFacturesProfessionnelles = () => {
         throw factureError;
       }
 
-      console.log('Facture créée:', factureCreated);
+      console.log('Facture créée avec succès:', factureCreated);
 
       // Créer les items de facture
       if (items.length > 0) {
@@ -98,6 +120,8 @@ export const useFacturesProfessionnelles = () => {
           product_id: item.product_id
         }));
 
+        console.log('Items à insérer:', itemsToInsert);
+
         const { error: itemsError } = await supabase
           .from('facture_items')
           .insert(itemsToInsert);
@@ -106,6 +130,8 @@ export const useFacturesProfessionnelles = () => {
           console.error('Erreur lors de la création des items:', itemsError);
           throw itemsError;
         }
+
+        console.log('Items créés avec succès');
       }
 
       await fetchFactures();
@@ -137,7 +163,7 @@ export const useFacturesProfessionnelles = () => {
 
   const remove = async (id: string) => {
     try {
-      // Supprimer d'abord les items
+      // Supprimer d'abord les items (cascade devrait le faire automatiquement)
       await supabase
         .from('facture_items')
         .delete()

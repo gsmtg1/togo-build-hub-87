@@ -123,33 +123,36 @@ export const Sidebar = ({ className }: SidebarProps) => {
   const location = useLocation();
 
   return (
-    <div className={cn('pb-12 w-64', className)}>
+    <div className={cn('pb-12 w-64 lg:w-72', className)}>
       <div className="space-y-4 py-4">
-        <div className="px-3 py-2">
-          <div className="flex items-center mb-6">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center mr-3">
-              <Boxes className="h-5 w-5 text-white" />
+        <div className="px-4 py-2">
+          <div className="flex items-center mb-8">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center mr-3">
+              <Boxes className="h-6 w-6 lg:h-7 lg:w-7 text-white" />
             </div>
             <div>
-              <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight text-orange-600">
+              <h2 className="mb-1 px-2 text-xl lg:text-2xl font-bold tracking-tight text-orange-600">
                 Cornerstone
               </h2>
+              <p className="px-2 text-xs lg:text-sm text-gray-500 font-medium">
+                Briques Management
+              </p>
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {menuItems.map((item) => (
               <Link
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  'flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors',
+                  'flex items-center rounded-lg px-4 py-3 text-sm lg:text-base font-medium hover:bg-accent hover:text-accent-foreground transition-all duration-200 ease-in-out group',
                   location.pathname === item.href
-                    ? 'bg-orange-100 text-orange-600 border-r-2 border-orange-600'
-                    : 'text-muted-foreground'
+                    ? 'bg-orange-100 text-orange-700 border-r-4 border-orange-600 shadow-sm'
+                    : 'text-muted-foreground hover:text-gray-900 hover:bg-gray-50'
                 )}
               >
-                <item.icon className="mr-2 h-4 w-4" />
-                {item.title}
+                <item.icon className="mr-3 h-5 w-5 lg:h-6 lg:w-6 group-hover:scale-110 transition-transform duration-200" />
+                <span className="font-medium">{item.title}</span>
               </Link>
             ))}
           </div>

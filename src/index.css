@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -39,19 +40,12 @@ All colors MUST be HSL.
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -101,5 +95,50 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
+  }
+
+  /* Amélioration de la lisibilité pour tous les textes */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+    line-height: 1.3;
+  }
+
+  p, span, div {
+    line-height: 1.5;
+  }
+
+  /* Styles pour une meilleure lisibilité sur mobile */
+  @media (max-width: 768px) {
+    body {
+      font-size: 16px;
+    }
+    
+    h1 {
+      font-size: 1.75rem;
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+    }
+    
+    h3 {
+      font-size: 1.25rem;
+    }
+  }
+
+  /* Styles pour tablettes */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    body {
+      font-size: 16px;
+    }
+  }
+
+  /* Styles pour desktop */
+  @media (min-width: 1025px) {
+    body {
+      font-size: 16px;
+    }
   }
 }

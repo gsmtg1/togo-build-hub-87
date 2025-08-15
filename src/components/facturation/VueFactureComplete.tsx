@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, Printer, Send, FileText, MessageCircle, Mail } from 'lucide-react';
@@ -9,10 +8,18 @@ interface VueFactureCompleteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   facture: any;
+  onClose?: () => void;
 }
 
-export const VueFactureComplete = ({ open, onOpenChange, facture }: VueFactureCompleteProps) => {
+export const VueFactureComplete = ({ open, onOpenChange, facture, onClose }: VueFactureCompleteProps) => {
   const { toast } = useToast();
+
+  const handleCloseDialog = () => {
+    onOpenChange(false);
+    if (onClose) {
+      onClose();
+    }
+  };
 
   const handleExportPDF = () => {
     const printContent = document.getElementById('facture-print');
@@ -290,7 +297,7 @@ export const VueFactureComplete = ({ open, onOpenChange, facture }: VueFactureCo
 
           {/* Bouton fermer */}
           <div className="flex justify-end pt-4 no-print">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 px-6">
+            <Button variant="outline" onClick={handleCloseDialog} className="h-11 px-6">
               Fermer
             </Button>
           </div>

@@ -4,47 +4,61 @@ import { Plus, Eye, Edit, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EnhancedInvoiceDialog } from '@/components/invoices/EnhancedInvoiceDialog';
-import { InvoiceViewDialog } from '@/components/invoices/InvoiceViewDialog';
-import { useInvoices } from '@/hooks/useSupabaseDatabase';
+import { DialogueFactureComplete } from '@/components/facturation/DialogueFactureComplete';
+import { VueFactureComplete } from '@/components/facturation/VueFactureComplete';
+import { useFacturesProfessionnelles } from '@/hooks/useFacturesProfessionnelles';
+import { useToast } from '@/hooks/use-toast';
 
 const Factures = () => {
-  const { data: invoices, loading, remove } = useInvoices();
-  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const { data: factures, loading, remove } = useFacturesProfessionnelles();
+  const { toast } = useToast();
+  const [selectedFacture, setSelectedFacture] = useState<any | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
 
-  const handleEdit = (invoice: any) => {
-    setSelectedInvoice(invoice);
+  const handleEdit = (facture: any) => {
+    setSelectedFacture(facture);
     setShowDialog(true);
   };
 
-  const handleView = (invoice: any) => {
-    setSelectedInvoice(invoice);
+  const handleView = (facture: any) => {
+    setSelectedFacture(facture);
     setShowViewDialog(true);
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
-      await remove(id);
+      try {
+        await remove(id);
+        toast({
+          title: "Succès",
+          description: "Facture supprimée avec succès",
+        });
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer la facture",
+          variant: "destructive",
+        });
+      }
     }
   };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      draft: 'secondary',
-      sent: 'default',
-      paid: 'default',
-      overdue: 'destructive',
-      cancelled: 'destructive',
+      brouillon: 'secondary',
+      envoye: 'default',
+      payee: 'default',
+      en_retard: 'destructive',
+      annulee: 'destructive',
     };
     
     const labels: Record<string, string> = {
-      draft: 'Brouillon',
-      sent: 'Envoyée',
-      paid: 'Payée',
-      overdue: 'En retard',
-      cancelled: 'Annulée',
+      brouillon: 'Brouillon',
+      envoye: 'Envoyée',
+      payee: 'Payée',
+      en_retard: 'En retard',
+      annulee: 'Annulée',
     };
 
     return <Badge variant={variants[status] || 'secondary'}>{labels[status] || status}</Badge>;
@@ -58,7 +72,7 @@ const Factures = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Gestion des Factures</h1>
+          <h1 className="text-3xl font-bold">Gestion des Factures Professionnelles</h1>
           <p className="text-muted-foreground">
             Créez et gérez vos factures avec sélection avancée de produits
           </p>
@@ -70,7 +84,7 @@ const Factures = () => {
       </div>
 
       <div className="grid gap-4">
-        {invoices.length === 0 ? (
+        {!factures || factures.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center py-8">
@@ -81,26 +95,29 @@ const Factures = () => {
             </CardContent>
           </Card>
         ) : (
-          invoices.map((invoice) => (
-            <Card key={invoice.id}>
+          factures.map((facture) => (
+            <Card key={facture.id}>
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg">Facture {invoice.invoice_number}</CardTitle>
+                    <CardTitle className="text-lg">Facture {facture.numero_facture}</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Émise le {new Date(invoice.issue_date).toLocaleDateString('fr-FR')}
+                      Client: {facture.client_nom}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Émise le {new Date(facture.date_facture).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {getStatusBadge(invoice.status)}
+                    {getStatusBadge(facture.statut)}
                     <div className="flex gap-1">
-                      <Button size="sm" variant="outline" onClick={() => handleView(invoice)}>
+                      <Button size="sm" variant="outline" onClick={() => handleView(facture)}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(invoice)}>
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(facture)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDelete(invoice.id)}>
+                      <Button size="sm" variant="outline" onClick={() => handleDelete(facture.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -110,28 +127,30 @@ const Factures = () => {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <span className="font-medium">Montant HT:</span><br />
-                    {(invoice.total_amount - invoice.tax_amount).toLocaleString()} FCFA
+                    <span className="font-medium">Téléphone:</span><br />
+                    {facture.client_telephone || 'Non renseigné'}
                   </div>
                   <div>
-                    <span className="font-medium">TVA ({invoice.tax_rate}%):</span><br />
-                    {invoice.tax_amount?.toLocaleString()} FCFA
+                    <span className="font-medium">Mode livraison:</span><br />
+                    {facture.mode_livraison === 'retrait_usine' ? 'Retrait usine' : 
+                     facture.mode_livraison === 'livraison_gratuite' ? 'Livraison gratuite' :
+                     facture.mode_livraison === 'livraison_payante' ? 'Livraison payante' : 'Non défini'}
                   </div>
                   <div>
                     <span className="font-medium">Montant total:</span><br />
                     <span className="font-bold text-green-600">
-                      {invoice.total_amount?.toLocaleString()} FCFA
+                      {facture.montant_total?.toLocaleString()} FCFA
                     </span>
                   </div>
                   <div>
                     <span className="font-medium">Échéance:</span><br />
-                    {new Date(invoice.due_date).toLocaleDateString('fr-FR')}
+                    {facture.date_echeance ? new Date(facture.date_echeance).toLocaleDateString('fr-FR') : 'Non définie'}
                   </div>
                 </div>
-                {invoice.notes && (
+                {facture.commentaires && (
                   <div className="mt-3 pt-3 border-t">
-                    <span className="font-medium text-sm">Notes:</span>
-                    <p className="text-sm text-gray-600">{invoice.notes}</p>
+                    <span className="font-medium text-sm">Commentaires:</span>
+                    <p className="text-sm text-gray-600">{facture.commentaires}</p>
                   </div>
                 )}
               </CardContent>
@@ -140,21 +159,23 @@ const Factures = () => {
         )}
       </div>
 
-      <EnhancedInvoiceDialog
+      <DialogueFactureComplete
         open={showDialog}
         onOpenChange={setShowDialog}
-        invoice={selectedInvoice}
+        facture={selectedFacture}
         onClose={() => {
           setShowDialog(false);
-          setSelectedInvoice(null);
+          setSelectedFacture(null);
         }}
       />
 
-      <InvoiceViewDialog
-        open={showViewDialog}
-        onOpenChange={setShowViewDialog}
-        invoice={selectedInvoice}
-      />
+      {selectedFacture && (
+        <VueFactureComplete
+          open={showViewDialog}
+          onOpenChange={setShowViewDialog}
+          facture={selectedFacture}
+        />
+      )}
     </div>
   );
 };

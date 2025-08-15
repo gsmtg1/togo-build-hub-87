@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SelectorProduitAmélioré } from './SelectorProduitAmélioré';
 import { VueFactureComplete } from './VueFactureComplete';
-import { useFacturesProfessionnelles, useClientsComplets } from '@/hooks/useFacturationDatabase';
+import { useFacturesProfessionnelles } from '@/hooks/useFacturesProfessionnelles';
+import { useClientsComplets } from '@/hooks/useFacturationDatabase';
 import { useToast } from '@/hooks/use-toast';
 import { FileText, Send, Download, Printer, Eye } from 'lucide-react';
 
@@ -76,7 +77,6 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
         statut: facture.statut || 'brouillon'
       });
       
-      // Charger les produits de la facture si ils existent
       if (facture.facture_items) {
         const produitsFacture = facture.facture_items.map((item: any) => ({
           id: item.product_id || `item-${item.id}`,
@@ -88,7 +88,6 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
         setProduits(produitsFacture);
       }
     } else {
-      // Générer un numéro de facture automatique
       const numeroFacture = `FAC-${Date.now().toString().slice(-6)}`;
       setFormData({
         numero_facture: numeroFacture,
@@ -130,7 +129,7 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
   };
 
   const handleClientChange = (clientId: string) => {
-    const client = clients.find(c => c.id === clientId);
+    const client = clients?.find(c => c.id === clientId);
     if (client) {
       setFormData(prev => ({
         ...prev,
@@ -145,6 +144,10 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('Début de soumission de facture');
+    console.log('Produits:', produits);
+    console.log('FormData:', formData);
     
     if (produits.length === 0) {
       toast({
@@ -164,6 +167,15 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
       return;
     }
 
+    if (!formData.numero_facture.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir le numéro de facture",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     const totaux = calculerTotaux();
 
@@ -172,16 +184,16 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
         numero_facture: formData.numero_facture,
         client_id: formData.client_id || null,
         client_nom: formData.client_nom,
-        client_telephone: formData.client_telephone,
-        client_adresse: formData.client_adresse,
+        client_telephone: formData.client_telephone || '',
+        client_adresse: formData.client_adresse || '',
         date_facture: formData.date_facture,
         date_echeance: formData.date_echeance || null,
         montant_total: totaux.totalFinal,
         statut: formData.statut,
-        commentaires: formData.commentaires,
+        commentaires: formData.commentaires || '',
         mode_livraison: formData.mode_livraison,
         frais_livraison: totaux.fraisLivraison,
-        adresse_livraison: formData.adresse_livraison,
+        adresse_livraison: formData.adresse_livraison || '',
         sous_total: totaux.sousTotal,
         remise_globale_montant: totaux.montantRemise
       };
@@ -194,28 +206,38 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
         product_id: p.id.startsWith('custom-') ? null : p.id
       }));
 
+      console.log('Données à sauvegarder:', factureData);
+      console.log('Items à sauvegarder:', produitsData);
+
       let result;
       if (facture) {
-        await update(facture.id, factureData);
-        result = { ...factureData, id: facture.id, facture_items: produitsData };
+        result = await update(facture.id, factureData);
+        result.facture_items = produitsData;
       } else {
         result = await create(factureData, produitsData);
-        // Ajouter les items à la facture créée
         result.facture_items = produitsData;
       }
       
-      setSavedFacture(result);
+      console.log('Résultat de sauvegarde:', result);
+      setSavedFacture({
+        ...result,
+        ...factureData,
+        facture_items: produitsData
+      });
       
       toast({
         title: "Succès",
         description: facture ? "Facture mise à jour avec succès" : "Facture créée avec succès",
       });
+
+      // Fermer le dialogue principal et ouvrir l'aperçu
+      setShowPreview(true);
       
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder la facture",
+        description: "Impossible de sauvegarder la facture. Vérifiez la console pour plus de détails.",
         variant: "destructive",
       });
     } finally {
@@ -317,7 +339,7 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
                       <SelectValue placeholder="Choisir un client existant" />
                     </SelectTrigger>
                     <SelectContent>
-                      {clients.map((client) => (
+                      {clients?.map((client) => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.nom_complet}
                         </SelectItem>
@@ -527,7 +549,6 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
         </DialogContent>
       </Dialog>
 
-      {/* Dialogue d'aperçu */}
       {savedFacture && (
         <VueFactureComplete
           open={showPreview}

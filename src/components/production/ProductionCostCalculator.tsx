@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calculator, Save, Plus, Trash2 } from 'lucide-react';
-import { useProductionMaterials, useBrickTypes, useProductionRecipes, useProductionCosts } from '@/hooks/useSupabaseDatabase';
+import { useMateriauxProduction, useTypesBriques, useRecettesProduction, useCoutsProduction } from '@/hooks/useProductionDatabase';
 
 export const ProductionCostCalculator = () => {
   const [selectedBrickType, setSelectedBrickType] = useState('');
@@ -14,10 +14,10 @@ export const ProductionCostCalculator = () => {
   const [recipes, setRecipes] = useState<any[]>([]);
   const [materialPrices, setMaterialPrices] = useState<{ [key: string]: number }>({});
   
-  const { data: materials } = useProductionMaterials();
-  const { data: brickTypes } = useBrickTypes();
-  const { data: productionRecipes } = useProductionRecipes();
-  const { create: createCost } = useProductionCosts();
+  const { data: materials } = useMateriauxProduction();
+  const { data: brickTypes } = useTypesBriques();
+  const { data: productionRecipes } = useRecettesProduction();
+  const { create: createCost } = useCoutsProduction();
 
   useEffect(() => {
     if (selectedBrickType) {
@@ -82,10 +82,10 @@ export const ProductionCostCalculator = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="brickType">Catégorie de brique</Label>
+            <Label htmlFor="brickType">Type de brique</Label>
             <Select value={selectedBrickType} onValueChange={setSelectedBrickType}>
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionner une catégorie de brique" />
+                <SelectValue placeholder="Sélectionner un type de brique" />
               </SelectTrigger>
               <SelectContent>
                 {brickTypes.map((type) => (

@@ -1,7 +1,29 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { 
+  Product, 
+  DailyLoss, 
+  ProductionCost,
+  AccountingEntry,
+  MonthlyGoal,
+  AppSetting
+} from '@/types/database';
+
+// Mapping function for products
+const mapDbProductToProduct = (dbProduct: any): Product => ({
+  id: dbProduct.id,
+  name: dbProduct.name,
+  nom: dbProduct.name, // Compatibility
+  type: dbProduct.type,
+  dimensions: dbProduct.dimensions || '',
+  description: dbProduct.description || '',
+  unit: dbProduct.unit || 'pièce',
+  price: dbProduct.price || 0,
+  is_active: dbProduct.is_active ?? true,
+  created_at: dbProduct.created_at,
+  updated_at: dbProduct.updated_at
+});
 
 // Hook générique pour toutes les tables
 export const useSupabaseDatabase = (tableName: string) => {
@@ -144,6 +166,12 @@ export const useBrickTypes = () => useSupabaseDatabase('brick_types');
 export const useProductionRecipes = () => useSupabaseDatabase('production_recipes');
 export const useProductionCosts = () => useSupabaseDatabase('production_costs');
 export const useAccountingCategories = () => useSupabaseDatabase('accounting_categories');
+
+// Nouveaux hooks pour les tables françaises
+export const useMateriauxProduction = () => useSupabaseDatabase('materiaux_production');
+export const useTypesBriques = () => useSupabaseDatabase('types_briques');
+export const useRecettesProduction = () => useSupabaseDatabase('recettes_production');
+export const useCoutsProduction = () => useSupabaseDatabase('couts_production');
 
 // Hook optimisé pour les produits avec stock
 export const useProductsWithStock = () => {

@@ -212,6 +212,39 @@ export type Database = {
         }
         Relationships: []
       }
+      couts_production: {
+        Row: {
+          cout_total: number
+          cout_unitaire: number
+          created_at: string
+          id: string
+          material_id: string
+          production_order_id: string
+          quantite_utilisee: number
+          updated_at: string
+        }
+        Insert: {
+          cout_total?: number
+          cout_unitaire?: number
+          created_at?: string
+          id?: string
+          material_id: string
+          production_order_id: string
+          quantite_utilisee?: number
+          updated_at?: string
+        }
+        Update: {
+          cout_total?: number
+          cout_unitaire?: number
+          created_at?: string
+          id?: string
+          material_id?: string
+          production_order_id?: string
+          quantite_utilisee?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_losses: {
         Row: {
           comments: string | null
@@ -762,6 +795,42 @@ export type Database = {
           },
         ]
       }
+      materiaux_production: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          nom: string
+          prix_unitaire: number
+          stock_actuel: number
+          stock_minimum: number
+          unite: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom: string
+          prix_unitaire?: number
+          stock_actuel?: number
+          stock_minimum?: number
+          unite?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom?: string
+          prix_unitaire?: number
+          stock_actuel?: number
+          stock_minimum?: number
+          unite?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       monthly_goals: {
         Row: {
           category: string
@@ -1305,6 +1374,33 @@ export type Database = {
           },
         ]
       }
+      recettes_production: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          product_id: string
+          quantite_necessaire: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          product_id: string
+          quantite_necessaire?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          product_id?: string
+          quantite_necessaire?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sales: {
         Row: {
           client_adresse: string | null
@@ -1474,6 +1570,42 @@ export type Database = {
           product_id?: string
           quantite?: number
           type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      types_briques: {
+        Row: {
+          created_at: string
+          description: string | null
+          hauteur_cm: number
+          id: string
+          largeur_cm: number
+          longueur_cm: number
+          nom: string
+          poids_kg: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          hauteur_cm?: number
+          id?: string
+          largeur_cm?: number
+          longueur_cm?: number
+          nom: string
+          poids_kg?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          hauteur_cm?: number
+          id?: string
+          largeur_cm?: number
+          longueur_cm?: number
+          nom?: string
+          poids_kg?: number | null
           updated_at?: string
         }
         Relationships: []

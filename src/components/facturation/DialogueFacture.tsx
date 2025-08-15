@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Minus, Trash2, UserPlus, Search, Truck, MapPin, Gift } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useProductsWithStock } from '@/hooks/useSupabaseDatabase';
 import { useClientsComplets } from '@/hooks/useFacturationDatabase';
 
@@ -51,7 +50,7 @@ export const DialogueFacture = ({
     date_echeance: '',
     commentaires: '',
     statut: 'brouillon',
-    mode_livraison: 'retrait_usine', // retrait_usine, livraison_payante, livraison_gratuite
+    mode_livraison: 'retrait_usine',
     frais_livraison: 0,
     adresse_livraison: '',
     remise_globale_pourcentage: 0,
@@ -60,6 +59,7 @@ export const DialogueFacture = ({
 
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
   const [showNewClientForm, setShowNewClientForm] = useState(false);
   const [newClientData, setNewClientData] = useState({
     nom_complet: '',
@@ -162,38 +162,25 @@ export const DialogueFacture = ({
   };
 
   const addProduct = () => {
-    if (!selectedProductId) return;
+    if (!selectedProductId || selectedQuantity < 1) return;
     
     const product = availableProducts.find(p => p.id === selectedProductId);
     if (product) {
       const newProduct: ProductItem = {
         id: crypto.randomUUID(),
         nom_produit: `${product.name} (${product.dimensions})`,
-        quantite: 1,
+        quantite: selectedQuantity,
         prix_unitaire: product.price,
         prix_original: product.price,
         remise_pourcentage: 0,
         remise_montant: 0,
-        total_ligne: product.price,
+        total_ligne: product.price * selectedQuantity,
         product_id: product.id
       };
       setProducts([...products, newProduct]);
       setSelectedProductId('');
+      setSelectedQuantity(1);
     }
-  };
-
-  const addCustomProduct = () => {
-    const newProduct: ProductItem = {
-      id: crypto.randomUUID(),
-      nom_produit: '',
-      quantite: 1,
-      prix_unitaire: 0,
-      prix_original: 0,
-      remise_pourcentage: 0,
-      remise_montant: 0,
-      total_ligne: 0
-    };
-    setProducts([...products, newProduct]);
   };
 
   const updateProduct = (id: string, updates: Partial<ProductItem>) => {
@@ -279,10 +266,10 @@ export const DialogueFacture = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-orange-600">
-            {facture ? `Modifier ${type}` : `Nouveau ${type}`}
+            {facture ? `Modifier ${type}` : `Nouvelle ${type}`}
           </DialogTitle>
         </DialogHeader>
 
@@ -290,17 +277,17 @@ export const DialogueFacture = ({
           {/* Section Client */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <Search className="h-5 w-5" />
                 Informations Client
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <Label>Client existant</Label>
+                  <Label className="text-sm font-medium">Client existant</Label>
                   <Select onValueChange={handleClientSelect}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue placeholder="Sélectionner un client existant..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -312,66 +299,51 @@ export const DialogueFacture = ({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-end">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowNewClientForm(!showNewClientForm)}
-                    className="w-full"
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Nouveau client
-                  </Button>
-                </div>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setShowNewClientForm(!showNewClientForm)}
+                  className="w-full h-11"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Nouveau client
+                </Button>
               </div>
 
               {showNewClientForm && (
-                <Card className="border-orange-200">
+                <Card className="border-orange-200 bg-orange-50">
                   <CardHeader>
                     <CardTitle className="text-lg">Créer un nouveau client</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label>Nom complet *</Label>
+                        <Label className="text-sm font-medium">Nom complet *</Label>
                         <Input
+                          className="h-11"
                           value={newClientData.nom_complet}
                           onChange={(e) => setNewClientData(prev => ({ ...prev, nom_complet: e.target.value }))}
                           required
                         />
                       </div>
                       <div>
-                        <Label>Téléphone</Label>
+                        <Label className="text-sm font-medium">Téléphone</Label>
                         <Input
+                          className="h-11"
                           value={newClientData.telephone}
                           onChange={(e) => setNewClientData(prev => ({ ...prev, telephone: e.target.value }))}
                         />
                       </div>
-                      <div>
-                        <Label>Email</Label>
-                        <Input
-                          type="email"
-                          value={newClientData.email}
-                          onChange={(e) => setNewClientData(prev => ({ ...prev, email: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <Label>Adresse</Label>
-                        <Input
-                          value={newClientData.adresse}
-                          onChange={(e) => setNewClientData(prev => ({ ...prev, adresse: e.target.value }))}
-                        />
-                      </div>
                     </div>
                     <div>
-                      <Label>Notes</Label>
-                      <Textarea
-                        value={newClientData.notes}
-                        onChange={(e) => setNewClientData(prev => ({ ...prev, notes: e.target.value }))}
-                        rows={2}
+                      <Label className="text-sm font-medium">Adresse</Label>
+                      <Input
+                        className="h-11"
+                        value={newClientData.adresse}
+                        onChange={(e) => setNewClientData(prev => ({ ...prev, adresse: e.target.value }))}
                       />
                     </div>
-                    <Button type="button" onClick={handleCreateNewClient}>
+                    <Button type="button" onClick={handleCreateNewClient} className="h-11">
                       Créer le client
                     </Button>
                   </CardContent>
@@ -380,23 +352,26 @@ export const DialogueFacture = ({
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label>Nom du client *</Label>
+                  <Label className="text-sm font-medium">Nom du client *</Label>
                   <Input
+                    className="h-11"
                     value={formData.client_nom}
                     onChange={(e) => setFormData(prev => ({ ...prev, client_nom: e.target.value }))}
                     required
                   />
                 </div>
                 <div>
-                  <Label>Téléphone</Label>
+                  <Label className="text-sm font-medium">Téléphone</Label>
                   <Input
+                    className="h-11"
                     value={formData.client_telephone}
                     onChange={(e) => setFormData(prev => ({ ...prev, client_telephone: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <Label>Adresse</Label>
+                  <Label className="text-sm font-medium">Adresse</Label>
                   <Input
+                    className="h-11"
                     value={formData.client_adresse}
                     onChange={(e) => setFormData(prev => ({ ...prev, client_adresse: e.target.value }))}
                   />
@@ -405,37 +380,39 @@ export const DialogueFacture = ({
             </CardContent>
           </Card>
 
-          {/* Section Dates */}
+          {/* Section Dates et Statut */}
           <Card>
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label>Date {type === 'facture' ? 'de facture' : 'de devis'} *</Label>
+                  <Label className="text-sm font-medium">Date {type === 'facture' ? 'de facture' : 'de devis'} *</Label>
                   <Input
                     type="date"
+                    className="h-11"
                     value={formData.date_facture}
                     onChange={(e) => setFormData(prev => ({ ...prev, date_facture: e.target.value }))}
                     required
                   />
                 </div>
                 <div>
-                  <Label>
+                  <Label className="text-sm font-medium">
                     {type === 'facture' ? 'Date d\'échéance' : 'Valide jusqu\'au'} *
                   </Label>
                   <Input
                     type="date"
+                    className="h-11"
                     value={formData.date_echeance}
                     onChange={(e) => setFormData(prev => ({ ...prev, date_echeance: e.target.value }))}
                     required={type === 'devis'}
                   />
                 </div>
                 <div>
-                  <Label>Statut</Label>
+                  <Label className="text-sm font-medium">Statut</Label>
                   <Select 
                     value={formData.statut} 
                     onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -446,10 +423,6 @@ export const DialogueFacture = ({
                       <SelectItem value={type === 'facture' ? 'payee' : 'accepte'}>
                         {type === 'facture' ? 'Payée' : 'Accepté'}
                       </SelectItem>
-                      <SelectItem value={type === 'facture' ? 'en_retard' : 'refuse'}>
-                        {type === 'facture' ? 'En retard' : 'Refusé'}
-                      </SelectItem>
-                      {type === 'devis' && <SelectItem value="expire">Expiré</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
@@ -460,7 +433,7 @@ export const DialogueFacture = ({
           {/* Section Mode de Livraison */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <Truck className="h-5 w-5" />
                 Mode de Livraison
               </CardTitle>
@@ -468,12 +441,12 @@ export const DialogueFacture = ({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label>Mode de livraison</Label>
+                  <Label className="text-sm font-medium">Mode de livraison</Label>
                   <Select 
                     value={formData.mode_livraison} 
                     onValueChange={(value) => setFormData(prev => ({ ...prev, mode_livraison: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -501,9 +474,10 @@ export const DialogueFacture = ({
                 
                 {formData.mode_livraison === 'livraison_payante' && (
                   <div>
-                    <Label>Frais de livraison (FCFA)</Label>
+                    <Label className="text-sm font-medium">Frais de livraison (FCFA)</Label>
                     <Input
                       type="number"
+                      className="h-11"
                       value={formData.frais_livraison}
                       onChange={(e) => setFormData(prev => ({ ...prev, frais_livraison: parseFloat(e.target.value) || 0 }))}
                       min="0"
@@ -513,8 +487,9 @@ export const DialogueFacture = ({
                 
                 {(formData.mode_livraison === 'livraison_payante' || formData.mode_livraison === 'livraison_gratuite') && (
                   <div>
-                    <Label>Adresse de livraison</Label>
+                    <Label className="text-sm font-medium">Adresse de livraison</Label>
                     <Input
+                      className="h-11"
                       value={formData.adresse_livraison}
                       onChange={(e) => setFormData(prev => ({ ...prev, adresse_livraison: e.target.value }))}
                       placeholder="Adresse complète de livraison"
@@ -528,15 +503,15 @@ export const DialogueFacture = ({
           {/* Section Produits */}
           <Card>
             <CardHeader>
-              <CardTitle>Produits</CardTitle>
+              <CardTitle className="text-lg">Produits</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {/* Ajouter des produits */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div className="md:col-span-2">
-                  <Label>Sélectionner un produit</Label>
+                  <Label className="text-sm font-medium">Sélectionner un produit</Label>
                   <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11">
                       <SelectValue placeholder="Choisir un produit..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -548,125 +523,75 @@ export const DialogueFacture = ({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Button 
-                    type="button" 
-                    onClick={addProduct}
-                    disabled={!selectedProductId}
-                    className="mr-2 w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Ajouter
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={addCustomProduct}
-                    className="w-full"
-                  >
-                    Produit personnalisé
-                  </Button>
+                <div>
+                  <Label className="text-sm font-medium">Quantité</Label>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedQuantity(Math.max(1, selectedQuantity - 1))}
+                      className="h-11 px-3"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      type="number"
+                      value={selectedQuantity}
+                      onChange={(e) => setSelectedQuantity(parseInt(e.target.value) || 1)}
+                      min="1"
+                      className="h-11 text-center mx-2"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedQuantity(selectedQuantity + 1)}
+                      className="h-11 px-3"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Total estimé</Label>
+                  <div className="h-11 flex items-center px-3 bg-green-50 border rounded-md">
+                    <span className="font-semibold text-green-700">
+                      {selectedProductId ? 
+                        (availableProducts.find(p => p.id === selectedProductId)?.price * selectedQuantity || 0).toLocaleString() 
+                        : '0'
+                      } FCFA
+                    </span>
+                  </div>
                 </div>
               </div>
+              
+              <Button 
+                type="button" 
+                onClick={addProduct}
+                disabled={!selectedProductId}
+                className="w-full h-12 text-lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Ajouter le produit
+              </Button>
 
               {/* Liste des produits */}
               {products.length > 0 && (
-                <div className="space-y-3">
-                  <Label className="text-base font-semibold">Produits ajoutés ({products.length})</Label>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-lg font-semibold">Produits ajoutés</Label>
+                    <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium">
+                      {products.length} produit{products.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  
                   {products.map((product) => (
-                    <Card key={product.id} className="p-4 bg-gray-50">
-                      <div className="space-y-3">
-                        {/* Ligne 1: Nom du produit */}
-                        <div>
-                          <Input
-                            placeholder="Nom du produit"
-                            value={product.nom_produit}
-                            onChange={(e) => updateProduct(product.id, { nom_produit: e.target.value })}
-                            required
-                            className="bg-white"
-                          />
-                        </div>
-                        
-                        {/* Ligne 2: Quantité, Prix original, Remise */}
-                        <div className="grid grid-cols-12 gap-2 items-center">
-                          <div className="col-span-3">
-                            <Label className="text-xs">Quantité</Label>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => updateProduct(product.id, { quantite: Math.max(1, product.quantite - 1) })}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <Input
-                                type="number"
-                                value={product.quantite}
-                                onChange={(e) => updateProduct(product.id, { quantite: parseInt(e.target.value) || 1 })}
-                                min="1"
-                                required
-                                className="text-center bg-white"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => updateProduct(product.id, { quantite: product.quantite + 1 })}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          <div className="col-span-3">
-                            <Label className="text-xs">Prix unitaire original</Label>
-                            <Input
-                              type="number"
-                              value={product.prix_original}
-                              onChange={(e) => updateProduct(product.id, { prix_original: parseFloat(e.target.value) || 0 })}
-                              min="0"
-                              step="0.01"
-                              required
-                              className="bg-white"
-                            />
-                          </div>
-                          
-                          <div className="col-span-2">
-                            <Label className="text-xs">Remise %</Label>
-                            <Input
-                              type="number"
-                              value={product.remise_pourcentage}
-                              onChange={(e) => updateProduct(product.id, { remise_pourcentage: parseFloat(e.target.value) || 0, remise_montant: 0 })}
-                              min="0"
-                              max="100"
-                              step="0.1"
-                              className="bg-white"
-                            />
-                          </div>
-                          
-                          <div className="col-span-2">
-                            <Label className="text-xs">Remise FCFA</Label>
-                            <Input
-                              type="number"
-                              value={product.remise_montant}
-                              onChange={(e) => updateProduct(product.id, { remise_montant: parseFloat(e.target.value) || 0, remise_pourcentage: 0 })}
-                              min="0"
-                              step="0.01"
-                              className="bg-white"
-                            />
-                          </div>
-                          
-                          <div className="col-span-1">
-                            <Label className="text-xs">Prix final</Label>
-                            <div className="text-sm font-medium text-green-600">
-                              {product.prix_unitaire.toLocaleString()}
-                            </div>
-                          </div>
-                          
-                          <div className="col-span-1">
+                    <Card key={product.id} className="border-l-4 border-l-orange-500">
+                      <CardContent className="p-4">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-lg">{product.nom_produit}</h4>
                             <Button
                               type="button"
                               variant="outline"
@@ -677,88 +602,99 @@ export const DialogueFacture = ({
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                        </div>
-                        
-                        {/* Ligne 3: Total de la ligne */}
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-green-600">
-                            Total ligne: {product.total_ligne.toLocaleString()} FCFA
-                          </div>
-                          {product.remise_pourcentage > 0 || product.remise_montant > 0 ? (
-                            <div className="text-sm text-gray-500">
-                              Économie: {(product.prix_original - product.prix_unitaire).toLocaleString()} FCFA par unité
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                              <Label className="text-sm">Quantité</Label>
+                              <div className="flex items-center mt-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateProduct(product.id, { quantite: Math.max(1, product.quantite - 1) })}
+                                  className="h-9 w-9 p-0"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <Input
+                                  type="number"
+                                  value={product.quantite}
+                                  onChange={(e) => updateProduct(product.id, { quantite: parseInt(e.target.value) || 1 })}
+                                  min="1"
+                                  className="h-9 text-center mx-1"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateProduct(product.id, { quantite: product.quantite + 1 })}
+                                  className="h-9 w-9 p-0"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
-                          ) : null}
+                            
+                            <div>
+                              <Label className="text-sm">Prix unitaire</Label>
+                              <Input
+                                type="number"
+                                value={product.prix_original}
+                                onChange={(e) => updateProduct(product.id, { prix_original: parseFloat(e.target.value) || 0 })}
+                                min="0"
+                                className="h-9 mt-1"
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm">Remise %</Label>
+                              <Input
+                                type="number"
+                                value={product.remise_pourcentage}
+                                onChange={(e) => updateProduct(product.id, { remise_pourcentage: parseFloat(e.target.value) || 0, remise_montant: 0 })}
+                                min="0"
+                                max="100"
+                                className="h-9 mt-1"
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm">Total ligne</Label>
+                              <div className="h-9 flex items-center px-3 bg-green-50 border rounded-md mt-1">
+                                <span className="font-bold text-green-700">
+                                  {product.total_ligne.toLocaleString()} FCFA
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
 
-              {/* Remise globale */}
-              {products.length > 0 && (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label>Remise globale %</Label>
-                        <Input
-                          type="number"
-                          value={formData.remise_globale_pourcentage}
-                          onChange={(e) => setFormData(prev => ({ 
-                            ...prev, 
-                            remise_globale_pourcentage: parseFloat(e.target.value) || 0,
-                            remise_globale_montant: 0
-                          }))}
-                          min="0"
-                          max="100"
-                          step="0.1"
-                        />
-                      </div>
-                      <div>
-                        <Label>Remise globale FCFA</Label>
-                        <Input
-                          type="number"
-                          value={formData.remise_globale_montant}
-                          onChange={(e) => setFormData(prev => ({ 
-                            ...prev, 
-                            remise_globale_montant: parseFloat(e.target.value) || 0,
-                            remise_globale_pourcentage: 0
-                          }))}
-                          min="0"
-                          step="0.01"
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Total final */}
               {products.length > 0 && (
                 <Card className="bg-green-50 border-green-200">
-                  <CardContent className="pt-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-lg">
                         <span>Sous-total:</span>
-                        <span className="font-medium">{sousTotal.toLocaleString()} FCFA</span>
+                        <span className="font-semibold">{sousTotal.toLocaleString()} FCFA</span>
                       </div>
-                      {remiseGlobale > 0 && (
-                        <div className="flex justify-between text-sm text-red-600">
-                          <span>Remise globale:</span>
-                          <span>-{remiseGlobale.toLocaleString()} FCFA</span>
-                        </div>
-                      )}
+                      
                       {fraisLivraison > 0 && (
-                        <div className="flex justify-between text-sm text-blue-600">
+                        <div className="flex justify-between text-lg text-blue-600">
                           <span>Frais de livraison:</span>
-                          <span>+{fraisLivraison.toLocaleString()} FCFA</span>
+                          <span className="font-semibold">+{fraisLivraison.toLocaleString()} FCFA</span>
                         </div>
                       )}
+                      
                       <Separator />
-                      <div className="flex justify-between items-center text-lg font-bold">
-                        <span>Total final:</span>
+                      
+                      <div className="flex justify-between items-center text-2xl font-bold">
+                        <span>TOTAL {type.toUpperCase()}:</span>
                         <span className="text-green-600">{totalFinal.toLocaleString()} FCFA</span>
                       </div>
                     </div>
@@ -772,28 +708,29 @@ export const DialogueFacture = ({
           <Card>
             <CardContent className="pt-6">
               <div>
-                <Label>Commentaires</Label>
+                <Label className="text-sm font-medium">Commentaires</Label>
                 <Textarea
                   value={formData.commentaires}
                   onChange={(e) => setFormData(prev => ({ ...prev, commentaires: e.target.value }))}
                   placeholder="Commentaires ou notes supplémentaires..."
                   rows={3}
+                  className="mt-2"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-4 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-12 px-8">
               Annuler
             </Button>
             <Button 
               type="submit" 
               disabled={!formData.client_nom || products.length === 0}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-orange-600 hover:bg-orange-700 h-12 px-8 text-lg"
             >
-              {facture ? `Mettre à jour ${type}` : `Créer ${type}`}
+              {facture ? `Mettre à jour` : `Créer ${type}`}
             </Button>
           </div>
         </form>

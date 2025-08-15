@@ -29,9 +29,21 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
             <head>
               <title>${type === 'facture' ? 'Facture' : 'Devis'} ${type === 'facture' ? facture.numero_facture : facture.numero_devis}</title>
               <style>
-                body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-                @media print { body { margin: 0; padding: 0; } }
-                .no-print { display: none !important; }
+                body { 
+                  font-family: Arial, sans-serif; 
+                  margin: 0; 
+                  padding: 20px; 
+                  background: white;
+                }
+                @media print { 
+                  body { margin: 0; padding: 0; } 
+                  .no-print { display: none !important; }
+                }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .company-info { margin-bottom: 20px; }
+                .total { font-weight: bold; font-size: 18px; }
               </style>
             </head>
             <body>
@@ -49,11 +61,9 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
   const handleDownloadPDF = async () => {
     setIsExporting(true);
     try {
-      // Pour une vraie implémentation PDF, vous pourriez utiliser jsPDF ou html2pdf
-      // Pour l'instant, on utilise la fonction d'impression
       toast({
         title: "Export PDF",
-        description: "Utilisez l'option d'impression de votre navigateur pour sauvegarder en PDF",
+        description: "Utilisez Ctrl+P puis 'Enregistrer au format PDF' dans votre navigateur",
       });
       handlePrint();
     } catch (error) {
@@ -84,7 +94,7 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
       body += `Mode de livraison: Livraison gratuite\n`;
       body += `Adresse de livraison: ${facture.adresse_livraison}\n\n`;
     } else if (facture.mode_livraison === 'livraison_payante') {
-      body += `Mode de livraison: Livraison payante (${facture.frais_livraison.toLocaleString()} FCFA)\n`;
+      body += `Mode de livraison: Livraison payante (${facture.frais_livraison?.toLocaleString() || 0} FCFA)\n`;
       body += `Adresse de livraison: ${facture.adresse_livraison}\n\n`;
     }
     
@@ -97,7 +107,7 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
     body += `Téléphone: +228 71014747 / +228 90 96 49 93 / +228 99 87 01 95\n`;
     body += `Email: contact@cornerstonebrique.com`;
 
-    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailtoUrl = `mailto:${facture.client_email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailtoUrl);
     
     toast({
@@ -121,7 +131,7 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
       message += `🚚 *Livraison gratuite*\n`;
       message += `📍 ${facture.adresse_livraison}\n\n`;
     } else if (facture.mode_livraison === 'livraison_payante') {
-      message += `🚛 *Livraison payante* (${facture.frais_livraison.toLocaleString()} FCFA)\n`;
+      message += `🚛 *Livraison payante* (${facture.frais_livraison?.toLocaleString() || 0} FCFA)\n`;
       message += `📍 ${facture.adresse_livraison}\n\n`;
     }
     
@@ -133,8 +143,7 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
     message += `🌐 www.cornerstonebrique.com\n\n`;
     message += `Merci de votre confiance ! 🙏`;
 
-    // Si un numéro de téléphone client est disponible, l'utiliser
-    const phoneNumber = facture.client_telephone ? facture.client_telephone.replace(/\s/g, '') : '';
+    const phoneNumber = facture.client_telephone ? facture.client_telephone.replace(/\s/g, '').replace(/^\+/, '') : '';
     const whatsappUrl = phoneNumber 
       ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
       : `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -149,35 +158,7 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
     });
   };
 
-  const handleShare = async () => {
-    const shareData = {
-      title: `${type === 'facture' ? 'Facture' : 'Devis'} ${type === 'facture' ? facture.numero_facture : facture.numero_devis}`,
-      text: `${type === 'facture' ? 'Facture' : 'Devis'} de Cornerstone Briques pour ${facture.client_nom} - ${facture.montant_total.toLocaleString()} FCFA`,
-      url: window.location.href
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        toast({
-          title: "Partagé",
-          description: "Le document a été partagé avec succès",
-        });
-      } catch (error) {
-        console.error('Error sharing:', error);
-      }
-    } else {
-      // Fallback pour les navigateurs qui ne supportent pas l'API Web Share
-      navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
-      toast({
-        title: "Copié",
-        description: "Les informations ont été copiées dans le presse-papiers",
-      });
-    }
-  };
-
   const handleSaveDocument = () => {
-    // Sauvegarder le document dans le navigateur local
     const documentData = {
       ...facture,
       type,
@@ -214,7 +195,7 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
                 variant="outline"
                 size="sm"
                 onClick={handlePrint}
-                className="flex items-center gap-2 hover:bg-blue-50"
+                className="flex items-center gap-2 hover:bg-blue-50 h-10"
               >
                 <Printer className="h-4 w-4" />
                 Imprimer
@@ -224,31 +205,22 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
                 size="sm"
                 onClick={handleDownloadPDF}
                 disabled={isExporting}
-                className="flex items-center gap-2 hover:bg-red-50"
+                className="flex items-center gap-2 hover:bg-red-50 h-10"
               >
                 <Download className="h-4 w-4" />
                 {isExporting ? 'Export...' : 'PDF'}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveDocument}
-                className="flex items-center gap-2 hover:bg-purple-50"
-              >
-                <FileText className="h-4 w-4" />
-                Sauvegarder
               </Button>
             </div>
           </DialogTitle>
         </DialogHeader>
 
         {/* Actions de partage */}
-        <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-wrap gap-3 p-4 bg-gray-50 rounded-lg border">
           <Button
             variant="outline"
             size="sm"
             onClick={handleSendEmail}
-            className="flex items-center gap-2 hover:bg-blue-50"
+            className="flex items-center gap-2 hover:bg-blue-50 h-10"
           >
             <Mail className="h-4 w-4" />
             Envoyer par Email
@@ -257,22 +229,20 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
             variant="outline"
             size="sm"
             onClick={handleSendWhatsApp}
-            className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+            className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200 h-10"
           >
             <MessageCircle className="h-4 w-4" />
             Envoyer par WhatsApp
           </Button>
-          {navigator.share && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleShare}
-              className="flex items-center gap-2 hover:bg-orange-50"
-            >
-              <Share2 className="h-4 w-4" />
-              Partager
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSaveDocument}
+            className="flex items-center gap-2 hover:bg-purple-50 h-10"
+          >
+            <FileText className="h-4 w-4" />
+            Sauvegarder
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -284,7 +254,7 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
                 description: "Informations copiées dans le presse-papiers",
               });
             }}
-            className="flex items-center gap-2 hover:bg-gray-50"
+            className="flex items-center gap-2 hover:bg-gray-50 h-10"
           >
             <Send className="h-4 w-4" />
             Copier infos
@@ -312,8 +282,8 @@ export const VueFacture = ({ open, onOpenChange, facture, type }: VueFactureProp
           />
         </div>
 
-        <div className="flex justify-end gap-2 print:hidden">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="flex justify-end gap-3 print:hidden pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 px-6">
             Fermer
           </Button>
         </div>

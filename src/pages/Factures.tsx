@@ -4,13 +4,13 @@ import { Plus, Eye, Edit, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DialogueFactureComplete } from '@/components/facturation/DialogueFactureComplete';
+import { DialogueFactureSimple } from '@/components/facturation/DialogueFactureSimple';
 import { VueFactureComplete } from '@/components/facturation/VueFactureComplete';
-import { useFacturesProfessionnelles } from '@/hooks/useFacturesProfessionnelles';
+import { useFacturesDatabase } from '@/hooks/useFacturesDatabase';
 import { useToast } from '@/hooks/use-toast';
 
 const Factures = () => {
-  const { data: factures, loading, remove } = useFacturesProfessionnelles();
+  const { factures, loading, deleteFacture } = useFacturesDatabase();
   const { toast } = useToast();
   const [selectedFacture, setSelectedFacture] = useState<any | null>(null);
   const [showDialog, setShowDialog] = useState(false);
@@ -29,17 +29,9 @@ const Factures = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
       try {
-        await remove(id);
-        toast({
-          title: "Succès",
-          description: "Facture supprimée avec succès",
-        });
+        await deleteFacture(id);
       } catch (error) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de supprimer la facture",
-          variant: "destructive",
-        });
+        console.error('Error deleting invoice:', error);
       }
     }
   };
@@ -72,9 +64,9 @@ const Factures = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Gestion des Factures Professionnelles</h1>
+          <h1 className="text-3xl font-bold">Gestion des Factures</h1>
           <p className="text-muted-foreground">
-            Créez et gérez vos factures avec sélection avancée de produits
+            Créez et gérez vos factures avec plusieurs produits
           </p>
         </div>
         <Button onClick={() => setShowDialog(true)}>
@@ -143,8 +135,8 @@ const Factures = () => {
                     </span>
                   </div>
                   <div>
-                    <span className="font-medium">Échéance:</span><br />
-                    {facture.date_echeance ? new Date(facture.date_echeance).toLocaleDateString('fr-FR') : 'Non définie'}
+                    <span className="font-medium">Nb. produits:</span><br />
+                    {facture.facture_items?.length || 0} produit(s)
                   </div>
                 </div>
                 {facture.commentaires && (
@@ -159,7 +151,7 @@ const Factures = () => {
         )}
       </div>
 
-      <DialogueFactureComplete
+      <DialogueFactureSimple
         open={showDialog}
         onOpenChange={setShowDialog}
         facture={selectedFacture}

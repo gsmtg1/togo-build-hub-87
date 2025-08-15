@@ -66,7 +66,7 @@ export const useInvoicesManager = () => {
       console.error('💥 Erreur dans loadInvoices:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger les factures",
+        description: "Impossible de charger les factures: " + error.message,
         variant: "destructive",
       });
     } finally {

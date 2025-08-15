@@ -58,6 +58,17 @@ export const VueFactureComplete = ({ open, onOpenChange, facture }: VueFactureCo
     window.print();
   };
 
+  // Préparer les produits pour le template
+  const products = facture.facture_items?.map((item: any) => ({
+    nom_produit: item.nom_produit,
+    quantite: item.quantite,
+    prix_unitaire: item.prix_unitaire,
+    total_ligne: item.total_ligne,
+    prix_original: item.prix_original,
+    remise_pourcentage: item.remise_pourcentage,
+    remise_montant: item.remise_montant
+  })) || [];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -85,8 +96,22 @@ export const VueFactureComplete = ({ open, onOpenChange, facture }: VueFactureCo
           {/* Facture */}
           <div id="facture-print">
             <CornerstoneInvoiceTemplate 
-              facture={facture}
               type="facture"
+              numero={facture.numero_facture}
+              date={facture.date_facture}
+              dateEcheance={facture.date_echeance}
+              clientNom={facture.client_nom}
+              clientTelephone={facture.client_telephone}
+              clientAdresse={facture.client_adresse}
+              products={products}
+              montantTotal={facture.montant_total}
+              statut={facture.statut}
+              commentaires={facture.commentaires}
+              modeLivraison={facture.mode_livraison}
+              fraisLivraison={facture.frais_livraison}
+              adresseLivraison={facture.adresse_livraison}
+              sousTotal={facture.sous_total}
+              remiseGlobale={facture.remise_globale}
             />
           </div>
         </div>

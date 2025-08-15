@@ -11,7 +11,8 @@ import { VueFactureComplete } from './VueFactureComplete';
 import { useFacturesProfessionnelles } from '@/hooks/useFacturesProfessionnelles';
 import { useClientsComplets } from '@/hooks/useFacturationDatabase';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Send, Download, Printer, Eye } from 'lucide-react';
+import { FileText, Eye, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ProduitFacture {
   id: string;
@@ -38,6 +39,7 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
   const [showPreview, setShowPreview] = useState(false);
   const [savedFacture, setSavedFacture] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
   
   const [formData, setFormData] = useState({
     numero_facture: '',
@@ -57,8 +59,10 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
     statut: 'brouillon' as const
   });
 
+  // Initialisation des données
   useEffect(() => {
     if (facture) {
+      // Mode édition
       setFormData({
         numero_facture: facture.numero_facture || '',
         client_id: facture.client_id || '',
@@ -86,8 +90,11 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
           total_ligne: item.total_ligne
         }));
         setProduits(produitsFacture);
+      } else {
+        setProduits([]);
       }
     } else {
+      // Mode création
       const numeroFacture = `FAC-${Date.now().toString().slice(-6)}`;
       setFormData({
         numero_facture: numeroFacture,
@@ -108,10 +115,12 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
       });
       setProduits([]);
     }
-  }, [facture]);
+    
+    setErrors([]);
+  }, [facture, open]);
 
   const calculerTotaux = () => {
-    const sousTotal = produits.reduce((sum, p) => sum + p.total_ligne, 0);
+    const sousTotal = produits.reduce((sum, p) => sum + (p.total_ligne || 0), 0);
     const montantRemise = formData.remise_pourcentage > 0 
       ? (sousTotal * formData.remise_pourcentage) / 100 
       : formData.remise_montant;
@@ -126,6 +135,41 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
       fraisLivraison,
       totalFinal
     };
+  };
+
+  const validateForm = (): string[] => {
+    const newErrors: string[] = [];
+    
+    if (!formData.numero_facture.trim()) {
+      newErrors.push('Le numéro de facture est requis');
+    }
+    
+    if (!formData.client_nom.trim()) {
+      newErrors.push('Le nom du client est requis');
+    }
+    
+    if (!formData.date_facture) {
+      newErrors.push('La date de facture est requise');
+    }
+    
+    if (produits.length === 0) {
+      newErrors.push('Au moins un produit doit être ajouté à la facture');
+    }
+    
+    // Valider chaque produit
+    produits.forEach((produit, index) => {
+      if (!produit.nom.trim()) {
+        newErrors.push(`Le produit ${index + 1} doit avoir un nom`);
+      }
+      if (produit.quantite <= 0) {
+        newErrors.push(`Le produit ${index + 1} doit avoir une quantité supérieure à 0`);
+      }
+      if (produit.prix_unitaire < 0) {
+        newErrors.push(`Le produit ${index + 1} ne peut pas avoir un prix négatif`);
+      }
+    });
+    
+    return newErrors;
   };
 
   const handleClientChange = (clientId: string) => {
@@ -145,69 +189,54 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('=== DÉBUT CRÉATION FACTURE ===');
-    console.log('Produits sélectionnés:', produits);
-    console.log('Données du formulaire:', formData);
+    console.log('=== DÉBUT SOUMISSION FORMULAIRE ===');
     
-    if (produits.length === 0) {
+    // Validation
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
       toast({
-        title: "Erreur",
-        description: "Veuillez ajouter au moins un produit à la facture",
+        title: "Erreurs de validation",
+        description: validationErrors[0],
         variant: "destructive",
       });
       return;
     }
-
-    if (!formData.client_nom.trim()) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez saisir le nom du client",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.numero_facture.trim()) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez saisir le numéro de facture",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    
+    setErrors([]);
     setIsLoading(true);
+    
     const totaux = calculerTotaux();
-
+    
     try {
       const factureData = {
-        numero_facture: formData.numero_facture,
+        numero_facture: formData.numero_facture.trim(),
         client_id: formData.client_id || null,
-        client_nom: formData.client_nom,
-        client_telephone: formData.client_telephone || '',
-        client_adresse: formData.client_adresse || '',
+        client_nom: formData.client_nom.trim(),
+        client_telephone: formData.client_telephone.trim(),
+        client_adresse: formData.client_adresse.trim(),
         date_facture: formData.date_facture,
         date_echeance: formData.date_echeance || null,
         montant_total: totaux.totalFinal,
         statut: formData.statut,
-        commentaires: formData.commentaires || '',
+        commentaires: formData.commentaires.trim(),
         mode_livraison: formData.mode_livraison,
         frais_livraison: totaux.fraisLivraison,
-        adresse_livraison: formData.adresse_livraison || '',
+        adresse_livraison: formData.adresse_livraison.trim(),
         sous_total: totaux.sousTotal,
         remise_globale_montant: totaux.montantRemise
       };
 
       const produitsData = produits.map(p => ({
-        nom_produit: p.nom,
+        nom_produit: p.nom.trim(),
         quantite: p.quantite,
         prix_unitaire: p.prix_unitaire,
         total_ligne: p.total_ligne,
         product_id: p.id.startsWith('custom-') ? null : p.id
       }));
 
-      console.log('Données facture à sauvegarder:', factureData);
-      console.log('Items à sauvegarder:', produitsData);
+      console.log('Données de la facture à sauvegarder:', factureData);
+      console.log('Produits à sauvegarder:', produitsData);
 
       let result;
       if (facture) {
@@ -219,41 +248,35 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
       }
       
       console.log('Résultat de sauvegarde:', result);
+      
+      // Préparer les données pour l'aperçu
       setSavedFacture({
         ...result,
         ...factureData,
         facture_items: produitsData
       });
       
-      toast({
-        title: "Succès",
-        description: facture ? "Facture mise à jour avec succès" : "Facture créée avec succès",
-      });
-
       // Fermer le dialogue principal et ouvrir l'aperçu
       onOpenChange(false);
       setShowPreview(true);
       
-    } catch (error) {
-      console.error('=== ERREUR CRÉATION FACTURE ===');
-      console.error('Erreur complète:', error);
-      console.error('Stack trace:', error);
+    } catch (error: any) {
+      console.error('=== ERREUR SOUMISSION FORMULAIRE ===');
+      console.error('Erreur:', error);
       
-      toast({
-        title: "Erreur",
-        description: `Impossible de sauvegarder la facture: ${error.message || 'Erreur inconnue'}`,
-        variant: "destructive",
-      });
+      setErrors([error.message || 'Erreur inconnue lors de la sauvegarde']);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handlePreview = () => {
-    if (produits.length === 0) {
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
       toast({
-        title: "Erreur",
-        description: "Veuillez ajouter au moins un produit pour voir l'aperçu",
+        title: "Erreurs de validation",
+        description: "Veuillez corriger les erreurs avant de voir l'aperçu",
         variant: "destructive",
       });
       return;
@@ -296,6 +319,20 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
               {facture ? 'Modifier la facture' : 'Nouvelle facture'}
             </DialogTitle>
           </DialogHeader>
+
+          {/* Affichage des erreurs */}
+          {errors.length > 0 && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <ul className="list-disc list-inside">
+                  {errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Informations générales */}
@@ -526,14 +563,14 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
             {/* Actions */}
             <div className="flex flex-wrap gap-3 justify-between pt-4 border-t">
               <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={onClose}>
+                <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                   Annuler
                 </Button>
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={handlePreview}
-                  disabled={produits.length === 0}
+                  disabled={isLoading}
                   className="flex items-center gap-2"
                 >
                   <Eye className="h-4 w-4" />
@@ -543,7 +580,7 @@ export const DialogueFactureComplete = ({ open, onOpenChange, facture, onClose }
 
               <Button 
                 type="submit" 
-                disabled={produits.length === 0 || !formData.numero_facture || !formData.client_nom || isLoading}
+                disabled={isLoading}
                 className="bg-orange-500 hover:bg-orange-600"
               >
                 {isLoading ? 'Sauvegarde...' : (facture ? 'Mettre à jour' : 'Créer la facture')}

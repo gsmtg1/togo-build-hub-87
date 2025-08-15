@@ -10,6 +10,7 @@ interface Product {
 }
 
 interface CornerstoneInvoiceTemplateProps {
+  type?: 'facture' | 'devis' | string;
   numero: string;
   date: string;
   dateEcheance?: string;
@@ -24,9 +25,11 @@ interface CornerstoneInvoiceTemplateProps {
   fraisLivraison?: number;
   adresseLivraison?: string;
   sousTotal?: number;
+  remiseGlobale?: number;
 }
 
 export const CornerstoneInvoiceTemplate = ({
+  type = 'facture',
   numero,
   date,
   dateEcheance,
@@ -40,7 +43,8 @@ export const CornerstoneInvoiceTemplate = ({
   modeLivraison,
   fraisLivraison,
   adresseLivraison,
-  sousTotal
+  sousTotal,
+  remiseGlobale
 }: CornerstoneInvoiceTemplateProps) => {
   
   const formatCurrency = (amount: number) => {
@@ -53,8 +57,19 @@ export const CornerstoneInvoiceTemplate = ({
 
   const calculatedSousTotal = sousTotal || products.reduce((sum, product) => sum + product.total_ligne, 0);
   const frais = fraisLivraison || 0;
-  const tva = calculatedSousTotal * 0.18; // TVA 18%
-  const totalFinal = calculatedSousTotal + frais + tva;
+  const remise = remiseGlobale || 0;
+  const tva = (calculatedSousTotal - remise) * 0.18; // TVA 18% après remise
+  const totalFinal = calculatedSousTotal - remise + frais + tva;
+
+  const getDocumentTitle = () => {
+    switch (type) {
+      case 'devis':
+        return 'DEVIS';
+      case 'facture':
+      default:
+        return 'FACTURE';
+    }
+  };
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-white shadow-lg print:shadow-none">
@@ -78,7 +93,7 @@ export const CornerstoneInvoiceTemplate = ({
             </div>
           </div>
           <div className="text-right">
-            <h2 className="text-2xl font-bold">FACTURE</h2>
+            <h2 className="text-2xl font-bold">{getDocumentTitle()}</h2>
             <p className="text-lg">N° {numero}</p>
             <p className="text-sm">Date: {new Date(date).toLocaleDateString('fr-FR')}</p>
             {statut && (
@@ -107,7 +122,7 @@ export const CornerstoneInvoiceTemplate = ({
             </div>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-orange-600 mb-3">DÉTAILS FACTURE:</h3>
+            <h3 className="text-lg font-semibold text-orange-600 mb-3">DÉTAILS {getDocumentTitle()}:</h3>
             <div className="space-y-1">
               <p><strong>Date d'émission:</strong> {new Date(date).toLocaleDateString('fr-FR')}</p>
               {dateEcheance && (
@@ -160,6 +175,13 @@ export const CornerstoneInvoiceTemplate = ({
                 <span>Montant HT:</span>
                 <span className="font-semibold">{formatCurrency(calculatedSousTotal)}</span>
               </div>
+              
+              {remise > 0 && (
+                <div className="flex justify-between text-red-600">
+                  <span>Remise:</span>
+                  <span className="font-semibold">-{formatCurrency(remise)}</span>
+                </div>
+              )}
               
               <div className="flex justify-between">
                 <span>TVA (18%):</span>

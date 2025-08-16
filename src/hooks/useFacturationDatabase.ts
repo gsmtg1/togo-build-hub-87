@@ -142,8 +142,106 @@ export const useFacturationDatabase = () => {
     return { data, loading, remove, refresh: loadData };
   };
 
+  // Hook pour les clients complets
+  const useClientsComplets = () => {
+    const [data, setData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const { toast } = useToast();
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const { data: clients, error } = await supabase
+          .from('clients')
+          .select('*')
+          .order('nom_complet', { ascending: true });
+
+        if (error) throw error;
+        setData(clients || []);
+      } catch (error: any) {
+        console.error('Erreur chargement clients:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les clients",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      loadData();
+    }, []);
+
+    return { data, loading, refresh: loadData };
+  };
+
+  // Hook pour les ordres de production briques
+  const useOrdresProductionBriques = () => {
+    const [data, setData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const { toast } = useToast();
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const { data: ordres, error } = await supabase
+          .from('ordres_production')
+          .select(`
+            *,
+            ordres_production_details (
+              id,
+              type_brique,
+              quantite_prevue,
+              quantite_produite,
+              statut
+            )
+          `)
+          .order('date_debut', { ascending: false });
+
+        if (error) throw error;
+        setData(ordres || []);
+      } catch (error: any) {
+        console.error('Erreur chargement ordres production:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les ordres de production",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      loadData();
+    }, []);
+
+    return { data, loading, refresh: loadData };
+  };
+
   return {
     useFacturesProfessionnelles,
-    useDevisProfessionnels
+    useDevisProfessionnels,
+    useClientsComplets,
+    useOrdresProductionBriques
   };
+};
+
+// Export des hooks individuels pour faciliter l'utilisation
+export const useFacturesProfessionnelles = () => {
+  return useFacturationDatabase().useFacturesProfessionnelles();
+};
+
+export const useDevisProfessionnels = () => {
+  return useFacturationDatabase().useDevisProfessionnels();
+};
+
+export const useClientsComplets = () => {
+  return useFacturationDatabase().useClientsComplets();
+};
+
+export const useOrdresProductionBriques = () => {
+  return useFacturationDatabase().useOrdresProductionBriques();
 };

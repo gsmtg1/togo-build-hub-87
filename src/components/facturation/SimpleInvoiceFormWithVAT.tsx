@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -156,26 +155,52 @@ export const SimpleInvoiceFormWithVAT = ({
     setLoading(true);
 
     try {
-      const documentData = {
-        [type === 'facture' ? 'numero_facture' : 'numero_devis']: numeroDocument,
-        client_id: selectedClientId || null,
-        client_nom: selectedClientName,
-        client_telephone: clientTelephone,
-        client_adresse: clientAdresse,
-        [type === 'facture' ? 'date_facture' : 'date_devis']: dateDocument,
-        date_echeance: dateEcheance || null,
-        statut,
-        commentaires,
-        montant_total: montantTotal,
-        sous_total: sousTotal,
-        tva_applicable: tvaApplicable,
-        taux_tva: tauxTva,
-        montant_tva: montantTva,
-        frais_livraison: fraisLivraison,
-        remise_globale_montant: remiseGlobale,
-        mode_livraison: modeLivraison,
-        adresse_livraison: adresseLivraison
-      };
+      // Créer l'objet de données avec les propriétés correctes selon le type
+      let documentData: any;
+      
+      if (type === 'facture') {
+        documentData = {
+          numero_facture: numeroDocument,
+          date_facture: dateDocument,
+          client_id: selectedClientId || null,
+          client_nom: selectedClientName,
+          client_telephone: clientTelephone,
+          client_adresse: clientAdresse,
+          date_echeance: dateEcheance || null,
+          statut,
+          commentaires,
+          montant_total: montantTotal,
+          sous_total: sousTotal,
+          tva_applicable: tvaApplicable,
+          taux_tva: tauxTva,
+          montant_tva: montantTva,
+          frais_livraison: fraisLivraison,
+          remise_globale_montant: remiseGlobale,
+          mode_livraison: modeLivraison,
+          adresse_livraison: adresseLivraison
+        };
+      } else {
+        documentData = {
+          numero_devis: numeroDocument,
+          date_devis: dateDocument,
+          client_id: selectedClientId || null,
+          client_nom: selectedClientName,
+          client_telephone: clientTelephone,
+          client_adresse: clientAdresse,
+          date_echeance: dateEcheance || null,
+          statut,
+          commentaires,
+          montant_total: montantTotal,
+          sous_total: sousTotal,
+          tva_applicable: tvaApplicable,
+          taux_tva: tauxTva,
+          montant_tva: montantTva,
+          frais_livraison: fraisLivraison,
+          remise_globale_montant: remiseGlobale,
+          mode_livraison: modeLivraison,
+          adresse_livraison: adresseLivraison
+        };
+      }
 
       console.log(`Création ${type}:`, documentData);
       console.log('Produits:', produits);

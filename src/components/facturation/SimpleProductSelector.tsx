@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState } from 'use';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,7 +38,7 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
     if (!stockProduct) return;
 
     const newProduct: ProductItem = {
-      id: `stock-${Date.now()}`,
+      id: `stock-${stockProduct.id}`,
       nom: stockProduct.name,
       quantite: 1,
       prix_unitaire: stockProduct.price || 0,
@@ -96,10 +96,9 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'XOF',
       minimumFractionDigits: 0,
-    }).format(amount);
+      maximumFractionDigits: 0,
+    }).format(amount) + ' FCFA';
   };
 
   return (

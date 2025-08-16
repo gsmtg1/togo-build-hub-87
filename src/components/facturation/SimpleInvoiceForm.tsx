@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SimpleProductSelector } from './SimpleProductSelector';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, Eye } from 'lucide-react';
 
 interface ProductItem {
   id: string;
@@ -18,11 +18,12 @@ interface ProductItem {
 
 interface SimpleInvoiceFormProps {
   onSubmit: (formData: any, products: any[]) => Promise<void>;
+  onPreview?: (formData: any, products: any[]) => void;
   isLoading: boolean;
   initialData?: any;
 }
 
-export const SimpleInvoiceForm = ({ onSubmit, isLoading, initialData }: SimpleInvoiceFormProps) => {
+export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData }: SimpleInvoiceFormProps) => {
   const [formData, setFormData] = useState({
     numero_facture: `FAC-${Date.now().toString().slice(-6)}`,
     client_nom: '',
@@ -53,18 +54,24 @@ export const SimpleInvoiceForm = ({ onSubmit, isLoading, initialData }: SimpleIn
     return { sousTotal, montantTotal };
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const validateForm = () => {
     if (!formData.client_nom.trim()) {
       alert('Le nom du client est obligatoire');
-      return;
+      return false;
     }
     
     if (products.length === 0) {
       alert('Veuillez ajouter au moins un produit');
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
 
     const { sousTotal, montantTotal } = calculateTotals();
     
@@ -79,6 +86,20 @@ export const SimpleInvoiceForm = ({ onSubmit, isLoading, initialData }: SimpleIn
     } catch (error) {
       console.error('Erreur lors de la soumission:', error);
     }
+  };
+
+  const handlePreview = () => {
+    if (!validateForm()) return;
+
+    const { sousTotal, montantTotal } = calculateTotals();
+    
+    const finalFormData = {
+      ...formData,
+      sous_total: sousTotal,
+      montant_total: montantTotal
+    };
+
+    onPreview?.(finalFormData, products);
   };
 
   const { sousTotal, montantTotal } = calculateTotals();
@@ -134,8 +155,8 @@ export const SimpleInvoiceForm = ({ onSubmit, isLoading, initialData }: SimpleIn
             >
               <option value="brouillon">Brouillon</option>
               <option value="envoye">Envoyé</option>
-              <option value="paye">Payé</option>
-              <option value="annule">Annulé</option>
+              <option value="payee">Payée</option>
+              <option value="annulee">Annulée</option>
             </select>
           </div>
         </CardContent>
@@ -267,8 +288,21 @@ export const SimpleInvoiceForm = ({ onSubmit, isLoading, initialData }: SimpleIn
         </CardContent>
       </Card>
 
-      {/* Bouton de soumission */}
-      <div className="flex justify-end">
+      {/* Boutons d'action */}
+      <div className="flex justify-end gap-3">
+        {onPreview && (
+          <Button 
+            type="button"
+            onClick={handlePreview}
+            disabled={products.length === 0}
+            variant="outline"
+            className="px-6"
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            Aperçu
+          </Button>
+        )}
+        
         <Button 
           type="submit" 
           disabled={isLoading || products.length === 0}

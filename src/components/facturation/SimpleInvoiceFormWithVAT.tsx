@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -120,31 +119,8 @@ export const SimpleInvoiceFormWithVAT = ({
     onSubmit(invoiceData, formattedProducts);
   };
 
-  // Convert ProductItem[] to the format expected by SimpleProductSelector
-  const convertToSelectorProducts = (items: ProductItem[]) => {
-    return items.map(item => ({
-      id: item.id,
-      name: item.nom,
-      quantity: item.quantite,
-      unitPrice: item.prix_unitaire,
-      totalPrice: item.total_ligne
-    }));
-  };
-
-  // Convert from SimpleProductSelector format back to ProductItem[]
-  const convertFromSelectorProducts = (selectorProducts: any[]) => {
-    return selectorProducts.map(product => ({
-      id: product.id,
-      nom: product.name,
-      quantite: product.quantity,
-      prix_unitaire: product.unitPrice,
-      total_ligne: product.totalPrice
-    }));
-  };
-
-  const handleProductsChange = (selectorProducts: any[]) => {
-    const convertedProducts = convertFromSelectorProducts(selectorProducts);
-    setProducts(convertedProducts);
+  const handleProductsChange = (updatedProducts: ProductItem[]) => {
+    setProducts(updatedProducts);
   };
 
   return (
@@ -347,7 +323,7 @@ export const SimpleInvoiceFormWithVAT = ({
         </CardHeader>
         <CardContent>
           <SimpleProductSelector
-            products={convertToSelectorProducts(products)}
+            products={products}
             onProductsChange={handleProductsChange}
           />
         </CardContent>

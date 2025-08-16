@@ -26,6 +26,9 @@ interface CornerstoneInvoiceTemplateProps {
   adresseLivraison?: string;
   sousTotal?: number;
   remiseGlobale?: number;
+  tvaApplicable?: boolean;
+  tauxTva?: number;
+  montantTva?: number;
 }
 
 export const CornerstoneInvoiceTemplate = ({
@@ -44,7 +47,10 @@ export const CornerstoneInvoiceTemplate = ({
   fraisLivraison,
   adresseLivraison,
   sousTotal,
-  remiseGlobale
+  remiseGlobale,
+  tvaApplicable = false,
+  tauxTva = 18,
+  montantTva = 0
 }: CornerstoneInvoiceTemplateProps) => {
   
   const formatCurrency = (amount: number) => {
@@ -57,7 +63,7 @@ export const CornerstoneInvoiceTemplate = ({
   const calculatedSousTotal = sousTotal || products.reduce((sum, product) => sum + product.total_ligne, 0);
   const frais = fraisLivraison || 0;
   const remise = remiseGlobale || 0;
-  const tva = (calculatedSousTotal - remise) * 0.18; // TVA 18% après remise
+  const tva = tvaApplicable ? montantTva || (calculatedSousTotal - remise) * (tauxTva / 100) : 0;
   const totalFinal = calculatedSousTotal - remise + frais + tva;
 
   const getDocumentTitle = () => {
@@ -75,16 +81,18 @@ export const CornerstoneInvoiceTemplate = ({
     
     const statusColors = {
       'brouillon': 'bg-gray-500',
-      'envoye': 'bg-blue-500',
-      'paye': 'bg-green-500',
-      'annule': 'bg-red-500'
+      'valide': 'bg-green-500',
+      'envoyee': 'bg-blue-500',
+      'payee': 'bg-green-600',
+      'annulee': 'bg-red-500'
     };
     
     const statusLabels = {
       'brouillon': 'BROUILLON',
-      'envoye': 'ENVOYÉ',
-      'paye': 'PAYÉ',
-      'annule': 'ANNULÉ'
+      'valide': 'VALIDÉ',
+      'envoyee': 'ENVOYÉ',
+      'payee': 'PAYÉ',
+      'annulee': 'ANNULÉ'
     };
     
     return (
@@ -155,6 +163,9 @@ export const CornerstoneInvoiceTemplate = ({
                   modeLivraison
                 }</p>
               )}
+              {tvaApplicable && (
+                <p><strong>TVA applicable:</strong> Oui ({tauxTva}%)</p>
+              )}
             </div>
           </div>
         </div>
@@ -162,26 +173,32 @@ export const CornerstoneInvoiceTemplate = ({
 
       {/* Tableau des produits */}
       <div className="p-6">
-        <table className="w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-orange-500 text-white">
-              <th className="border border-gray-300 p-3 text-left">DÉSIGNATION</th>
-              <th className="border border-gray-300 p-3 text-center w-20">QTÉ</th>
-              <th className="border border-gray-300 p-3 text-right w-32">P.U. HT</th>
-              <th className="border border-gray-300 p-3 text-right w-32">TOTAL HT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product, index) => (
-              <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-orange-50'}>
-                <td className="border border-gray-300 p-3">{product.nom_produit}</td>
-                <td className="border border-gray-300 p-3 text-center">{product.quantite}</td>
-                <td className="border border-gray-300 p-3 text-right">{formatCurrency(product.prix_unitaire)}</td>
-                <td className="border border-gray-300 p-3 text-right font-semibold">{formatCurrency(product.total_ligne)}</td>
+        {products.length > 0 ? (
+          <table className="w-full border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-orange-500 text-white">
+                <th className="border border-gray-300 p-3 text-left">DÉSIGNATION</th>
+                <th className="border border-gray-300 p-3 text-center w-20">QTÉ</th>
+                <th className="border border-gray-300 p-3 text-right w-32">P.U. HT</th>
+                <th className="border border-gray-300 p-3 text-right w-32">TOTAL HT</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {products.map((product, index) => (
+                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-orange-50'}>
+                  <td className="border border-gray-300 p-3">{product.nom_produit}</td>
+                  <td className="border border-gray-300 p-3 text-center">{product.quantite}</td>
+                  <td className="border border-gray-300 p-3 text-right">{formatCurrency(product.prix_unitaire)}</td>
+                  <td className="border border-gray-300 p-3 text-right font-semibold">{formatCurrency(product.total_ligne)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <p>Aucun produit ajouté à cette {type}</p>
+          </div>
+        )}
       </div>
 
       {/* Totaux */}
@@ -201,10 +218,12 @@ export const CornerstoneInvoiceTemplate = ({
                 </div>
               )}
               
-              <div className="flex justify-between">
-                <span>TVA (18%):</span>
-                <span className="font-semibold">{formatCurrency(tva)}</span>
-              </div>
+              {tvaApplicable && (
+                <div className="flex justify-between">
+                  <span>TVA ({tauxTva}%):</span>
+                  <span className="font-semibold">{formatCurrency(tva)}</span>
+                </div>
+              )}
               
               {frais > 0 && (
                 <div className="flex justify-between">
@@ -215,7 +234,7 @@ export const CornerstoneInvoiceTemplate = ({
               
               <hr className="border-orange-300" />
               <div className="flex justify-between text-xl font-bold text-orange-600">
-                <span>TOTAL TTC:</span>
+                <span>TOTAL {tvaApplicable ? 'TTC' : 'HT'}:</span>
                 <span>{formatCurrency(montantTotal || totalFinal)}</span>
               </div>
             </div>
@@ -249,6 +268,9 @@ export const CornerstoneInvoiceTemplate = ({
               <div>• Mobile Money: +228 71014747</div>
               <div>• Délai de paiement: {dateEcheance ? new Date(dateEcheance).toLocaleDateString('fr-FR') : 'À réception'}</div>
               <div>• Toute facture impayée donnera lieu à des pénalités de retard</div>
+              {tvaApplicable && (
+                <div>• TVA {tauxTva}% incluse dans le montant total</div>
+              )}
             </div>
           </div>
           <div className="text-center ml-8">

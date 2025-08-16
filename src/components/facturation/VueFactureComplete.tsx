@@ -39,13 +39,16 @@ export const VueFactureComplete = ({
     onOpenChange(false);
   };
 
-  // Transformer les items de facture pour le template
+  // Transformer les items de facture pour le template - utilise la bonne relation
   const products = (facture.facture_items || []).map((item: any) => ({
     nom_produit: item.nom_produit,
     quantite: item.quantite,
     prix_unitaire: item.prix_unitaire,
     total_ligne: item.total_ligne
   }));
+
+  console.log('Facture complète:', facture);
+  console.log('Produits transformés:', products);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -74,6 +77,15 @@ export const VueFactureComplete = ({
         </DialogHeader>
 
         <div className="space-y-4">
+          {products.length === 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <p className="text-yellow-800">
+                ⚠️ Aucun produit trouvé pour cette facture. 
+                Cela peut indiquer un problème de synchronisation des données.
+              </p>
+            </div>
+          )}
+          
           <CornerstoneInvoiceTemplate
             type="facture"
             numero={facture.numero_facture}
@@ -91,6 +103,9 @@ export const VueFactureComplete = ({
             adresseLivraison={facture.adresse_livraison}
             sousTotal={facture.sous_total}
             remiseGlobale={facture.remise_globale_montant || 0}
+            tvaApplicable={facture.tva_applicable || false}
+            tauxTva={facture.taux_tva || 18}
+            montantTva={facture.montant_tva || 0}
           />
         </div>
       </DialogContent>

@@ -27,6 +27,9 @@ interface FactureData {
   adresse_livraison?: string;
   sous_total?: number;
   remise_globale_montant?: number;
+  tva_applicable?: boolean;
+  taux_tva?: number;
+  montant_tva?: number;
 }
 
 export const useFacturesProfessionnelles = () => {
@@ -98,6 +101,12 @@ export const useFacturesProfessionnelles = () => {
         }
       }
 
+      // Calculer les montants avec TVA si applicable
+      const sousTotal = Number(factureData.sous_total) || 0;
+      const tauxTva = factureData.tva_applicable ? (factureData.taux_tva || 18) : 0;
+      const montantTva = factureData.tva_applicable ? (sousTotal * tauxTva / 100) : 0;
+      const montantTotal = sousTotal + montantTva + (Number(factureData.frais_livraison) || 0) - (Number(factureData.remise_globale_montant) || 0);
+
       // Créer la facture principale
       console.log('Création de la facture principale...');
       const factureToInsert = {
@@ -108,14 +117,17 @@ export const useFacturesProfessionnelles = () => {
         client_adresse: factureData.client_adresse || '',
         date_facture: factureData.date_facture,
         date_echeance: factureData.date_echeance || null,
-        montant_total: Number(factureData.montant_total) || 0,
+        montant_total: montantTotal,
         statut: factureData.statut || 'brouillon',
         commentaires: factureData.commentaires || '',
         mode_livraison: factureData.mode_livraison || 'retrait_usine',
         frais_livraison: Number(factureData.frais_livraison) || 0,
         adresse_livraison: factureData.adresse_livraison || '',
-        sous_total: Number(factureData.sous_total) || 0,
-        remise_globale_montant: Number(factureData.remise_globale_montant) || 0
+        sous_total: sousTotal,
+        remise_globale_montant: Number(factureData.remise_globale_montant) || 0,
+        tva_applicable: factureData.tva_applicable || false,
+        taux_tva: tauxTva,
+        montant_tva: montantTva
       };
 
       console.log('Données à insérer pour la facture:', factureToInsert);
@@ -168,7 +180,6 @@ export const useFacturesProfessionnelles = () => {
       console.log('Items créés avec succès');
       console.log('=== FIN CRÉATION FACTURE (SUCCÈS) ===');
 
-      // Recharger les factures
       await fetchFactures();
       
       toast({

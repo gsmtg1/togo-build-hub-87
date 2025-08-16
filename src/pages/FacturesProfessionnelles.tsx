@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,7 +79,7 @@ export default function FacturesProfessionnelles() {
         <div>
           <h1 className="text-3xl font-bold text-orange-600">Factures Professionnelles</h1>
           <p className="text-gray-600 mt-2">
-            Gérez vos factures avec support multi-produits et aperçu PDF
+            Gérez vos factures avec support multi-produits, TVA configurable et aperçu PDF
           </p>
         </div>
         <Button 
@@ -119,6 +120,11 @@ export default function FacturesProfessionnelles() {
                         {facture.numero_facture}
                       </h3>
                       {getStatusBadge(facture.statut)}
+                      {facture.tva_applicable && (
+                        <Badge variant="outline" className="text-xs">
+                          TVA {facture.taux_tva || 18}%
+                        </Badge>
+                      )}
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -145,9 +151,14 @@ export default function FacturesProfessionnelles() {
                         <p className="text-xl font-bold text-orange-600">
                           {formatCurrency(facture.montant_total)}
                         </p>
-                        {facture.facture_produits && (
+                        {facture.facture_items && (
                           <p className="text-sm text-gray-500">
-                            {facture.facture_produits.length} produit(s)
+                            {facture.facture_items.length} produit(s)
+                          </p>
+                        )}
+                        {facture.tva_applicable && facture.montant_tva && (
+                          <p className="text-xs text-gray-500">
+                            dont TVA: {formatCurrency(facture.montant_tva)}
                           </p>
                         )}
                       </div>

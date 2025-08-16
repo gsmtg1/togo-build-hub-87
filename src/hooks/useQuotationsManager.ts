@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -69,14 +68,14 @@ export const useQuotationsManager = () => {
     }
   };
 
-  // Créer un nouveau devis avec produits - VERSION CORRIGÉE
+  // Créer un nouveau devis avec produits - VERSION AMÉLIORÉE
   const createQuotation = async (quotationData: QuotationData, products: QuotationProduct[]) => {
     try {
       setIsLoading(true);
       console.log('🔄 Création devis:', quotationData.numero_devis);
       console.log('📦 Produits:', products);
 
-      // Validation stricte
+      // Validation des données essentielles
       if (!quotationData.numero_devis?.trim()) {
         throw new Error('Le numéro de devis est obligatoire');
       }
@@ -87,19 +86,27 @@ export const useQuotationsManager = () => {
         throw new Error('Au moins un produit doit être ajouté');
       }
 
-      // Valider chaque produit
-      for (let i = 0; i < products.length; i++) {
-        const product = products[i];
-        if (!product.nom_produit?.trim()) {
-          throw new Error(`Le produit ${i + 1} doit avoir un nom`);
+      // Valider et corriger chaque produit
+      const processedProducts = products.map((product, index) => {
+        // Assigner un nom par défaut si vide
+        let nom_produit = product.nom_produit?.trim();
+        if (!nom_produit) {
+          nom_produit = `Produit/Service ${index + 1}`;
         }
+
+        // Validation des autres champs
         if (!product.quantite || product.quantite <= 0) {
-          throw new Error(`Le produit ${i + 1} doit avoir une quantité supérieure à 0`);
+          throw new Error(`Le produit "${nom_produit}" doit avoir une quantité supérieure à 0`);
         }
         if (product.prix_unitaire < 0) {
-          throw new Error(`Le produit ${i + 1} ne peut pas avoir un prix négatif`);
+          throw new Error(`Le produit "${nom_produit}" ne peut pas avoir un prix négatif`);
         }
-      }
+
+        return {
+          ...product,
+          nom_produit
+        };
+      });
 
       // Créer le devis principal
       const quotationPayload = {
@@ -135,9 +142,9 @@ export const useQuotationsManager = () => {
       console.log('✅ Devis créé:', newQuotation.id);
 
       // Créer les produits de devis dans la table devis_produits
-      const productsPayload = products.map(product => ({
+      const productsPayload = processedProducts.map(product => ({
         devis_id: newQuotation.id,
-        nom_produit: product.nom_produit.trim(),
+        nom_produit: product.nom_produit,
         quantite: Number(product.quantite),
         prix_unitaire: Number(product.prix_unitaire),
         total_ligne: Number(product.total_ligne),

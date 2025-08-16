@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Package } from 'lucide-react';
+import { Plus, Trash2, Package, Lightbulb } from 'lucide-react';
 import { useProductsWithStock } from '@/hooks/useSupabaseDatabase';
 
 interface ProductItem {
@@ -20,6 +19,17 @@ interface SimpleProductSelectorProps {
   products: ProductItem[];
   onProductsChange: (products: ProductItem[]) => void;
 }
+
+const DEFAULT_PRODUCT_NAMES = [
+  "Service externe",
+  "Produit tiers", 
+  "Prestation spéciale",
+  "Fourniture client",
+  "Service de transport",
+  "Installation",
+  "Maintenance",
+  "Consultation"
+];
 
 export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProductSelectorProps) => {
   const { products: stockProducts, loading } = useProductsWithStock();
@@ -50,14 +60,14 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
     setSelectedProductId('');
   };
 
-  // Ajouter un produit personnalisé
+  // Ajouter un produit personnalisé (nom optionnel)
   const addCustomProduct = () => {
-    if (!customProduct.nom.trim()) return;
-    
     const totalLigne = customProduct.quantite * customProduct.prix_unitaire;
+    const productName = customProduct.nom.trim() || "Produit/Service personnalisé";
+    
     const newProduct: ProductItem = {
       id: `custom-${Date.now()}`,
-      nom: customProduct.nom.trim(),
+      nom: productName,
       quantite: customProduct.quantite,
       prix_unitaire: customProduct.prix_unitaire,
       total_ligne: totalLigne
@@ -66,6 +76,20 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
     console.log('➕ Ajout produit personnalisé:', newProduct);
     onProductsChange([...products, newProduct]);
     setCustomProduct({ nom: '', quantite: 1, prix_unitaire: 0 });
+  };
+
+  // Ajouter un produit avec nom pré-défini
+  const addPredefinedProduct = (name: string) => {
+    const newProduct: ProductItem = {
+      id: `predefined-${Date.now()}`,
+      nom: name,
+      quantite: 1,
+      prix_unitaire: 0,
+      total_ligne: 0
+    };
+
+    console.log('➕ Ajout produit pré-défini:', newProduct);
+    onProductsChange([...products, newProduct]);
   };
 
   // Supprimer un produit
@@ -108,13 +132,20 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
           <Package className="h-5 w-5" />
           Produits de la facture
         </CardTitle>
+        <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg flex items-start gap-2">
+          <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">💡 Astuce :</p>
+            <p>Le nom du produit est optionnel. Vous pouvez créer des lignes pour des services externes, des produits tiers, ou des prestations spéciales sans avoir à remplir obligatoirement le nom.</p>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Ajout de produits */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Produit du stock */}
           <div className="p-4 border rounded-lg bg-blue-50">
-            <h4 className="font-medium mb-3 text-blue-800">Produit du stock</h4>
+            <h4 className="font-medium mb-3 text-blue-800">📦 Produit du stock</h4>
             <div className="space-y-3">
               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                 <SelectTrigger>
@@ -141,10 +172,10 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
 
           {/* Produit personnalisé */}
           <div className="p-4 border rounded-lg bg-green-50">
-            <h4 className="font-medium mb-3 text-green-800">Produit personnalisé</h4>
+            <h4 className="font-medium mb-3 text-green-800">✏️ Produit personnalisé</h4>
             <div className="space-y-3">
               <Input
-                placeholder="Nom du produit"
+                placeholder="Nom du produit (optionnel)"
                 value={customProduct.nom}
                 onChange={(e) => setCustomProduct(prev => ({ ...prev, nom: e.target.value }))}
               />
@@ -166,13 +197,30 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
               </div>
               <Button 
                 onClick={addCustomProduct} 
-                disabled={!customProduct.nom.trim()}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Ajouter produit personnalisé
               </Button>
             </div>
+          </div>
+        </div>
+
+        {/* Suggestions de noms pré-définis */}
+        <div className="p-4 border rounded-lg bg-orange-50">
+          <h4 className="font-medium mb-3 text-orange-800">🚀 Suggestions rapides</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {DEFAULT_PRODUCT_NAMES.map((name) => (
+              <Button
+                key={name}
+                variant="outline"
+                size="sm"
+                onClick={() => addPredefinedProduct(name)}
+                className="text-xs h-8 bg-white hover:bg-orange-100"
+              >
+                {name}
+              </Button>
+            ))}
           </div>
         </div>
 

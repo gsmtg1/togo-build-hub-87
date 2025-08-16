@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -74,14 +73,14 @@ export const useInvoicesManager = () => {
     }
   };
 
-  // Créer une nouvelle facture avec produits - VERSION CORRIGÉE
+  // Créer une nouvelle facture avec produits - VERSION AMÉLIORÉE
   const createInvoice = async (invoiceData: InvoiceData, products: InvoiceProduct[]) => {
     try {
       setIsLoading(true);
       console.log('🔄 Création facture:', invoiceData.numero_facture);
       console.log('📦 Produits à créer:', products);
 
-      // Validation stricte des données
+      // Validation des données essentielles
       if (!invoiceData.numero_facture?.trim()) {
         throw new Error('Le numéro de facture est obligatoire');
       }
@@ -92,19 +91,27 @@ export const useInvoicesManager = () => {
         throw new Error('Au moins un produit doit être ajouté à la facture');
       }
 
-      // Valider chaque produit
-      for (let i = 0; i < products.length; i++) {
-        const product = products[i];
-        if (!product.nom_produit?.trim()) {
-          throw new Error(`Le produit ${i + 1} doit avoir un nom`);
+      // Valider et corriger chaque produit
+      const processedProducts = products.map((product, index) => {
+        // Assigner un nom par défaut si vide
+        let nom_produit = product.nom_produit?.trim();
+        if (!nom_produit) {
+          nom_produit = `Produit/Service ${index + 1}`;
         }
+
+        // Validation des autres champs
         if (!product.quantite || product.quantite <= 0) {
-          throw new Error(`Le produit ${i + 1} doit avoir une quantité supérieure à 0`);
+          throw new Error(`Le produit "${nom_produit}" doit avoir une quantité supérieure à 0`);
         }
         if (product.prix_unitaire < 0) {
-          throw new Error(`Le produit ${i + 1} ne peut pas avoir un prix négatif`);
+          throw new Error(`Le produit "${nom_produit}" ne peut pas avoir un prix négatif`);
         }
-      }
+
+        return {
+          ...product,
+          nom_produit
+        };
+      });
 
       // Préparer les données de la facture
       const invoicePayload = {
@@ -147,9 +154,9 @@ export const useInvoicesManager = () => {
       console.log('✅ Facture créée avec ID:', newInvoice.id);
 
       // Préparer les produits pour insertion
-      const productsPayload = products.map(product => ({
+      const productsPayload = processedProducts.map(product => ({
         facture_id: newInvoice.id,
-        nom_produit: product.nom_produit.trim(),
+        nom_produit: product.nom_produit,
         quantite: Number(product.quantite),
         prix_unitaire: Number(product.prix_unitaire),
         total_ligne: Number(product.total_ligne),
@@ -184,7 +191,7 @@ export const useInvoicesManager = () => {
       
       toast({
         title: "Succès",
-        description: `Facture ${invoiceData.numero_facture} créée avec ${products.length} produit(s)`,
+        description: `Facture ${invoiceData.numero_facture} créée avec ${processedProducts.length} produit(s)`,
       });
 
       return newInvoice;

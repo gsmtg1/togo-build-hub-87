@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SimpleProductSelector } from './SimpleProductSelector';
-import { Loader2, FileText, Eye } from 'lucide-react';
+import { Loader2, FileText, Eye, AlertCircle } from 'lucide-react';
 
 interface ProductItem {
   id: string;
@@ -39,6 +39,7 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
   });
 
   const [products, setProducts] = useState<ProductItem[]>([]);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (initialData) {
@@ -55,23 +56,43 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
   };
 
   const validateForm = () => {
+    const errors: string[] = [];
+    
     if (!formData.client_nom.trim()) {
-      alert('Le nom du client est obligatoire');
-      return false;
+      errors.push('Le nom du client est obligatoire');
+    }
+    
+    if (!formData.numero_facture.trim()) {
+      errors.push('Le numéro de facture est obligatoire');
     }
     
     if (products.length === 0) {
-      alert('Veuillez ajouter au moins un produit');
-      return false;
+      errors.push('Veuillez ajouter au moins un produit à la facture');
     }
 
-    return true;
+    // Vérifier que tous les produits ont des données valides
+    products.forEach((product, index) => {
+      if (!product.nom.trim()) {
+        errors.push(`Le produit ${index + 1} doit avoir un nom`);
+      }
+      if (product.quantite <= 0) {
+        errors.push(`Le produit ${index + 1} doit avoir une quantité supérieure à 0`);
+      }
+      if (product.prix_unitaire < 0) {
+        errors.push(`Le produit ${index + 1} ne peut pas avoir un prix négatif`);
+      }
+    });
+
+    setFormErrors(errors);
+    return errors.length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     const { sousTotal, montantTotal } = calculateTotals();
     
@@ -81,10 +102,22 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
       montant_total: montantTotal
     };
 
+    // Transformer les produits pour l'API
+    const transformedProducts = products.map(product => ({
+      nom_produit: product.nom,
+      quantite: product.quantite,
+      prix_unitaire: product.prix_unitaire,
+      total_ligne: product.total_ligne,
+      product_id: product.id.startsWith('stock-') ? product.id.replace('stock-', '').split('-')[0] : null
+    }));
+
+    console.log('📋 Données finales:', finalFormData);
+    console.log('🛍️ Produits transformés:', transformedProducts);
+
     try {
-      await onSubmit(finalFormData, products);
+      await onSubmit(finalFormData, transformedProducts);
     } catch (error) {
-      console.error('Erreur lors de la soumission:', error);
+      console.error('❌ Erreur lors de la soumission:', error);
     }
   };
 
@@ -99,13 +132,39 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
       montant_total: montantTotal
     };
 
-    onPreview?.(finalFormData, products);
+    const transformedProducts = products.map(product => ({
+      nom_produit: product.nom,
+      quantite: product.quantite,
+      prix_unitaire: product.prix_unitaire,
+      total_ligne: product.total_ligne
+    }));
+
+    onPreview?.(finalFormData, transformedProducts);
   };
 
   const { sousTotal, montantTotal } = calculateTotals();
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Affichage des erreurs */}
+      {formErrors.length > 0 && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-red-800 mb-2">Veuillez corriger les erreurs suivantes :</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-red-700">
+                  {formErrors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Informations de la facture */}
       <Card>
         <CardHeader>
@@ -122,6 +181,7 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
               value={formData.numero_facture}
               onChange={(e) => setFormData({ ...formData, numero_facture: e.target.value })}
               required
+              className={formErrors.some(e => e.includes('numéro de facture')) ? 'border-red-300' : ''}
             />
           </div>
           
@@ -155,8 +215,8 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
             >
               <option value="brouillon">Brouillon</option>
               <option value="envoye">Envoyé</option>
-              <option value="payee">Payée</option>
-              <option value="annulee">Annulée</option>
+              <option value="paye">Payé</option>
+              <option value="annule">Annulé</option>
             </select>
           </div>
         </CardContent>
@@ -176,6 +236,7 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
               onChange={(e) => setFormData({ ...formData, client_nom: e.target.value })}
               required
               placeholder="Nom complet du client"
+              className={formErrors.some(e => e.includes('nom du client')) ? 'border-red-300' : ''}
             />
           </div>
           
@@ -251,21 +312,21 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
       {products.length > 0 && (
         <Card>
           <CardContent className="pt-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
+            <div className="space-y-3">
+              <div className="flex justify-between text-lg">
                 <span>Sous-total:</span>
                 <span className="font-semibold">{sousTotal.toLocaleString()} FCFA</span>
               </div>
               
               {formData.frais_livraison > 0 && (
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-lg">
                   <span>Frais de livraison:</span>
                   <span className="font-semibold">{Number(formData.frais_livraison).toLocaleString()} FCFA</span>
                 </div>
               )}
               
-              <div className="flex justify-between text-lg font-bold text-green-600 border-t pt-2">
-                <span>TOTAL:</span>
+              <div className="flex justify-between text-2xl font-bold text-orange-600 border-t pt-3">
+                <span>TOTAL GÉNÉRAL:</span>
                 <span>{montantTotal.toLocaleString()} FCFA</span>
               </div>
             </div>
@@ -299,17 +360,17 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
             className="px-6"
           >
             <Eye className="mr-2 h-4 w-4" />
-            Aperçu
+            Aperçu PDF
           </Button>
         )}
         
         <Button 
           type="submit" 
           disabled={isLoading || products.length === 0}
-          className="px-8"
+          className="px-8 bg-orange-600 hover:bg-orange-700"
         >
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Créer la facture
+          {isLoading ? 'Création en cours...' : 'Créer la facture'}
         </Button>
       </div>
     </form>

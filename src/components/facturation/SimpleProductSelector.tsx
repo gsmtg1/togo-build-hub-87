@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +38,7 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
     if (!stockProduct) return;
 
     const newProduct: ProductItem = {
-      id: `stock-${stockProduct.id}`,
+      id: `stock-${stockProduct.id}-${Date.now()}`,
       nom: stockProduct.name,
       quantite: 1,
       prix_unitaire: stockProduct.price || 0,
@@ -105,15 +106,15 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Package className="h-5 w-5" />
-          Sélection des produits
+          Produits de la facture
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Ajout de produits */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Produit du stock */}
-          <div className="p-4 border rounded-lg">
-            <h4 className="font-medium mb-3">Produit du stock</h4>
+          <div className="p-4 border rounded-lg bg-blue-50">
+            <h4 className="font-medium mb-3 text-blue-800">Produit du stock</h4>
             <div className="space-y-3">
               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                 <SelectTrigger>
@@ -130,17 +131,17 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
               <Button 
                 onClick={addStockProduct} 
                 disabled={!selectedProductId || loading}
-                className="w-full"
+                className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Ajouter
+                Ajouter du stock
               </Button>
             </div>
           </div>
 
           {/* Produit personnalisé */}
-          <div className="p-4 border rounded-lg">
-            <h4 className="font-medium mb-3">Produit personnalisé</h4>
+          <div className="p-4 border rounded-lg bg-green-50">
+            <h4 className="font-medium mb-3 text-green-800">Produit personnalisé</h4>
             <div className="space-y-3">
               <Input
                 placeholder="Nom du produit"
@@ -166,10 +167,10 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
               <Button 
                 onClick={addCustomProduct} 
                 disabled={!customProduct.nom.trim()}
-                className="w-full"
+                className="w-full bg-green-600 hover:bg-green-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Ajouter
+                Ajouter produit personnalisé
               </Button>
             </div>
           </div>
@@ -179,68 +180,76 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
         {products.length === 0 ? (
           <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
             <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-500">Aucun produit ajouté</p>
+            <p className="text-gray-500 font-medium">Aucun produit ajouté</p>
             <p className="text-sm text-gray-400">Ajoutez des produits pour créer votre facture</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">
-              Produits ajoutés ({products.length})
-            </Label>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Label className="text-lg font-semibold">
+                Produits ajoutés ({products.length})
+              </Label>
+              <div className="text-sm text-gray-500">
+                Total: {formatCurrency(total)}
+              </div>
+            </div>
             
             {products.map((product, index) => (
-              <div key={product.id} className="grid grid-cols-12 gap-2 items-center p-3 border rounded-lg">
-                <div className="col-span-4">
-                  <p className="font-medium">{product.nom}</p>
-                </div>
-                
-                <div className="col-span-2">
-                  <Label className="text-xs">Quantité</Label>
-                  <Input
-                    type="number"
-                    value={product.quantite}
-                    onChange={(e) => updateProduct(index, 'quantite', parseInt(e.target.value) || 1)}
-                    min="1"
-                    className="h-8"
-                  />
-                </div>
-                
-                <div className="col-span-3">
-                  <Label className="text-xs">Prix unit.</Label>
-                  <Input
-                    type="number"
-                    value={product.prix_unitaire}
-                    onChange={(e) => updateProduct(index, 'prix_unitaire', parseFloat(e.target.value) || 0)}
-                    min="0"
-                    className="h-8"
-                  />
-                </div>
-                
-                <div className="col-span-2">
-                  <Label className="text-xs">Total</Label>
-                  <p className="text-sm font-bold text-green-600">
-                    {formatCurrency(product.total_ligne)}
-                  </p>
-                </div>
-                
-                <div className="col-span-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeProduct(index)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+              <div key={product.id} className="border rounded-lg p-4 bg-gray-50">
+                <div className="grid grid-cols-12 gap-3 items-center">
+                  <div className="col-span-4">
+                    <Label className="text-xs text-gray-600">Produit</Label>
+                    <p className="font-medium text-sm">{product.nom}</p>
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <Label className="text-xs text-gray-600">Quantité</Label>
+                    <Input
+                      type="number"
+                      value={product.quantite}
+                      onChange={(e) => updateProduct(index, 'quantite', parseInt(e.target.value) || 1)}
+                      min="1"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  
+                  <div className="col-span-3">
+                    <Label className="text-xs text-gray-600">Prix unitaire</Label>
+                    <Input
+                      type="number"
+                      value={product.prix_unitaire}
+                      onChange={(e) => updateProduct(index, 'prix_unitaire', parseFloat(e.target.value) || 0)}
+                      min="0"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <Label className="text-xs text-gray-600">Total</Label>
+                    <p className="text-sm font-bold text-green-600">
+                      {formatCurrency(product.total_ligne)}
+                    </p>
+                  </div>
+                  
+                  <div className="col-span-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeProduct(index)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
             
-            {/* Total */}
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            {/* Total final */}
+            <div className="bg-orange-100 p-4 rounded-lg border-2 border-orange-200">
               <div className="flex justify-between items-center">
-                <span className="font-medium">Total des produits:</span>
-                <span className="text-2xl font-bold text-green-600">
+                <span className="font-semibold text-orange-800">Total de la facture:</span>
+                <span className="text-2xl font-bold text-orange-600">
                   {formatCurrency(total)}
                 </span>
               </div>

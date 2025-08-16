@@ -49,10 +49,9 @@ export const CornerstoneInvoiceTemplate = ({
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'XOF',
       minimumFractionDigits: 0,
-    }).format(amount);
+      maximumFractionDigits: 0,
+    }).format(amount) + ' FCFA';
   };
 
   const calculatedSousTotal = sousTotal || products.reduce((sum, product) => sum + product.total_ligne, 0);
@@ -71,8 +70,32 @@ export const CornerstoneInvoiceTemplate = ({
     }
   };
 
+  const getStatusBadge = () => {
+    if (!statut) return null;
+    
+    const statusColors = {
+      'brouillon': 'bg-gray-500',
+      'envoye': 'bg-blue-500',
+      'paye': 'bg-green-500',
+      'annule': 'bg-red-500'
+    };
+    
+    const statusLabels = {
+      'brouillon': 'BROUILLON',
+      'envoye': 'ENVOYÉ',
+      'paye': 'PAYÉ',
+      'annule': 'ANNULÉ'
+    };
+    
+    return (
+      <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold text-white ${statusColors[statut] || 'bg-gray-500'}`}>
+        {statusLabels[statut] || statut.toUpperCase()}
+      </div>
+    );
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white shadow-lg print:shadow-none">
+    <div className="w-full max-w-4xl mx-auto bg-white shadow-lg print:shadow-none" id="invoice-template">
       {/* En-tête avec logo et informations */}
       <div className="bg-orange-500 text-white p-6">
         <div className="flex items-center justify-between">
@@ -96,14 +119,9 @@ export const CornerstoneInvoiceTemplate = ({
             <h2 className="text-2xl font-bold">{getDocumentTitle()}</h2>
             <p className="text-lg">N° {numero}</p>
             <p className="text-sm">Date: {new Date(date).toLocaleDateString('fr-FR')}</p>
-            {statut && (
-              <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mt-2 ${
-                statut === 'paye' ? 'bg-green-500' :
-                statut === 'envoye' ? 'bg-blue-500' :
-                statut === 'annule' ? 'bg-red-500' :
-                'bg-yellow-500'
-              }`}>
-                {statut.charAt(0).toUpperCase() + statut.slice(1)}
+            {getStatusBadge() && (
+              <div className="mt-2">
+                {getStatusBadge()}
               </div>
             )}
           </div>

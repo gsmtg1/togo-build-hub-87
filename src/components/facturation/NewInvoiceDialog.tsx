@@ -1,9 +1,11 @@
 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { SimpleInvoiceForm } from './SimpleInvoiceForm';
 import { CornerstoneInvoiceTemplate } from './CornerstoneInvoiceTemplate';
 import { useInvoicesManager } from '@/hooks/useInvoicesManager';
+import { Printer, Download, Send, ArrowLeft } from 'lucide-react';
 
 interface NewInvoiceDialogProps {
   open: boolean;
@@ -23,11 +25,11 @@ export const NewInvoiceDialog = ({ open, onOpenChange, invoice, onClose }: NewIn
       
       // Transformer les produits pour la base de données
       const invoiceProducts = products.map(product => ({
-        nom_produit: product.nom,
+        nom_produit: product.nom_produit,
         quantite: product.quantite,
         prix_unitaire: product.prix_unitaire,
         total_ligne: product.total_ligne,
-        product_id: product.id.startsWith('stock-') ? product.id.replace('stock-', '') : null
+        product_id: product.product_id
       }));
 
       // Créer la facture
@@ -45,19 +47,75 @@ export const NewInvoiceDialog = ({ open, onOpenChange, invoice, onClose }: NewIn
   const handlePreview = (formData: any, products: any[]) => {
     console.log('👁️ Aperçu facture:', formData, products);
     
-    // Transformer les données pour l'aperçu
-    const previewProducts = products.map(product => ({
-      nom_produit: product.nom,
-      quantite: product.quantite,
-      prix_unitaire: product.prix_unitaire,
-      total_ligne: product.total_ligne
-    }));
-
     setPreviewData({
       ...formData,
-      products: previewProducts
+      products: products
     });
     setShowPreview(true);
+  };
+
+  const handlePrint = () => {
+    const printContent = document.getElementById('invoice-template');
+    if (printContent) {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Facture ${previewData?.numero_facture}</title>
+              <style>
+                @page { margin: 15mm; }
+                body { 
+                  font-family: 'Arial', sans-serif; 
+                  margin: 0; 
+                  padding: 0; 
+                  color: #333; 
+                  line-height: 1.4;
+                }
+                .bg-orange-500 { background-color: #f97316 !important; }
+                .text-white { color: white !important; }
+                .bg-orange-50 { background-color: #fff7ed !important; }
+                .text-orange-600 { color: #ea580c !important; }
+                .border-orange-500 { border-color: #f97316 !important; }
+                .border-orange-200 { border-color: #fed7aa !important; }
+                .border-orange-300 { border-color: #fdba74 !important; }
+                @media print {
+                  .no-print { display: none !important; }
+                  body { print-color-adjust: exact; }
+                }
+              </style>
+            </head>
+            <body>
+              ${printContent.innerHTML}
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    // Pour l'instant, on lance l'impression comme alternative
+    handlePrint();
+  };
+
+  const handleSendEmail = () => {
+    if (!previewData) return;
+    
+    const subject = `Facture ${previewData.numero_facture} - Cornerstone Briques`;
+    const body = `Bonjour ${previewData.client_nom},\n\nVeuillez trouver ci-joint votre facture n° ${previewData.numero_facture}.\n\nMontant total: ${previewData.montant_total?.toLocaleString()} FCFA\n\nCordialement,\nCornerstone Briques\n\nTél: +228 71014747\nEmail: cornerstonebrique@gmail.com`;
+    
+    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!previewData) return;
+    
+    const message = `*Facture ${previewData.numero_facture}*\n\nClient: ${previewData.client_nom}\nMontant: ${previewData.montant_total?.toLocaleString()} FCFA\n\nCornerstone Briques\n+228 71014747`;
+    
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
   };
 
   if (showPreview && previewData) {
@@ -65,7 +123,38 @@ export const NewInvoiceDialog = ({ open, onOpenChange, invoice, onClose }: NewIn
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Aperçu de la facture</DialogTitle>
+            <div className="flex justify-between items-center">
+              <DialogTitle>Aperçu de la facture {previewData.numero_facture}</DialogTitle>
+              <div className="flex gap-2 no-print">
+                <Button onClick={() => setShowPreview(false)} variant="outline" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Retour
+                </Button>
+                <Button onClick={handleWhatsAppShare} variant="outline" size="sm" className="bg-green-50 text-green-700 hover:bg-green-100">
+                  <Send className="h-4 w-4 mr-2" />
+                  WhatsApp
+                </Button>
+                <Button onClick={handleSendEmail} variant="outline" size="sm">
+                  <Send className="h-4 w-4 mr-2" />
+                  Email
+                </Button>
+                <Button onClick={handleDownloadPDF} variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  PDF
+                </Button>
+                <Button onClick={handlePrint} variant="outline" size="sm">
+                  <Printer className="h-4 w-4 mr-2" />
+                  Imprimer
+                </Button>
+                <Button
+                  onClick={() => handleSubmit(previewData, previewData.products)}
+                  disabled={isLoading}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  {isLoading ? 'Création...' : 'Créer la facture'}
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -87,22 +176,6 @@ export const NewInvoiceDialog = ({ open, onOpenChange, invoice, onClose }: NewIn
               sousTotal={previewData.sous_total}
               remiseGlobale={previewData.remise_globale_montant}
             />
-            
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setShowPreview(false)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-              >
-                Retour
-              </button>
-              <button
-                onClick={() => handleSubmit(previewData, previewData.products)}
-                disabled={isLoading}
-                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50"
-              >
-                {isLoading ? 'Création...' : 'Créer la facture'}
-              </button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>

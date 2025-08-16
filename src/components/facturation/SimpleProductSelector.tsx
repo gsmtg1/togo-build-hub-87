@@ -27,7 +27,7 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
   
-  const { products: availableProducts, loading } = useProducts();
+  const { data: availableProducts, loading } = useProducts();
 
   const handleProductSelect = (productId: string) => {
     setSelectedProductId(productId);

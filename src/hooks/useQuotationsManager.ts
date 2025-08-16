@@ -69,7 +69,7 @@ export const useQuotationsManager = () => {
     }
   };
 
-  // Créer un nouveau devis avec produits
+  // Créer un nouveau devis avec produits - VERSION CORRIGÉE
   const createQuotation = async (quotationData: QuotationData, products: QuotationProduct[]) => {
     try {
       setIsLoading(true);
@@ -88,15 +88,16 @@ export const useQuotationsManager = () => {
       }
 
       // Valider chaque produit
-      for (const product of products) {
+      for (let i = 0; i < products.length; i++) {
+        const product = products[i];
         if (!product.nom_produit?.trim()) {
-          throw new Error('Tous les produits doivent avoir un nom');
+          throw new Error(`Le produit ${i + 1} doit avoir un nom`);
         }
         if (!product.quantite || product.quantite <= 0) {
-          throw new Error('La quantité doit être supérieure à 0');
+          throw new Error(`Le produit ${i + 1} doit avoir une quantité supérieure à 0`);
         }
         if (product.prix_unitaire < 0) {
-          throw new Error('Le prix ne peut pas être négatif');
+          throw new Error(`Le produit ${i + 1} ne peut pas avoir un prix négatif`);
         }
       }
 
@@ -133,7 +134,7 @@ export const useQuotationsManager = () => {
 
       console.log('✅ Devis créé:', newQuotation.id);
 
-      // Créer les produits de devis dans la nouvelle table devis_produits
+      // Créer les produits de devis dans la table devis_produits
       const productsPayload = products.map(product => ({
         devis_id: newQuotation.id,
         nom_produit: product.nom_produit.trim(),

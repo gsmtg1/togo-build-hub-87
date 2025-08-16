@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { SimpleInvoiceForm } from './SimpleInvoiceForm';
 import { CornerstoneInvoiceTemplate } from './CornerstoneInvoiceTemplate';
 import { useInvoicesManager } from '@/hooks/useInvoicesManager';
-import { Printer, Download, Send, ArrowLeft } from 'lucide-react';
+import { Printer, Download, Send, ArrowLeft, MessageCircle } from 'lucide-react';
 
 interface NewInvoiceDialogProps {
   open: boolean;
@@ -21,31 +21,22 @@ export const NewInvoiceDialog = ({ open, onOpenChange, invoice, onClose }: NewIn
 
   const handleSubmit = async (formData: any, products: any[]) => {
     try {
-      console.log('🔄 Création de la facture:', formData, products);
+      console.log('🔄 NewInvoiceDialog - Création de la facture:', formData, products);
       
-      // Transformer les produits pour la base de données
-      const invoiceProducts = products.map(product => ({
-        nom_produit: product.nom_produit,
-        quantite: product.quantite,
-        prix_unitaire: product.prix_unitaire,
-        total_ligne: product.total_ligne,
-        product_id: product.product_id
-      }));
-
-      // Créer la facture
-      const newInvoice = await createInvoice(formData, invoiceProducts);
+      // Créer la facture avec les produits
+      const newInvoice = await createInvoice(formData, products);
       
       if (newInvoice) {
-        console.log('✅ Facture créée avec succès');
+        console.log('✅ NewInvoiceDialog - Facture créée avec succès');
         onClose();
       }
     } catch (error) {
-      console.error('❌ Erreur création facture:', error);
+      console.error('❌ NewInvoiceDialog - Erreur création facture:', error);
     }
   };
 
   const handlePreview = (formData: any, products: any[]) => {
-    console.log('👁️ Aperçu facture:', formData, products);
+    console.log('👁️ NewInvoiceDialog - Aperçu facture:', formData, products);
     
     setPreviewData({
       ...formData,
@@ -98,6 +89,7 @@ export const NewInvoiceDialog = ({ open, onOpenChange, invoice, onClose }: NewIn
 
   const handleDownloadPDF = () => {
     // Pour l'instant, on lance l'impression comme alternative
+    console.log('📄 Téléchargement PDF demandé');
     handlePrint();
   };
 
@@ -118,6 +110,21 @@ export const NewInvoiceDialog = ({ open, onOpenChange, invoice, onClose }: NewIn
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
   };
 
+  const handleBackToForm = () => {
+    setShowPreview(false);
+    setPreviewData(null);
+  };
+
+  const handleCreateFromPreview = async () => {
+    if (!previewData) return;
+    
+    try {
+      await handleSubmit(previewData, previewData.products);
+    } catch (error) {
+      console.error('❌ Erreur création depuis aperçu:', error);
+    }
+  };
+
   if (showPreview && previewData) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -126,12 +133,12 @@ export const NewInvoiceDialog = ({ open, onOpenChange, invoice, onClose }: NewIn
             <div className="flex justify-between items-center">
               <DialogTitle>Aperçu de la facture {previewData.numero_facture}</DialogTitle>
               <div className="flex gap-2 no-print">
-                <Button onClick={() => setShowPreview(false)} variant="outline" size="sm">
+                <Button onClick={handleBackToForm} variant="outline" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Retour
                 </Button>
                 <Button onClick={handleWhatsAppShare} variant="outline" size="sm" className="bg-green-50 text-green-700 hover:bg-green-100">
-                  <Send className="h-4 w-4 mr-2" />
+                  <MessageCircle className="h-4 w-4 mr-2" />
                   WhatsApp
                 </Button>
                 <Button onClick={handleSendEmail} variant="outline" size="sm">
@@ -147,7 +154,7 @@ export const NewInvoiceDialog = ({ open, onOpenChange, invoice, onClose }: NewIn
                   Imprimer
                 </Button>
                 <Button
-                  onClick={() => handleSubmit(previewData, previewData.products)}
+                  onClick={handleCreateFromPreview}
                   disabled={isLoading}
                   className="bg-orange-600 hover:bg-orange-700"
                 >

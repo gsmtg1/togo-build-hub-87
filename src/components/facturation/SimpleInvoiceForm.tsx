@@ -48,7 +48,7 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
   }, [initialData]);
 
   const calculateTotals = () => {
-    const sousTotal = products.reduce((sum, product) => sum + product.total_ligne, 0);
+    const sousTotal = products.reduce((sum, product) => sum + Number(product.total_ligne || 0), 0);
     const fraisLivraison = Number(formData.frais_livraison) || 0;
     const montantTotal = sousTotal + fraisLivraison;
     
@@ -91,6 +91,7 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
     e.preventDefault();
     
     if (!validateForm()) {
+      console.log('❌ Validation échouée:', formErrors);
       return;
     }
 
@@ -102,7 +103,7 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
       montant_total: montantTotal
     };
 
-    // Transformer les produits pour l'API
+    // Transformer les produits pour l'API avec nom de champ correct
     const transformedProducts = products.map(product => ({
       nom_produit: product.nom,
       quantite: product.quantite,
@@ -111,8 +112,8 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
       product_id: product.id.startsWith('stock-') ? product.id.replace('stock-', '').split('-')[0] : null
     }));
 
-    console.log('📋 Données finales:', finalFormData);
-    console.log('🛍️ Produits transformés:', transformedProducts);
+    console.log('📋 Données finales pour soumission:', finalFormData);
+    console.log('🛍️ Produits transformés pour API:', transformedProducts);
 
     try {
       await onSubmit(finalFormData, transformedProducts);
@@ -122,7 +123,10 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
   };
 
   const handlePreview = () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      console.log('❌ Validation aperçu échouée:', formErrors);
+      return;
+    }
 
     const { sousTotal, montantTotal } = calculateTotals();
     
@@ -132,6 +136,7 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
       montant_total: montantTotal
     };
 
+    // Pour l'aperçu, utiliser le format attendu par le template
     const transformedProducts = products.map(product => ({
       nom_produit: product.nom,
       quantite: product.quantite,
@@ -139,6 +144,7 @@ export const SimpleInvoiceForm = ({ onSubmit, onPreview, isLoading, initialData 
       total_ligne: product.total_ligne
     }));
 
+    console.log('👁️ Données aperçu:', finalFormData, transformedProducts);
     onPreview?.(finalFormData, transformedProducts);
   };
 

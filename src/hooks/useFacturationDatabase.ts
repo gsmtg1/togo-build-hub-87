@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -125,12 +124,13 @@ export const useFacturesProfessionnelles = () => {
         .from('factures_professionnelles')
         .select(`
           *,
-          facture_items (
+          facture_produits (
             id,
             nom_produit,
             quantite,
             prix_unitaire,
-            total_ligne
+            total_ligne,
+            product_id
           )
         `)
         .order('created_at', { ascending: false });
@@ -149,40 +149,80 @@ export const useFacturesProfessionnelles = () => {
     }
   };
 
-  const create = async (factureData: any, items: any[]) => {
+  const create = async (factureData: any, products: any[]) => {
     try {
+      console.log('🔄 Création facture avec produits:', factureData, products);
+      
+      // Validation stricte
+      if (!factureData.numero_facture?.trim()) {
+        throw new Error('Le numéro de facture est obligatoire');
+      }
+      if (!factureData.client_nom?.trim()) {
+        throw new Error('Le nom du client est obligatoire');
+      }
+      if (!products || products.length === 0) {
+        throw new Error('Au moins un produit doit être ajouté');
+      }
+
+      // Créer la facture principale
       const { data: facture, error: factureError } = await supabase
         .from('factures_professionnelles')
         .insert([factureData])
         .select()
         .single();
       
-      if (factureError) throw factureError;
-
-      if (items.length > 0) {
-        const itemsToInsert = items.map(item => ({
-          ...item,
-          facture_id: facture.id
-        }));
-
-        const { error: itemsError } = await supabase
-          .from('facture_items')
-          .insert(itemsToInsert);
-        
-        if (itemsError) throw itemsError;
+      if (factureError) {
+        console.error('❌ Erreur création facture:', factureError);
+        throw new Error(`Erreur création facture: ${factureError.message}`);
       }
+
+      if (!facture) {
+        throw new Error('Aucune facture créée');
+      }
+
+      console.log('✅ Facture créée:', facture.id);
+
+      // Préparer les produits pour insertion
+      const productsToInsert = products.map(product => ({
+        facture_id: facture.id,
+        nom_produit: product.nom_produit?.trim() || product.nom?.trim(),
+        quantite: Number(product.quantite) || 1,
+        prix_unitaire: Number(product.prix_unitaire) || 0,
+        total_ligne: Number(product.total_ligne) || 0,
+        product_id: product.product_id || null
+      }));
+
+      console.log('📦 Produits à insérer:', productsToInsert);
+
+      // Insérer les produits
+      const { error: productsError } = await supabase
+        .from('facture_produits')
+        .insert(productsToInsert);
       
+      if (productsError) {
+        console.error('❌ Erreur création produits:', productsError);
+        // Rollback: supprimer la facture créée
+        await supabase
+          .from('factures_professionnelles')
+          .delete()
+          .eq('id', facture.id);
+        throw new Error(`Erreur création produits: ${productsError.message}`);
+      }
+
+      console.log('✅ Produits créés avec succès');      
       await loadData();
+      
       toast({
         title: "Succès",
-        description: "Facture créée avec succès",
+        description: `Facture ${factureData.numero_facture} créée avec ${products.length} produit(s)`,
       });
+      
       return facture;
-    } catch (error) {
-      console.error('Error creating facture:', error);
+    } catch (error: any) {
+      console.error('💥 Erreur complète création facture:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer la facture",
+        description: error.message || "Impossible de créer la facture",
         variant: "destructive",
       });
       throw error;
@@ -257,12 +297,13 @@ export const useDevisProfessionnels = () => {
         .from('devis_professionnels')
         .select(`
           *,
-          devis_items (
+          devis_produits (
             id,
             nom_produit,
             quantite,
             prix_unitaire,
-            total_ligne
+            total_ligne,
+            product_id
           )
         `)
         .order('created_at', { ascending: false });
@@ -281,40 +322,80 @@ export const useDevisProfessionnels = () => {
     }
   };
 
-  const create = async (devisData: any, items: any[]) => {
+  const create = async (devisData: any, products: any[]) => {
     try {
+      console.log('🔄 Création devis avec produits:', devisData, products);
+      
+      // Validation stricte
+      if (!devisData.numero_devis?.trim()) {
+        throw new Error('Le numéro de devis est obligatoire');
+      }
+      if (!devisData.client_nom?.trim()) {
+        throw new Error('Le nom du client est obligatoire');
+      }
+      if (!products || products.length === 0) {
+        throw new Error('Au moins un produit doit être ajouté');
+      }
+
+      // Créer le devis principal
       const { data: devis, error: devisError } = await supabase
         .from('devis_professionnels')
         .insert([devisData])
         .select()
         .single();
       
-      if (devisError) throw devisError;
-
-      if (items.length > 0) {
-        const itemsToInsert = items.map(item => ({
-          ...item,
-          devis_id: devis.id
-        }));
-
-        const { error: itemsError } = await supabase
-          .from('devis_items')
-          .insert(itemsToInsert);
-        
-        if (itemsError) throw itemsError;
+      if (devisError) {
+        console.error('❌ Erreur création devis:', devisError);
+        throw new Error(`Erreur création devis: ${devisError.message}`);
       }
+
+      if (!devis) {
+        throw new Error('Aucun devis créé');
+      }
+
+      console.log('✅ Devis créé:', devis.id);
+
+      // Préparer les produits pour insertion
+      const productsToInsert = products.map(product => ({
+        devis_id: devis.id,
+        nom_produit: product.nom_produit?.trim() || product.nom?.trim(),
+        quantite: Number(product.quantite) || 1,
+        prix_unitaire: Number(product.prix_unitaire) || 0,
+        total_ligne: Number(product.total_ligne) || 0,
+        product_id: product.product_id || null
+      }));
+
+      console.log('📦 Produits à insérer:', productsToInsert);
+
+      // Insérer les produits
+      const { error: productsError } = await supabase
+        .from('devis_produits')
+        .insert(productsToInsert);
       
+      if (productsError) {
+        console.error('❌ Erreur création produits:', productsError);
+        // Rollback: supprimer le devis créé
+        await supabase
+          .from('devis_professionnels')
+          .delete()
+          .eq('id', devis.id);
+        throw new Error(`Erreur création produits: ${productsError.message}`);
+      }
+
+      console.log('✅ Produits créés avec succès');      
       await loadData();
+      
       toast({
         title: "Succès",
-        description: "Devis créé avec succès",
+        description: `Devis ${devisData.numero_devis} créé avec ${products.length} produit(s)`,
       });
+      
       return devis;
-    } catch (error) {
-      console.error('Error creating devis:', error);
+    } catch (error: any) {
+      console.error('💥 Erreur complète création devis:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer le devis",
+        description: error.message || "Impossible de créer le devis",
         variant: "destructive",
       });
       throw error;

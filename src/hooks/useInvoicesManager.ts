@@ -74,14 +74,14 @@ export const useInvoicesManager = () => {
     }
   };
 
-  // Créer une nouvelle facture avec produits
+  // Créer une nouvelle facture avec produits - VERSION CORRIGÉE
   const createInvoice = async (invoiceData: InvoiceData, products: InvoiceProduct[]) => {
     try {
       setIsLoading(true);
       console.log('🔄 Création facture:', invoiceData.numero_facture);
       console.log('📦 Produits à créer:', products);
 
-      // Validation stricte
+      // Validation stricte des données
       if (!invoiceData.numero_facture?.trim()) {
         throw new Error('Le numéro de facture est obligatoire');
       }
@@ -93,19 +93,20 @@ export const useInvoicesManager = () => {
       }
 
       // Valider chaque produit
-      for (const product of products) {
+      for (let i = 0; i < products.length; i++) {
+        const product = products[i];
         if (!product.nom_produit?.trim()) {
-          throw new Error('Tous les produits doivent avoir un nom');
+          throw new Error(`Le produit ${i + 1} doit avoir un nom`);
         }
         if (!product.quantite || product.quantite <= 0) {
-          throw new Error('La quantité doit être supérieure à 0');
+          throw new Error(`Le produit ${i + 1} doit avoir une quantité supérieure à 0`);
         }
         if (product.prix_unitaire < 0) {
-          throw new Error('Le prix ne peut pas être négatif');
+          throw new Error(`Le produit ${i + 1} ne peut pas avoir un prix négatif`);
         }
       }
 
-      // Créer la facture principale
+      // Préparer les données de la facture
       const invoicePayload = {
         numero_facture: invoiceData.numero_facture.trim(),
         client_id: invoiceData.client_id || null,
@@ -125,8 +126,9 @@ export const useInvoicesManager = () => {
         montant_paye: 0
       };
 
-      console.log('📝 Payload facture:', invoicePayload);
+      console.log('📝 Payload facture final:', invoicePayload);
 
+      // Créer la facture principale
       const { data: newInvoice, error: invoiceError } = await supabase
         .from('factures_professionnelles')
         .insert([invoicePayload])
@@ -139,12 +141,12 @@ export const useInvoicesManager = () => {
       }
 
       if (!newInvoice) {
-        throw new Error('Aucune facture créée - réponse vide');
+        throw new Error('Aucune facture créée - réponse vide de Supabase');
       }
 
       console.log('✅ Facture créée avec ID:', newInvoice.id);
 
-      // Créer les produits de la facture
+      // Préparer les produits pour insertion
       const productsPayload = products.map(product => ({
         facture_id: newInvoice.id,
         nom_produit: product.nom_produit.trim(),
@@ -154,8 +156,9 @@ export const useInvoicesManager = () => {
         product_id: product.product_id || null
       }));
 
-      console.log('📦 Payload produits:', productsPayload);
+      console.log('📦 Payload produits final:', productsPayload);
 
+      // Insérer les produits de la facture
       const { data: createdProducts, error: productsError } = await supabase
         .from('facture_produits')
         .insert(productsPayload)
@@ -164,7 +167,8 @@ export const useInvoicesManager = () => {
       if (productsError) {
         console.error('❌ Erreur création produits:', productsError);
         
-        // Supprimer la facture créée en cas d'échec des produits
+        // ROLLBACK: Supprimer la facture créée en cas d'échec des produits
+        console.log('🔄 Rollback: suppression de la facture créée');
         await supabase
           .from('factures_professionnelles')
           .delete()
@@ -173,7 +177,7 @@ export const useInvoicesManager = () => {
         throw new Error(`Erreur création produits: ${productsError.message}`);
       }
 
-      console.log('✅ Produits créés:', createdProducts?.length || 0);
+      console.log('✅ Produits créés avec succès:', createdProducts?.length || 0);
       
       // Recharger les factures pour afficher la nouvelle
       await loadInvoices();

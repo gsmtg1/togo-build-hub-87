@@ -444,6 +444,7 @@ export type Database = {
       }
       devis_professionnels: {
         Row: {
+          adresse_livraison: string | null
           client_adresse: string | null
           client_id: string | null
           client_nom: string
@@ -452,15 +453,23 @@ export type Database = {
           created_at: string
           date_devis: string
           date_echeance: string
+          frais_livraison: number | null
           id: string
+          mode_livraison: string | null
           montant_total: number
+          montant_tva: number | null
           numero_devis: string
+          remise_globale_montant: number | null
           remise_globale_pourcentage: number | null
+          sous_total: number | null
           statut: string
+          taux_tva: number | null
+          tva_applicable: boolean | null
           updated_at: string
           vendeur_id: string | null
         }
         Insert: {
+          adresse_livraison?: string | null
           client_adresse?: string | null
           client_id?: string | null
           client_nom: string
@@ -469,15 +478,23 @@ export type Database = {
           created_at?: string
           date_devis?: string
           date_echeance: string
+          frais_livraison?: number | null
           id?: string
+          mode_livraison?: string | null
           montant_total?: number
+          montant_tva?: number | null
           numero_devis: string
+          remise_globale_montant?: number | null
           remise_globale_pourcentage?: number | null
+          sous_total?: number | null
           statut?: string
+          taux_tva?: number | null
+          tva_applicable?: boolean | null
           updated_at?: string
           vendeur_id?: string | null
         }
         Update: {
+          adresse_livraison?: string | null
           client_adresse?: string | null
           client_id?: string | null
           client_nom?: string
@@ -486,11 +503,18 @@ export type Database = {
           created_at?: string
           date_devis?: string
           date_echeance?: string
+          frais_livraison?: number | null
           id?: string
+          mode_livraison?: string | null
           montant_total?: number
+          montant_tva?: number | null
           numero_devis?: string
+          remise_globale_montant?: number | null
           remise_globale_pourcentage?: number | null
+          sous_total?: number | null
           statut?: string
+          taux_tva?: number | null
+          tva_applicable?: boolean | null
           updated_at?: string
           vendeur_id?: string | null
         }
@@ -711,12 +735,15 @@ export type Database = {
           mode_livraison: string | null
           montant_paye: number
           montant_total: number
+          montant_tva: number | null
           numero_facture: string
           remise_globale_montant: number | null
           remise_globale_pourcentage: number | null
           sale_id: string | null
           sous_total: number | null
           statut: string
+          taux_tva: number | null
+          tva_applicable: boolean | null
           updated_at: string
           vendeur_id: string | null
         }
@@ -736,12 +763,15 @@ export type Database = {
           mode_livraison?: string | null
           montant_paye?: number
           montant_total?: number
+          montant_tva?: number | null
           numero_facture: string
           remise_globale_montant?: number | null
           remise_globale_pourcentage?: number | null
           sale_id?: string | null
           sous_total?: number | null
           statut?: string
+          taux_tva?: number | null
+          tva_applicable?: boolean | null
           updated_at?: string
           vendeur_id?: string | null
         }
@@ -761,12 +791,15 @@ export type Database = {
           mode_livraison?: string | null
           montant_paye?: number
           montant_total?: number
+          montant_tva?: number | null
           numero_facture?: string
           remise_globale_montant?: number | null
           remise_globale_pourcentage?: number | null
           sale_id?: string | null
           sous_total?: number | null
           statut?: string
+          taux_tva?: number | null
+          tva_applicable?: boolean | null
           updated_at?: string
           vendeur_id?: string | null
         }

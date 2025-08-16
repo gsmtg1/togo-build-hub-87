@@ -1,14 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, Package, ShoppingCart, Edit2 } from 'lucide-react';
-import { useProducts } from '@/hooks/useSupabaseDatabase';
 import { Badge } from '@/components/ui/badge';
+import { Plus, Trash2, Package, Calculator, ShoppingCart } from 'lucide-react';
 
 interface ProductItem {
   id: string;
@@ -16,6 +13,7 @@ interface ProductItem {
   quantite: number;
   prix_unitaire: number;
   total_ligne: number;
+  isCustom?: boolean;
 }
 
 interface SimpleProductSelectorProps {
@@ -24,323 +22,221 @@ interface SimpleProductSelectorProps {
 }
 
 export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProductSelectorProps) => {
-  const [selectedProductId, setSelectedProductId] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [unitPrice, setUnitPrice] = useState(0);
-  
-  const { data: availableProducts, loading } = useProducts();
+  const [nouveauProduit, setNouveauProduit] = useState({
+    nom: '',
+    quantite: 1,
+    prix_unitaire: 0
+  });
 
-  const handleProductSelect = (productId: string) => {
-    setSelectedProductId(productId);
-    const product = availableProducts?.find(p => p.id === productId);
-    if (product) {
-      setUnitPrice(product.price || 0);
-    }
-  };
-
-  const addProduct = () => {
-    if (!selectedProductId) {
-      alert('Veuillez sélectionner un produit');
+  const ajouterProduit = () => {
+    if (!nouveauProduit.nom.trim() || nouveauProduit.prix_unitaire < 0) {
       return;
     }
 
-    if (quantity <= 0) {
-      alert('La quantité doit être supérieure à 0');
-      return;
-    }
-
-    if (unitPrice <= 0) {
-      alert('Le prix unitaire doit être supérieur à 0');
-      return;
-    }
-
-    const selectedProduct = availableProducts?.find(p => p.id === selectedProductId);
-    if (!selectedProduct) return;
-
-    // Vérifier si le produit existe déjà
-    const existingIndex = products.findIndex(p => p.id === selectedProductId);
-    
-    const newProduct: ProductItem = {
-      id: selectedProductId,
-      nom: selectedProduct.name,
-      quantite: quantity,
-      prix_unitaire: unitPrice,
-      total_ligne: quantity * unitPrice
+    const produit: ProductItem = {
+      id: `custom-${Date.now()}`,
+      nom: nouveauProduit.nom.trim(),
+      quantite: Number(nouveauProduit.quantite),
+      prix_unitaire: Number(nouveauProduit.prix_unitaire),
+      total_ligne: Number(nouveauProduit.quantite) * Number(nouveauProduit.prix_unitaire),
+      isCustom: true
     };
 
-    let updatedProducts;
-    if (existingIndex >= 0) {
-      // Mettre à jour le produit existant
-      updatedProducts = [...products];
-      updatedProducts[existingIndex] = {
-        ...updatedProducts[existingIndex],
-        quantite: updatedProducts[existingIndex].quantite + quantity,
-        total_ligne: (updatedProducts[existingIndex].quantite + quantity) * unitPrice
-      };
-    } else {
-      // Ajouter le nouveau produit
-      updatedProducts = [...products, newProduct];
-    }
-
-    console.log('Produits mis à jour dans SimpleProductSelector:', updatedProducts);
-    onProductsChange(updatedProducts);
-
-    // Reset du formulaire
-    setSelectedProductId('');
-    setQuantity(1);
-    setUnitPrice(0);
+    onProductsChange([...products, produit]);
+    setNouveauProduit({ nom: '', quantite: 1, prix_unitaire: 0 });
   };
 
-  const removeProduct = (productId: string) => {
-    const updatedProducts = products.filter(p => p.id !== productId);
-    onProductsChange(updatedProducts);
+  const supprimerProduit = (id: string) => {
+    onProductsChange(products.filter(p => p.id !== id));
   };
 
-  const updateProductQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity <= 0) return;
-    
-    const updatedProducts = products.map(product => {
-      if (product.id === productId) {
-        return {
-          ...product,
-          quantite: newQuantity,
-          total_ligne: newQuantity * product.prix_unitaire
-        };
+  const modifierProduit = (id: string, champ: keyof ProductItem, valeur: any) => {
+    const nouveauxProduits = products.map(produit => {
+      if (produit.id === id) {
+        const produitModifie = { ...produit, [champ]: valeur };
+        
+        // Recalculer le total si quantité ou prix change
+        if (champ === 'quantite' || champ === 'prix_unitaire') {
+          produitModifie.total_ligne = Number(produitModifie.quantite) * Number(produitModifie.prix_unitaire);
+        }
+        
+        return produitModifie;
       }
-      return product;
+      return produit;
     });
     
-    onProductsChange(updatedProducts);
+    onProductsChange(nouveauxProduits);
   };
 
-  const updateProductPrice = (productId: string, newPrice: number) => {
-    if (newPrice < 0) return;
-    
-    const updatedProducts = products.map(product => {
-      if (product.id === productId) {
-        return {
-          ...product,
-          prix_unitaire: newPrice,
-          total_ligne: product.quantite * newPrice
-        };
-      }
-      return product;
-    });
-    
-    onProductsChange(updatedProducts);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
-  };
-
-  const totalGeneral = products.reduce((sum, product) => sum + product.total_ligne, 0);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Chargement des produits...</p>
-        </div>
-      </div>
-    );
-  }
+  const totalGeneral = products.reduce((sum, produit) => sum + produit.total_ligne, 0);
 
   return (
     <div className="space-y-6">
-      {/* Formulaire d'ajout de produit - Design moderne */}
-      <Card className="border-0 shadow-lg bg-gradient-to-br from-background to-muted/20">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-t-lg">
-          <CardTitle className="flex items-center gap-3 text-foreground">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <Plus className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-xl font-semibold">Ajouter un produit</span>
+      {/* Formulaire d'ajout de produit */}
+      <Card className="border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-orange-700 flex items-center gap-2 text-lg">
+            <Plus className="h-5 w-5" />
+            Ajouter un Produit/Service
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="productSelect" className="text-sm font-medium text-foreground">
-                Produit disponible
-              </Label>
-              <Select value={selectedProductId} onValueChange={handleProductSelect}>
-                <SelectTrigger className="h-11 border-2 focus:border-primary/50 transition-colors">
-                  <SelectValue placeholder="Sélectionnez un produit" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {availableProducts?.map((product) => (
-                    <SelectItem key={product.id} value={product.id} className="py-3">
-                      <div className="flex flex-col space-y-1">
-                        <span className="font-medium">{product.name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {formatCurrency(product.price || 0)}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="quantity" className="text-sm font-medium text-foreground">
-                Quantité
-              </Label>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
+              <Label className="text-sm font-medium text-gray-700">Nom du produit/service *</Label>
               <Input
-                id="quantity"
+                value={nouveauProduit.nom}
+                onChange={(e) => setNouveauProduit(prev => ({ ...prev, nom: e.target.value }))}
+                placeholder="Ex: Brique rouge 15x10x20cm"
+                className="border-orange-200 focus:border-orange-400"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Quantité *</Label>
+              <Input
                 type="number"
+                value={nouveauProduit.quantite}
+                onChange={(e) => setNouveauProduit(prev => ({ ...prev, quantite: Number(e.target.value) }))}
                 min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                className="h-11 border-2 focus:border-primary/50 transition-colors"
+                className="border-orange-200 focus:border-orange-400"
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="unitPrice" className="text-sm font-medium text-foreground">
-                Prix unitaire (FCFA)
-              </Label>
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Prix unitaire (FCFA) *</Label>
               <Input
-                id="unitPrice"
                 type="number"
+                value={nouveauProduit.prix_unitaire}
+                onChange={(e) => setNouveauProduit(prev => ({ ...prev, prix_unitaire: Number(e.target.value) }))}
                 min="0"
-                step="1"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
-                className="h-11 border-2 focus:border-primary/50 transition-colors"
+                step="0.01"
+                className="border-orange-200 focus:border-orange-400"
               />
             </div>
-
-            <div className="flex items-end">
-              <Button 
-                type="button"
-                onClick={addProduct} 
-                className="w-full h-11 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Ajouter
-              </Button>
+          </div>
+          
+          <div className="flex justify-between items-center pt-2">
+            <div className="text-sm text-gray-600">
+              Total ligne: <span className="font-semibold text-orange-600">
+                {(nouveauProduit.quantite * nouveauProduit.prix_unitaire).toLocaleString()} FCFA
+              </span>
             </div>
+            <Button
+              type="button"
+              onClick={ajouterProduit}
+              disabled={!nouveauProduit.nom.trim() || nouveauProduit.prix_unitaire < 0}
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white transition-all duration-200"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Liste des produits sélectionnés - Design amélioré */}
+      {/* Liste des produits ajoutés */}
       {products.length > 0 && (
-        <Card className="border-0 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-accent/10 to-secondary/10 rounded-t-lg">
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-accent/20 rounded-lg">
-                  <ShoppingCart className="h-5 w-5 text-accent-foreground" />
-                </div>
-                <span className="text-xl font-semibold">Produits sélectionnés</span>
-                <Badge variant="secondary" className="ml-2">
-                  {products.length} article{products.length > 1 ? 's' : ''}
-                </Badge>
-              </div>
+        <Card className="border-2 border-orange-200">
+          <CardHeader className="bg-gradient-to-r from-orange-100 to-amber-100">
+            <CardTitle className="text-orange-700 flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Produits Sélectionnés ({products.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30">
-                    <TableHead className="font-semibold text-foreground">Produit</TableHead>
-                    <TableHead className="w-32 font-semibold text-foreground">Quantité</TableHead>
-                    <TableHead className="w-40 font-semibold text-foreground">Prix unitaire</TableHead>
-                    <TableHead className="w-40 font-semibold text-foreground">Total</TableHead>
-                    <TableHead className="w-20 font-semibold text-foreground">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.map((product, index) => (
-                    <TableRow key={product.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="font-medium py-4">
+              <table className="w-full">
+                <thead className="bg-orange-50 border-b border-orange-200">
+                  <tr>
+                    <th className="text-left p-4 font-semibold text-gray-700">Produit/Service</th>
+                    <th className="text-center p-4 font-semibold text-gray-700">Qté</th>
+                    <th className="text-right p-4 font-semibold text-gray-700">Prix Unit.</th>
+                    <th className="text-right p-4 font-semibold text-gray-700">Total</th>
+                    <th className="text-center p-4 font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((produit, index) => (
+                    <tr key={produit.id} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-orange-25'} hover:bg-orange-50 transition-colors`}>
+                      <td className="p-4">
                         <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                          {product.nom}
+                          <Package className="h-4 w-4 text-orange-500" />
+                          <Input
+                            value={produit.nom}
+                            onChange={(e) => modifierProduit(produit.id, 'nom', e.target.value)}
+                            className="border-0 bg-transparent focus:bg-white focus:border-orange-300 transition-all"
+                          />
+                          {produit.isCustom && (
+                            <Badge variant="outline" className="text-xs border-orange-300 text-orange-600">
+                              Personnalisé
+                            </Badge>
+                          )}
                         </div>
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="p-4 text-center">
                         <Input
                           type="number"
+                          value={produit.quantite}
+                          onChange={(e) => modifierProduit(produit.id, 'quantite', Number(e.target.value))}
                           min="1"
-                          value={product.quantite}
-                          onChange={(e) => updateProductQuantity(product.id, parseInt(e.target.value) || 1)}
-                          className="w-20 text-center border-2 focus:border-primary/50"
+                          className="w-20 text-center border-orange-200 focus:border-orange-400"
                         />
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="p-4 text-right">
                         <Input
                           type="number"
+                          value={produit.prix_unitaire}
+                          onChange={(e) => modifierProduit(produit.id, 'prix_unitaire', Number(e.target.value))}
                           min="0"
-                          step="1"
-                          value={product.prix_unitaire}
-                          onChange={(e) => updateProductPrice(product.id, parseFloat(e.target.value) || 0)}
-                          className="w-32 border-2 focus:border-primary/50"
+                          step="0.01"
+                          className="w-32 text-right border-orange-200 focus:border-orange-400"
                         />
-                      </TableCell>
-                      <TableCell className="font-bold text-primary">
-                        {formatCurrency(product.total_ligne)}
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="p-4 text-right font-semibold text-orange-600">
+                        {produit.total_ligne.toLocaleString()} FCFA
+                      </td>
+                      <td className="p-4 text-center">
                         <Button
                           type="button"
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          onClick={() => removeProduct(product.id)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          onClick={() => supprimerProduit(produit.id)}
+                          className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Total général - Design amélioré */}
-            <div className="p-6 bg-gradient-to-r from-primary/5 to-accent/5 border-t">
-              <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
-                <div className="flex items-center gap-2">
-                  <Edit2 className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-lg font-semibold text-foreground">Total général:</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                    {formatCurrency(totalGeneral)}
-                  </span>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {products.reduce((sum, product) => sum + product.quantite, 0)} articles au total
-                  </p>
-                </div>
-              </div>
+                </tbody>
+                <tfoot className="bg-gradient-to-r from-orange-100 to-amber-100">
+                  <tr>
+                    <td colSpan={3} className="p-4 text-right font-bold text-gray-700">
+                      <div className="flex items-center justify-end gap-2">
+                        <Calculator className="h-5 w-5 text-orange-500" />
+                        SOUS-TOTAL :
+                      </div>
+                    </td>
+                    <td className="p-4 text-right text-xl font-bold text-orange-600">
+                      {totalGeneral.toLocaleString()} FCFA
+                    </td>
+                    <td className="p-4"></td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* État vide - Design moderne */}
+      {/* Message si aucun produit */}
       {products.length === 0 && (
-        <Card className="border-2 border-dashed border-muted-foreground/20">
-          <CardContent className="py-12">
-            <div className="text-center">
-              <div className="mx-auto w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mb-4">
-                <Package className="h-8 w-8 text-muted-foreground/50" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Aucun produit sélectionné</h3>
-              <p className="text-muted-foreground mb-4">
-                Utilisez le formulaire ci-dessus pour ajouter des produits à votre facture
-              </p>
-              <div className="flex items-center justify-center text-sm text-muted-foreground">
-                <Plus className="h-4 w-4 mr-1" />
-                Commencez par sélectionner un produit
-              </div>
-            </div>
+        <Card className="border-2 border-dashed border-orange-300 bg-orange-50">
+          <CardContent className="p-8 text-center">
+            <Package className="h-12 w-12 text-orange-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">Aucun produit ajouté</h3>
+            <p className="text-gray-500">
+              Utilisez le formulaire ci-dessus pour ajouter des produits ou services à votre {window.location.pathname.includes('devis') ? 'devis' : 'facture'}.
+            </p>
           </CardContent>
         </Card>
       )}

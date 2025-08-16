@@ -1,20 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { CalendarIcon, Plus } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import { SimpleProductSelector } from './SimpleProductSelector';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, MapPin, Truck, Calculator } from 'lucide-react';
 import { NumberGenerator } from '@/utils/numberGenerator';
+import { SimpleProductSelector } from './SimpleProductSelector';
 
 interface ProductItem {
   id: string;
@@ -26,137 +23,165 @@ interface ProductItem {
 
 interface SimpleInvoiceFormProps {
   onSubmit: (invoiceData: any, products: any[]) => void;
+  onCancel: () => void;
   initialData?: any;
-  type?: 'facture' | 'devis';
 }
 
-export const SimpleInvoiceFormWithVAT = ({ 
-  onSubmit, 
-  initialData, 
-  type = 'facture' 
-}: SimpleInvoiceFormProps) => {
-  const [formData, setFormData] = useState({
-    numero_facture: initialData?.numero_facture || '',
-    client_nom: initialData?.client_nom || '',
-    client_telephone: initialData?.client_telephone || '',
-    client_adresse: initialData?.client_adresse || '',
-    date_facture: initialData?.date_facture ? new Date(initialData.date_facture) : new Date(),
-    date_echeance: initialData?.date_echeance ? new Date(initialData.date_echeance) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    statut: initialData?.statut || 'brouillon',
-    commentaires: initialData?.commentaires || '',
-    mode_livraison: initialData?.mode_livraison || 'retrait_usine',
-    frais_livraison: initialData?.frais_livraison || 0,
-    adresse_livraison: initialData?.adresse_livraison || '',
-    remise_globale_montant: initialData?.remise_globale_montant || 0,
-    tva_applicable: initialData?.tva_applicable || false,
-    taux_tva: initialData?.taux_tva || 18,
-  });
+export const SimpleInvoiceFormWithVAT = ({ onSubmit, onCancel, initialData }: SimpleInvoiceFormProps) => {
+  const [numeroFacture, setNumeroFacture] = useState('');
+  const [clientNom, setClientNom] = useState('');
+  const [clientTelephone, setClientTelephone] = useState('');
+  const [clientAdresse, setClientAdresse] = useState('');
+  const [dateFacture, setDateFacture] = useState(new Date().toISOString().split('T')[0]);
+  const [dateEcheance, setDateEcheance] = useState('');
+  const [products, setProducts] = useState<ProductItem[]>([]);
+  const [commentaires, setCommentaires] = useState('');
+  const [modeLivraison, setModeLivraison] = useState('retrait_usine');
+  const [adresseLivraison, setAdresseLivraison] = useState('');
+  const [fraisLivraison, setFraisLivraison] = useState(0);
+  const [remiseGlobale, setRemiseGlobale] = useState(0);
+  const [tvaApplicable, setTvaApplicable] = useState(false);
+  const [tauxTva, setTauxTva] = useState(18);
 
-  const [products, setProducts] = useState<ProductItem[]>(initialData?.products || []);
-  const [isDateOpen, setIsDateOpen] = useState(false);
-  const [isEcheanceOpen, setIsEcheanceOpen] = useState(false);
-
-  // Generate invoice number on component mount if not provided
+  // Générer le numéro de facture au chargement
   useEffect(() => {
-    const initializeInvoiceNumber = async () => {
-      if (!formData.numero_facture) {
-        try {
-          const numero = await NumberGenerator.generateInvoiceNumber();
-          setFormData(prev => ({ ...prev, numero_facture: numero }));
-        } catch (error) {
-          console.error('Erreur génération numéro facture:', error);
-        }
+    if (!initialData) {
+      setNumeroFacture(NumberGenerator.generateInvoiceNumber());
+    }
+  }, [initialData]);
+
+  // Pré-remplir les données si on édite une facture
+  useEffect(() => {
+    if (initialData) {
+      setNumeroFacture(initialData.numero_facture || '');
+      setClientNom(initialData.client_nom || '');
+      setClientTelephone(initialData.client_telephone || '');
+      setClientAdresse(initialData.client_adresse || '');
+      setDateFacture(initialData.date_facture || new Date().toISOString().split('T')[0]);
+      setDateEcheance(initialData.date_echeance || '');
+      setCommentaires(initialData.commentaires || '');
+      setModeLivraison(initialData.mode_livraison || 'retrait_usine');
+      setAdresseLivraison(initialData.adresse_livraison || '');
+      setFraisLivraison(initialData.frais_livraison || 0);
+      setRemiseGlobale(initialData.remise_globale_montant || 0);
+      setTvaApplicable(initialData.tva_applicable || false);
+      setTauxTva(initialData.taux_tva || 18);
+
+      // Charger les produits existants
+      if (initialData.facture_items && initialData.facture_items.length > 0) {
+        const existingProducts = initialData.facture_items.map((item: any) => ({
+          id: item.id || `product-${Date.now()}-${Math.random()}`,
+          nom: item.nom_produit,
+          quantite: item.quantite,
+          prix_unitaire: item.prix_unitaire,
+          total_ligne: item.total_ligne
+        }));
+        setProducts(existingProducts);
       }
-    };
+    }
+  }, [initialData]);
 
-    initializeInvoiceNumber();
-  }, [formData.numero_facture]);
-
-  // Calculs avec TVA
-  const calculateTotals = () => {
-    const sousTotal = products.reduce((sum, product) => sum + product.total_ligne, 0);
-    const montantTva = formData.tva_applicable ? (sousTotal * formData.taux_tva / 100) : 0;
-    const montantRemise = Number(formData.remise_globale_montant) || 0;
-    const fraisLivraison = Number(formData.frais_livraison) || 0;
-    const montantTotal = sousTotal + montantTva + fraisLivraison - montantRemise;
-
-    return {
-      sousTotal,
-      montantTva,
-      montantRemise,
-      fraisLivraison,
-      montantTotal
-    };
-  };
-
-  const { sousTotal, montantTva, montantRemise, fraisLivraison, montantTotal } = calculateTotals();
+  // Calculs automatiques
+  const sousTotal = products.reduce((sum, product) => sum + product.total_ligne, 0);
+  const montantRemise = remiseGlobale;
+  const montantApresRemise = sousTotal - montantRemise;
+  const montantTva = tvaApplicable ? (montantApresRemise * tauxTva / 100) : 0;
+  const montantTotal = montantApresRemise + montantTva + fraisLivraison;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (!clientNom.trim()) {
+      alert('Veuillez saisir le nom du client');
+      return;
+    }
+
     if (products.length === 0) {
       alert('Veuillez ajouter au moins un produit');
       return;
     }
 
     const invoiceData = {
-      ...formData,
-      date_facture: format(formData.date_facture, 'yyyy-MM-dd'),
-      date_echeance: format(formData.date_echeance, 'yyyy-MM-dd'),
+      numero_facture: numeroFacture,
+      date_facture: dateFacture,
+      date_echeance: dateEcheance || null,
+      client_nom: clientNom,
+      client_telephone: clientTelephone,
+      client_adresse: clientAdresse,
       sous_total: sousTotal,
+      remise_globale_montant: montantRemise,
+      frais_livraison: fraisLivraison,
+      tva_applicable: tvaApplicable,
+      taux_tva: tauxTva,
       montant_tva: montantTva,
       montant_total: montantTotal,
+      statut: 'brouillon',
+      commentaires: commentaires,
+      mode_livraison: modeLivraison,
+      adresse_livraison: adresseLivraison
     };
 
+    // Formatage des produits pour la base de données
     const formattedProducts = products.map(product => ({
       nom_produit: product.nom,
       quantite: product.quantite,
       prix_unitaire: product.prix_unitaire,
-      total_ligne: product.total_ligne,
-      product_id: null
+      total_ligne: product.total_ligne
     }));
+
+    console.log('Données de la facture:', invoiceData);
+    console.log('Produits formatés:', formattedProducts);
 
     onSubmit(invoiceData, formattedProducts);
   };
 
   const handleProductsChange = (updatedProducts: ProductItem[]) => {
+    console.log('Produits mis à jour dans le form:', updatedProducts);
     setProducts(updatedProducts);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* En-tête facture */}
+      {/* En-tête de la facture */}
       <Card>
         <CardHeader>
-          <CardTitle>📋 Informations {type === 'facture' ? 'Facture' : 'Devis'}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Informations générales
+          </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="numero">Numéro {type === 'facture' ? 'facture' : 'devis'}</Label>
-            <Input
-              id="numero"
-              value={formData.numero_facture}
-              onChange={(e) => setFormData(prev => ({ ...prev, numero_facture: e.target.value }))}
-              required
-            />
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="numeroFacture">Numéro de facture *</Label>
+              <Input
+                id="numeroFacture"
+                value={numeroFacture}
+                onChange={(e) => setNumeroFacture(e.target.value)}
+                placeholder="Auto-généré"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="dateFacture">Date de facture *</Label>
+              <Input
+                id="dateFacture"
+                type="date"
+                value={dateFacture}
+                onChange={(e) => setDateFacture(e.target.value)}
+                required
+              />
+            </div>
           </div>
+          
           <div>
-            <Label htmlFor="statut">Statut</Label>
-            <Select 
-              value={formData.statut} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, statut: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="brouillon">📝 Brouillon</SelectItem>
-                <SelectItem value="valide">✅ Validé</SelectItem>
-                <SelectItem value="envoyee">📤 Envoyé</SelectItem>
-                <SelectItem value="payee">💰 Payé</SelectItem>
-                <SelectItem value="annulee">❌ Annulé</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="dateEcheance">Date d'échéance</Label>
+            <Input
+              id="dateEcheance"
+              type="date"
+              value={dateEcheance}
+              onChange={(e) => setDateEcheance(e.target.value)}
+            />
           </div>
         </CardContent>
       </Card>
@@ -164,113 +189,39 @@ export const SimpleInvoiceFormWithVAT = ({
       {/* Informations client */}
       <Card>
         <CardHeader>
-          <CardTitle>👤 Informations Client</CardTitle>
+          <CardTitle>Informations client</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="client_nom">Nom du client *</Label>
+            <Label htmlFor="clientNom">Nom du client *</Label>
             <Input
-              id="client_nom"
-              value={formData.client_nom}
-              onChange={(e) => setFormData(prev => ({ ...prev, client_nom: e.target.value }))}
+              id="clientNom"
+              value={clientNom}
+              onChange={(e) => setClientNom(e.target.value)}
+              placeholder="Nom complet du client"
               required
             />
           </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="client_telephone">Téléphone</Label>
+              <Label htmlFor="clientTelephone">Téléphone</Label>
               <Input
-                id="client_telephone"
-                value={formData.client_telephone}
-                onChange={(e) => setFormData(prev => ({ ...prev, client_telephone: e.target.value }))}
+                id="clientTelephone"
+                value={clientTelephone}
+                onChange={(e) => setClientTelephone(e.target.value)}
+                placeholder="+228 XX XX XX XX"
               />
             </div>
-          </div>
-          <div>
-            <Label htmlFor="client_adresse">Adresse</Label>
-            <Textarea
-              id="client_adresse"
-              value={formData.client_adresse}
-              onChange={(e) => setFormData(prev => ({ ...prev, client_adresse: e.target.value }))}
-              rows={2}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Dates */}
-      <Card>
-        <CardHeader>
-          <CardTitle>📅 Dates</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>Date d'émission</Label>
-            <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.date_facture && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.date_facture ? (
-                    format(formData.date_facture, "dd MMMM yyyy", { locale: fr })
-                  ) : (
-                    <span>Choisir une date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={formData.date_facture}
-                  onSelect={(date) => {
-                    if (date) {
-                      setFormData(prev => ({ ...prev, date_facture: date }));
-                      setIsDateOpen(false);
-                    }
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div>
-            <Label>Date d'échéance</Label>
-            <Popover open={isEcheanceOpen} onOpenChange={setIsEcheanceOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.date_echeance && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.date_echeance ? (
-                    format(formData.date_echeance, "dd MMMM yyyy", { locale: fr })
-                  ) : (
-                    <span>Choisir une date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={formData.date_echeance}
-                  onSelect={(date) => {
-                    if (date) {
-                      setFormData(prev => ({ ...prev, date_echeance: date }));
-                      setIsEcheanceOpen(false);
-                    }
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <div>
+              <Label htmlFor="clientAdresse">Adresse</Label>
+              <Input
+                id="clientAdresse"
+                value={clientAdresse}
+                onChange={(e) => setClientAdresse(e.target.value)}
+                placeholder="Adresse du client"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -278,48 +229,48 @@ export const SimpleInvoiceFormWithVAT = ({
       {/* Configuration TVA */}
       <Card>
         <CardHeader>
-          <CardTitle>💰 Configuration TVA</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-5 w-5" />
+            Configuration TVA
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="tvaApplicable">TVA applicable</Label>
+              <p className="text-sm text-muted-foreground">
+                Activer la TVA pour cette facture
+              </p>
+            </div>
             <Switch
-              id="tva_applicable"
-              checked={formData.tva_applicable}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, tva_applicable: checked }))}
+              id="tvaApplicable"
+              checked={tvaApplicable}
+              onCheckedChange={setTvaApplicable}
             />
-            <Label htmlFor="tva_applicable">Appliquer la TVA sur cette {type}</Label>
           </div>
-          {formData.tva_applicable && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="taux_tva">Taux de TVA (%)</Label>
-                <Input
-                  id="taux_tva"
-                  type="number"
-                  value={formData.taux_tva}
-                  onChange={(e) => setFormData(prev => ({ ...prev, taux_tva: parseFloat(e.target.value) || 0 }))}
-                  min="0"
-                  max="100"
-                  step="0.1"
-                />
-              </div>
-              <div>
-                <Label>Montant TVA calculé</Label>
-                <Input
-                  value={`${montantTva.toLocaleString()} FCFA`}
-                  readOnly
-                  className="bg-gray-50"
-                />
-              </div>
+          
+          {tvaApplicable && (
+            <div>
+              <Label htmlFor="tauxTva">Taux de TVA (%)</Label>
+              <Input
+                id="tauxTva"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={tauxTva}
+                onChange={(e) => setTauxTva(parseFloat(e.target.value) || 0)}
+                placeholder="18"
+              />
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Produits */}
+      {/* Sélection des produits */}
       <Card>
         <CardHeader>
-          <CardTitle>🛍️ Produits et Services</CardTitle>
+          <CardTitle>Produits</CardTitle>
         </CardHeader>
         <CardContent>
           <SimpleProductSelector
@@ -329,68 +280,82 @@ export const SimpleInvoiceFormWithVAT = ({
         </CardContent>
       </Card>
 
-      {/* Options de livraison */}
+      {/* Livraison */}
       <Card>
         <CardHeader>
-          <CardTitle>🚚 Livraison et Options</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            Options de livraison
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="mode_livraison">Mode de livraison</Label>
-              <Select 
-                value={formData.mode_livraison} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, mode_livraison: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="retrait_usine">🏭 Retrait à l'usine</SelectItem>
-                  <SelectItem value="livraison_gratuite">🚚 Livraison gratuite</SelectItem>
-                  <SelectItem value="livraison_payante">💰 Livraison payante</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="frais_livraison">Frais de livraison (FCFA)</Label>
-              <Input
-                id="frais_livraison"
-                type="number"
-                value={formData.frais_livraison}
-                onChange={(e) => setFormData(prev => ({ ...prev, frais_livraison: parseFloat(e.target.value) || 0 }))}
-                min="0"
-              />
-            </div>
+          <div>
+            <Label htmlFor="modeLivraison">Mode de livraison</Label>
+            <Select value={modeLivraison} onValueChange={setModeLivraison}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="retrait_usine">Retrait à l'usine</SelectItem>
+                <SelectItem value="livraison_gratuite">Livraison gratuite</SelectItem>
+                <SelectItem value="livraison_payante">Livraison payante</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          {formData.mode_livraison !== 'retrait_usine' && (
+
+          {modeLivraison !== 'retrait_usine' && (
             <div>
-              <Label htmlFor="adresse_livraison">Adresse de livraison</Label>
+              <Label htmlFor="adresseLivraison">Adresse de livraison</Label>
               <Textarea
-                id="adresse_livraison"
-                value={formData.adresse_livraison}
-                onChange={(e) => setFormData(prev => ({ ...prev, adresse_livraison: e.target.value }))}
+                id="adresseLivraison"
+                value={adresseLivraison}
+                onChange={(e) => setAdresseLivraison(e.target.value)}
+                placeholder="Adresse complète de livraison"
                 rows={2}
               />
             </div>
           )}
+
+          {modeLivraison === 'livraison_payante' && (
+            <div>
+              <Label htmlFor="fraisLivraison">Frais de livraison (FCFA)</Label>
+              <Input
+                id="fraisLivraison"
+                type="number"
+                min="0"
+                value={fraisLivraison}
+                onChange={(e) => setFraisLivraison(parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Remise globale */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Remise globale</CardTitle>
+        </CardHeader>
+        <CardContent>
           <div>
-            <Label htmlFor="remise_globale">Remise globale (FCFA)</Label>
+            <Label htmlFor="remiseGlobale">Montant de la remise (FCFA)</Label>
             <Input
-              id="remise_globale"
+              id="remiseGlobale"
               type="number"
-              value={formData.remise_globale_montant}
-              onChange={(e) => setFormData(prev => ({ ...prev, remise_globale_montant: parseFloat(e.target.value) || 0 }))}
               min="0"
+              value={remiseGlobale}
+              onChange={(e) => setRemiseGlobale(parseFloat(e.target.value) || 0)}
+              placeholder="0"
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Résumé financier */}
+      {/* Récapitulatif des totaux */}
       <Card>
         <CardHeader>
-          <CardTitle>💵 Résumé Financier</CardTitle>
+          <CardTitle>Récapitulatif</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -398,27 +363,31 @@ export const SimpleInvoiceFormWithVAT = ({
               <span>Sous-total HT:</span>
               <span className="font-medium">{sousTotal.toLocaleString()} FCFA</span>
             </div>
+            
             {montantRemise > 0 && (
               <div className="flex justify-between text-red-600">
                 <span>Remise:</span>
                 <span className="font-medium">-{montantRemise.toLocaleString()} FCFA</span>
               </div>
             )}
-            {formData.tva_applicable && (
+            
+            {tvaApplicable && (
               <div className="flex justify-between">
-                <span>TVA ({formData.taux_tva}%):</span>
+                <span>TVA ({tauxTva}%):</span>
                 <span className="font-medium">{montantTva.toLocaleString()} FCFA</span>
               </div>
             )}
+            
             {fraisLivraison > 0 && (
               <div className="flex justify-between">
                 <span>Frais de livraison:</span>
                 <span className="font-medium">{fraisLivraison.toLocaleString()} FCFA</span>
               </div>
             )}
+            
             <Separator />
-            <div className="flex justify-between text-lg font-bold text-primary">
-              <span>TOTAL {formData.tva_applicable ? 'TTC' : ''}:</span>
+            <div className="flex justify-between text-lg font-bold">
+              <span>Total {tvaApplicable ? 'TTC' : 'HT'}:</span>
               <span>{montantTotal.toLocaleString()} FCFA</span>
             </div>
           </div>
@@ -428,21 +397,25 @@ export const SimpleInvoiceFormWithVAT = ({
       {/* Commentaires */}
       <Card>
         <CardHeader>
-          <CardTitle>📝 Commentaires</CardTitle>
+          <CardTitle>Commentaires</CardTitle>
         </CardHeader>
         <CardContent>
           <Textarea
-            placeholder="Informations supplémentaires, conditions particulières..."
-            value={formData.commentaires}
-            onChange={(e) => setFormData(prev => ({ ...prev, commentaires: e.target.value }))}
+            value={commentaires}
+            onChange={(e) => setCommentaires(e.target.value)}
+            placeholder="Commentaires ou instructions spéciales..."
             rows={3}
           />
         </CardContent>
       </Card>
 
-      <div className="flex gap-4">
-        <Button type="submit" className="flex-1 bg-orange-500 hover:bg-orange-600">
-          ✅ Créer la {type}
+      {/* Actions */}
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Annuler
+        </Button>
+        <Button type="submit" className="bg-orange-500 hover:bg-orange-600">
+          {initialData ? 'Modifier la facture' : 'Créer la facture'}
         </Button>
       </div>
     </form>

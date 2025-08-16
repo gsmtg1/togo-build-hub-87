@@ -16,13 +16,12 @@ interface Product {
 
 export const useProductsManager = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const loadProducts = async () => {
+  const fetchProducts = async () => {
     try {
-      setLoading(true);
-      console.log('🔄 Chargement des produits...');
+      console.log('Chargement des produits...');
       
       const { data, error } = await supabase
         .from('products')
@@ -31,17 +30,17 @@ export const useProductsManager = () => {
         .order('name', { ascending: true });
 
       if (error) {
-        console.error('❌ Erreur chargement produits:', error);
+        console.error('Erreur lors du chargement des produits:', error);
         throw error;
       }
       
-      console.log('✅ Produits chargés:', data?.length || 0);
+      console.log('Produits chargés:', data);
       setProducts(data || []);
     } catch (error: any) {
-      console.error('💥 Erreur dans loadProducts:', error);
+      console.error('Erreur lors du chargement des produits:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger les produits: " + error.message,
+        description: "Impossible de charger les produits: " + (error.message || 'Erreur inconnue'),
         variant: "destructive",
       });
     } finally {
@@ -50,12 +49,12 @@ export const useProductsManager = () => {
   };
 
   useEffect(() => {
-    loadProducts();
+    fetchProducts();
   }, []);
 
   return {
     products,
     loading,
-    refreshProducts: loadProducts
+    refresh: fetchProducts
   };
 };

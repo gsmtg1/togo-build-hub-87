@@ -73,7 +73,7 @@ export const SimpleInvoiceFormWithVAT = ({
   const fraisLivraisonActuels = modeLivraison === 'livraison_payante' ? fraisLivraison : 0;
   const montantTotal = sousTotal + montantTva + fraisLivraisonActuels - remiseGlobale;
 
-  // Validation simplifiée - TVA vraiment optionnelle
+  // Corriger la validation pour que la TVA soit vraiment optionnelle
   const estValide = () => {
     const erreurs = [];
     
@@ -85,7 +85,7 @@ export const SimpleInvoiceFormWithVAT = ({
       erreurs.push('Au moins un produit doit être ajouté');
     }
     
-    // Validation des produits
+    // Validation des produits uniquement si ils existent
     produits.forEach((produit, index) => {
       if (!produit.nom.trim()) {
         erreurs.push(`Le produit ${index + 1} doit avoir un nom`);
@@ -120,6 +120,15 @@ export const SimpleInvoiceFormWithVAT = ({
     setLoading(true);
 
     try {
+      console.log('=== DÉBUT CRÉATION DOCUMENT ===');
+      console.log('Type:', type);
+      console.log('Données:', {
+        selectedClientName,
+        produits: produits.length,
+        montantTotal,
+        tvaApplicable
+      });
+
       // Créer l'objet de données avec les propriétés correctes selon le type
       let documentData: any;
       
@@ -137,8 +146,8 @@ export const SimpleInvoiceFormWithVAT = ({
           montant_total: montantTotal,
           sous_total: sousTotal,
           tva_applicable: tvaApplicable,
-          taux_tva: tauxTva,
-          montant_tva: montantTva,
+          taux_tva: tvaApplicable ? tauxTva : 0,
+          montant_tva: tvaApplicable ? montantTva : 0,
           frais_livraison: fraisLivraisonActuels,
           remise_globale_montant: remiseGlobale,
           mode_livraison: modeLivraison,
@@ -158,8 +167,8 @@ export const SimpleInvoiceFormWithVAT = ({
           montant_total: montantTotal,
           sous_total: sousTotal,
           tva_applicable: tvaApplicable,
-          taux_tva: tauxTva,
-          montant_tva: montantTva,
+          taux_tva: tvaApplicable ? tauxTva : 0,
+          montant_tva: tvaApplicable ? montantTva : 0,
           frais_livraison: fraisLivraisonActuels,
           remise_globale_montant: remiseGlobale,
           mode_livraison: modeLivraison,
@@ -167,8 +176,7 @@ export const SimpleInvoiceFormWithVAT = ({
         };
       }
 
-      console.log(`Création ${type}:`, documentData);
-      console.log('Produits:', produits);
+      console.log(`Données ${type}:`, documentData);
 
       // Convertir les produits au format attendu
       const produitsFormates = produits.map(p => ({
@@ -179,12 +187,11 @@ export const SimpleInvoiceFormWithVAT = ({
         product_id: p.product_id || null
       }));
 
+      console.log('Produits formatés:', produitsFormates);
+
       await create(documentData, produitsFormates);
 
-      toast({
-        title: "Succès",
-        description: `${type === 'facture' ? 'Facture' : 'Devis'} créé(e) avec succès !`,
-      });
+      console.log('=== SUCCÈS CRÉATION DOCUMENT ===');
 
       // Réinitialiser le formulaire
       setProduits([]);
@@ -207,7 +214,9 @@ export const SimpleInvoiceFormWithVAT = ({
       }
 
     } catch (error: any) {
-      console.error('Erreur création document:', error);
+      console.error('=== ERREUR CRÉATION DOCUMENT ===');
+      console.error('Erreur complète:', error);
+      
       toast({
         title: "Erreur",
         description: error.message || `Impossible de créer ${type === 'facture' ? 'la facture' : 'le devis'}`,

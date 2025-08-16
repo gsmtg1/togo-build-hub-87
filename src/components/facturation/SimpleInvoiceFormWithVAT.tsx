@@ -300,7 +300,7 @@ export const SimpleInvoiceFormWithVAT = ({
           clientAdresse={clientAdresse}
           onClientSelect={(client) => {
             if (client) {
-              setSelectedClientId(client.id);
+              setSelectedClientId(client.id || '');
               setSelectedClientName(client.nom_complet);
               setClientTelephone(client.telephone || '');
               setClientAdresse(client.adresse || '');

@@ -31,12 +31,14 @@ interface SimpleInvoiceFormWithVATProps {
   onInvoiceCreated?: () => void;
   type?: 'facture' | 'devis';
   initialData?: any;
+  onClose?: () => void;
 }
 
 export const SimpleInvoiceFormWithVAT = ({ 
   onInvoiceCreated, 
   type = 'facture',
-  initialData 
+  initialData,
+  onClose 
 }: SimpleInvoiceFormWithVATProps) => {
   const [numeroFacture, setNumeroFacture] = useState('');
   const [clientNom, setClientNom] = useState('');
@@ -167,13 +169,17 @@ export const SimpleInvoiceFormWithVAT = ({
         return;
       }
 
-      // Prepare data
+      // Prepare data with all required properties
       const documentData = {
-        [type === 'devis' ? 'numero_devis' : 'numero_facture']: numeroFacture,
+        // Include the required properties for both facture and devis
+        numero_facture: type === 'facture' ? numeroFacture : undefined,
+        numero_devis: type === 'devis' ? numeroFacture : undefined,
+        date_facture: type === 'facture' ? dateFacture.toISOString() : undefined,
+        date_devis: type === 'devis' ? dateFacture.toISOString() : undefined,
+        // Common properties
         client_nom: clientNom,
         client_telephone: clientTelephone,
         client_adresse: clientAdresse,
-        [type === 'devis' ? 'date_devis' : 'date_facture']: dateFacture.toISOString(),
         date_echeance: dateEcheance?.toISOString() || null,
         montant_total: montantTotal,
         statut,
@@ -200,6 +206,10 @@ export const SimpleInvoiceFormWithVAT = ({
       
       if (onInvoiceCreated) {
         onInvoiceCreated();
+      }
+
+      if (onClose) {
+        onClose();
       }
       
     } catch (error: any) {
@@ -397,8 +407,8 @@ export const SimpleInvoiceFormWithVAT = ({
           </CardHeader>
           <CardContent className="p-6">
             <SimpleProductSelector
-              produits={produits}
-              onProduitsChange={handleProduitsChange}
+              products={produits}
+              onProductsChange={handleProduitsChange}
             />
           </CardContent>
         </Card>

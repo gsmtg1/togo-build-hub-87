@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Trash2, Package } from 'lucide-react';
-import { useLocalStorage } from '@/hooks/useDatabase';
+import { useProducts } from '@/hooks/useSupabaseDatabase';
 
 interface ProductItem {
   id: string;
@@ -23,18 +23,11 @@ interface SimpleProductSelectorProps {
 }
 
 export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProductSelectorProps) => {
-  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
   
-  const { data: productsData } = useLocalStorage<any>('products');
-
-  useEffect(() => {
-    if (productsData) {
-      setAvailableProducts(productsData);
-    }
-  }, [productsData]);
+  const { products: availableProducts, loading } = useProducts();
 
   const handleProductSelect = (productId: string) => {
     setSelectedProductId(productId);
@@ -141,6 +134,14 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
   };
 
   const totalGeneral = products.reduce((sum, product) => sum + product.total_ligne, 0);
+
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <p>Chargement des produits...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

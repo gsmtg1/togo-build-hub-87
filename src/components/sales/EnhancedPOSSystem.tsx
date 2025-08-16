@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -423,7 +422,16 @@ export const EnhancedPOSSystem = () => {
                     >
                       <Minus className="h-3 w-3" />
                     </Button>
-                    <span className="w-8 text-center text-sm">{item.quantity}</span>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => {
+                        const newQuantity = parseInt(e.target.value) || 1;
+                        updateQuantity(item.id, newQuantity);
+                      }}
+                      className="w-16 text-center text-sm h-8"
+                    />
                     <Button 
                       size="sm" 
                       variant="outline"

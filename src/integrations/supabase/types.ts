@@ -455,6 +455,7 @@ export type Database = {
           id: string
           montant_total: number
           numero_devis: string
+          remise_globale_pourcentage: number | null
           statut: string
           updated_at: string
           vendeur_id: string | null
@@ -471,6 +472,7 @@ export type Database = {
           id?: string
           montant_total?: number
           numero_devis: string
+          remise_globale_pourcentage?: number | null
           statut?: string
           updated_at?: string
           vendeur_id?: string | null
@@ -487,6 +489,7 @@ export type Database = {
           id?: string
           montant_total?: number
           numero_devis?: string
+          remise_globale_pourcentage?: number | null
           statut?: string
           updated_at?: string
           vendeur_id?: string | null
@@ -710,6 +713,7 @@ export type Database = {
           montant_total: number
           numero_facture: string
           remise_globale_montant: number | null
+          remise_globale_pourcentage: number | null
           sale_id: string | null
           sous_total: number | null
           statut: string
@@ -734,6 +738,7 @@ export type Database = {
           montant_total?: number
           numero_facture: string
           remise_globale_montant?: number | null
+          remise_globale_pourcentage?: number | null
           sale_id?: string | null
           sous_total?: number | null
           statut?: string
@@ -758,6 +763,7 @@ export type Database = {
           montant_total?: number
           numero_facture?: string
           remise_globale_montant?: number | null
+          remise_globale_pourcentage?: number | null
           sale_id?: string | null
           sous_total?: number | null
           statut?: string

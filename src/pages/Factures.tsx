@@ -1,200 +1,232 @@
 
 import { useState } from 'react';
-import { Plus, Eye, Edit, Trash2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { NewInvoiceDialog } from '@/components/facturation/NewInvoiceDialog';
+import { Trash2, Edit, Eye, Plus, FileText } from 'lucide-react';
+import { useFacturesDatabase } from '@/hooks/useFacturesDatabase';
+import { DialogueFactureSimple } from '@/components/facturation/DialogueFactureSimple';
 import { VueFactureComplete } from '@/components/facturation/VueFactureComplete';
-import { useInvoicesManager } from '@/hooks/useInvoicesManager';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
-const Factures = () => {
-  const { invoices, isLoading, deleteInvoice } = useInvoicesManager();
-  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
-  const [showDialog, setShowDialog] = useState(false);
+export default function Factures() {
+  const { factures, loading, deleteFacture } = useFacturesDatabase();
+  const [showNewDialog, setShowNewDialog] = useState(false);
+  const [selectedFacture, setSelectedFacture] = useState<any>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string | null }>({ 
+    open: false, 
+    id: null 
+  });
 
-  const handleEdit = (invoice: any) => {
-    console.log('✏️ Édition facture:', invoice.id);
-    setSelectedInvoice(invoice);
-    setShowDialog(true);
+  const handleEdit = (facture: any) => {
+    setSelectedFacture(facture);
+    setShowEditDialog(true);
   };
 
-  const handleView = (invoice: any) => {
-    console.log('👁️ Visualisation facture:', invoice.id);
-    setSelectedInvoice(invoice);
+  const handleView = (facture: any) => {
+    setSelectedFacture(facture);
     setShowViewDialog(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
-      try {
-        console.log('🗑️ Suppression facture:', id);
-        await deleteInvoice(id);
-      } catch (error) {
-        console.error('❌ Erreur suppression:', error);
-      }
+  const handleDelete = (id: string) => {
+    setDeleteConfirm({ open: true, id });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteConfirm.id) {
+      await deleteFacture(deleteConfirm.id);
+      setDeleteConfirm({ open: false, id: null });
     }
   };
 
-  const handleNewInvoice = () => {
-    console.log('➕ Nouvelle facture');
-    setSelectedInvoice(null);
-    setShowDialog(true);
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'XOF',
+      minimumFractionDigits: 0,
+    }).format(amount);
   };
 
-  const handleCloseDialog = () => {
-    setShowDialog(false);
-    setSelectedInvoice(null);
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      brouillon: 'secondary',
-      envoye: 'default',
-      payee: 'default',
-      en_retard: 'destructive',
-      annulee: 'destructive',
+  const getStatusBadge = (statut: string) => {
+    const statusConfig = {
+      brouillon: { label: 'Brouillon', variant: 'secondary' as const },
+      valide: { label: 'Validée', variant: 'default' as const },
+      envoyee: { label: 'Envoyée', variant: 'outline' as const },
+      payee: { label: 'Payée', variant: 'default' as const },
+      annulee: { label: 'Annulée', variant: 'destructive' as const }
     };
     
-    const labels: Record<string, string> = {
-      brouillon: 'Brouillon',
-      envoye: 'Envoyée',
-      payee: 'Payée',
-      en_retard: 'En retard',
-      annulee: 'Annulée',
-    };
-
-    return <Badge variant={variants[status] || 'secondary'}>{labels[status] || status}</Badge>;
+    const config = statusConfig[statut as keyof typeof statusConfig] || statusConfig.brouillon;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p>Chargement des factures...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des factures...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Gestion des Factures</h1>
-          <p className="text-muted-foreground">
-            Créez et gérez vos factures avec plusieurs produits
+          <h1 className="text-3xl font-bold text-orange-600">Factures</h1>
+          <p className="text-gray-600 mt-2">
+            Gérez vos factures avec support multi-produits
           </p>
         </div>
-        <Button onClick={handleNewInvoice} className="bg-orange-500 hover:bg-orange-600">
+        <Button 
+          onClick={() => setShowNewDialog(true)}
+          className="bg-orange-500 hover:bg-orange-600"
+        >
           <Plus className="h-4 w-4 mr-2" />
-          Nouvelle facture
+          Nouvelle Facture
         </Button>
       </div>
 
-      <div className="grid gap-4">
-        {!invoices || invoices.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <Receipt className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500 font-medium">Aucune facture créée</p>
-                <p className="text-sm text-gray-400 mb-4">Commencez par créer votre première facture</p>
-                <Button onClick={handleNewInvoice} className="bg-orange-500 hover:bg-orange-600">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Créer ma première facture
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          invoices.map((invoice) => (
-            <Card key={invoice.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
+      {factures.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FileText className="h-16 w-16 text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune facture</h3>
+            <p className="text-gray-600 text-center mb-4">
+              Commencez par créer votre première facture.
+            </p>
+            <Button 
+              onClick={() => setShowNewDialog(true)}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Créer une facture
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {factures.map((facture: any) => (
+            <Card key={facture.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
                 <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">Facture {invoice.numero_facture}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Client: {invoice.client_nom}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Émise le {new Date(invoice.date_facture).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(invoice.statut)}
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="outline" onClick={() => handleView(invoice)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(invoice)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => handleDelete(invoice.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-semibold text-orange-600">
+                        {facture.numero_facture}
+                      </h3>
+                      {getStatusBadge(facture.statut)}
                     </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Client</p>
+                        <p className="font-medium">{facture.client_nom}</p>
+                        {facture.client_telephone && (
+                          <p className="text-sm text-gray-500">{facture.client_telephone}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-gray-600">Date & Échéance</p>
+                        <p className="font-medium">{new Date(facture.date_facture).toLocaleDateString('fr-FR')}</p>
+                        {facture.date_echeance && (
+                          <p className="text-sm text-gray-500">
+                            Échéance: {new Date(facture.date_echeance).toLocaleDateString('fr-FR')}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-gray-600">Montant</p>
+                        <p className="text-xl font-bold text-orange-600">
+                          {formatCurrency(facture.montant_total)}
+                        </p>
+                        {facture.facture_produits && (
+                          <p className="text-sm text-gray-500">
+                            {facture.facture_produits.length} produit(s)
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {facture.commentaires && (
+                      <div className="mt-3">
+                        <p className="text-sm text-gray-600">Commentaires</p>
+                        <p className="text-sm text-gray-800">{facture.commentaires}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleView(facture)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(facture)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(facture.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Téléphone:</span><br />
-                    {invoice.client_telephone || 'Non renseigné'}
-                  </div>
-                  <div>
-                    <span className="font-medium">Mode livraison:</span><br />
-                    {invoice.mode_livraison === 'retrait_usine' ? 'Retrait usine' : 
-                     invoice.mode_livraison === 'livraison_gratuite' ? 'Livraison gratuite' :
-                     invoice.mode_livraison === 'livraison_payante' ? 'Livraison payante' : 'Non défini'}
-                  </div>
-                  <div>
-                    <span className="font-medium">Montant total:</span><br />
-                    <span className="font-bold text-green-600">
-                      {invoice.montant_total?.toLocaleString()} FCFA
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium">Nb. produits:</span><br />
-                    {invoice.facture_items?.length || 0} produit(s)
-                  </div>
-                </div>
-                {invoice.commentaires && (
-                  <div className="mt-3 pt-3 border-t">
-                    <span className="font-medium text-sm">Commentaires:</span>
-                    <p className="text-sm text-gray-600">{invoice.commentaires}</p>
-                  </div>
-                )}
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
-      <NewInvoiceDialog
-        open={showDialog}
-        onOpenChange={setShowDialog}
-        invoice={selectedInvoice}
-        onClose={handleCloseDialog}
+      {/* Dialogue nouvelle facture */}
+      <DialogueFactureSimple
+        open={showNewDialog}
+        onOpenChange={setShowNewDialog}
+        onClose={() => setShowNewDialog(false)}
       />
 
-      {selectedInvoice && (
+      {/* Dialogue édition facture */}
+      {selectedFacture && (
+        <DialogueFactureSimple
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          facture={selectedFacture}
+          onClose={() => setShowEditDialog(false)}
+        />
+      )}
+
+      {/* Vue complète de la facture */}
+      {selectedFacture && (
         <VueFactureComplete
           open={showViewDialog}
           onOpenChange={setShowViewDialog}
-          facture={selectedInvoice}
+          facture={selectedFacture}
         />
       )}
+
+      {/* Confirmation de suppression */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm({ open, id: null })}
+        title="Supprimer la facture"
+        description="Êtes-vous sûr de vouloir supprimer cette facture ? Cette action est irréversible."
+        onConfirm={confirmDelete}
+      />
     </div>
   );
-};
-
-export default Factures;
+}

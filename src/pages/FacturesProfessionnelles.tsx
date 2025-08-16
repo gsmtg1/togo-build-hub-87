@@ -1,16 +1,15 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Edit, Eye, Plus, FileText } from 'lucide-react';
-import { useFacturationDatabase } from '@/hooks/useFacturationDatabase';
+import { useFacturesProfessionnelles } from '@/hooks/useFacturationDatabase';
 import { NewInvoiceDialog } from '@/components/facturation/NewInvoiceDialog';
 import { VueFactureComplete } from '@/components/facturation/VueFactureComplete';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 export default function FacturesProfessionnelles() {
-  const { data: factures, loading, remove } = useFacturationDatabase().useFacturesProfessionnelles();
+  const { data: factures, loading, remove } = useFacturesProfessionnelles();
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [selectedFacture, setSelectedFacture] = useState<any>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);

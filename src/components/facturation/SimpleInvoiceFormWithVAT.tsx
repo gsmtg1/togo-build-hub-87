@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,14 +15,14 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { SimpleProductSelector } from './SimpleProductSelector';
-import { generateInvoiceNumber } from '@/utils/numberGenerator';
+import { NumberGenerator } from '@/utils/numberGenerator';
 
-interface Product {
+interface ProductItem {
   id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
+  nom: string;
+  quantite: number;
+  prix_unitaire: number;
+  total_ligne: number;
 }
 
 interface SimpleInvoiceFormProps {
@@ -36,7 +37,7 @@ export const SimpleInvoiceFormWithVAT = ({
   type = 'facture' 
 }: SimpleInvoiceFormProps) => {
   const [formData, setFormData] = useState({
-    numero_facture: initialData?.numero_facture || generateInvoiceNumber(),
+    numero_facture: initialData?.numero_facture || '',
     client_nom: initialData?.client_nom || '',
     client_telephone: initialData?.client_telephone || '',
     client_adresse: initialData?.client_adresse || '',
@@ -52,13 +53,29 @@ export const SimpleInvoiceFormWithVAT = ({
     taux_tva: initialData?.taux_tva || 18,
   });
 
-  const [products, setProducts] = useState<Product[]>(initialData?.products || []);
+  const [products, setProducts] = useState<ProductItem[]>(initialData?.products || []);
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [isEcheanceOpen, setIsEcheanceOpen] = useState(false);
 
+  // Generate invoice number on component mount if not provided
+  useEffect(() => {
+    const initializeInvoiceNumber = async () => {
+      if (!formData.numero_facture) {
+        try {
+          const numero = await NumberGenerator.generateInvoiceNumber();
+          setFormData(prev => ({ ...prev, numero_facture: numero }));
+        } catch (error) {
+          console.error('Erreur génération numéro facture:', error);
+        }
+      }
+    };
+
+    initializeInvoiceNumber();
+  }, [formData.numero_facture]);
+
   // Calculs avec TVA
   const calculateTotals = () => {
-    const sousTotal = products.reduce((sum, product) => sum + product.totalPrice, 0);
+    const sousTotal = products.reduce((sum, product) => sum + product.total_ligne, 0);
     const montantTva = formData.tva_applicable ? (sousTotal * formData.taux_tva / 100) : 0;
     const montantRemise = Number(formData.remise_globale_montant) || 0;
     const fraisLivraison = Number(formData.frais_livraison) || 0;
@@ -93,14 +110,41 @@ export const SimpleInvoiceFormWithVAT = ({
     };
 
     const formattedProducts = products.map(product => ({
-      nom_produit: product.name,
-      quantite: product.quantity,
-      prix_unitaire: product.unitPrice,
-      total_ligne: product.totalPrice,
+      nom_produit: product.nom,
+      quantite: product.quantite,
+      prix_unitaire: product.prix_unitaire,
+      total_ligne: product.total_ligne,
       product_id: null
     }));
 
     onSubmit(invoiceData, formattedProducts);
+  };
+
+  // Convert ProductItem[] to the format expected by SimpleProductSelector
+  const convertToSelectorProducts = (items: ProductItem[]) => {
+    return items.map(item => ({
+      id: item.id,
+      name: item.nom,
+      quantity: item.quantite,
+      unitPrice: item.prix_unitaire,
+      totalPrice: item.total_ligne
+    }));
+  };
+
+  // Convert from SimpleProductSelector format back to ProductItem[]
+  const convertFromSelectorProducts = (selectorProducts: any[]) => {
+    return selectorProducts.map(product => ({
+      id: product.id,
+      nom: product.name,
+      quantite: product.quantity,
+      prix_unitaire: product.unitPrice,
+      total_ligne: product.totalPrice
+    }));
+  };
+
+  const handleProductsChange = (selectorProducts: any[]) => {
+    const convertedProducts = convertFromSelectorProducts(selectorProducts);
+    setProducts(convertedProducts);
   };
 
   return (
@@ -303,8 +347,8 @@ export const SimpleInvoiceFormWithVAT = ({
         </CardHeader>
         <CardContent>
           <SimpleProductSelector
-            products={products}
-            onProductsChange={setProducts}
+            products={convertToSelectorProducts(products)}
+            onProductsChange={handleProductsChange}
           />
         </CardContent>
       </Card>

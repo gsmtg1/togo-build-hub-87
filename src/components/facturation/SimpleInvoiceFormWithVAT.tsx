@@ -19,8 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface ProductItem {
-  id?: string;
-  nom_produit: string;
+  id: string;
+  nom: string;
   quantite: number;
   prix_unitaire: number;
   total_ligne: number;
@@ -86,7 +86,7 @@ export const SimpleInvoiceFormWithVAT = ({
       if (type === 'devis' && initialData.devis_produits) {
         setProduits(initialData.devis_produits.map((p: any) => ({
           id: p.id,
-          nom_produit: p.nom_produit,
+          nom: p.nom_produit,
           quantite: p.quantite,
           prix_unitaire: p.prix_unitaire,
           total_ligne: p.total_ligne,
@@ -95,7 +95,7 @@ export const SimpleInvoiceFormWithVAT = ({
       } else if (type === 'facture' && initialData.facture_items) {
         setProduits(initialData.facture_items.map((item: any) => ({
           id: item.id,
-          nom_produit: item.nom_produit,
+          nom: item.nom_produit,
           quantite: item.quantite,
           prix_unitaire: item.prix_unitaire,
           total_ligne: item.total_ligne,
@@ -196,8 +196,14 @@ export const SimpleInvoiceFormWithVAT = ({
 
       console.log(`Création ${type}:`, documentData);
       console.log('Produits:', produits);
+
+      // Convert products to match the expected format for the database
+      const produitsFormatted = produits.map(produit => ({
+        ...produit,
+        nom_produit: produit.nom // Map nom to nom_produit for database compatibility
+      }));
       
-      await dataHook.create(documentData, produits);
+      await dataHook.create(documentData, produitsFormatted);
       
       toast({
         title: "Succès",

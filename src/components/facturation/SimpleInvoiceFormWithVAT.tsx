@@ -3,18 +3,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { SimpleProductSelector } from './SimpleProductSelector';
-import { useFacturesProfessionnelles } from '@/hooks/useFacturesProfessionnelles';
-import { useDevisProfessionnels } from '@/hooks/useFacturationDatabase';
-import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon, FileText, Calculator, Truck, CreditCard, Percent } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { FileText, Save, Eye, Calculator, AlertCircle, CreditCard, Truck, MapPin, User, Phone, Building, MessageSquare } from 'lucide-react';
+import { ProductSelectorWithDatabase } from './ProductSelectorWithDatabase';
 import { ClientSelector } from '@/components/clients/ClientSelector';
+import { useFacturesProfessionnelles } from '@/hooks/useFacturesProfessionnelles';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductItem {
   id: string;
@@ -23,6 +22,7 @@ interface ProductItem {
   prix_unitaire: number;
   total_ligne: number;
   isCustom?: boolean;
+  product_id?: string;
 }
 
 interface SimpleInvoiceFormWithVATProps {
@@ -36,119 +36,84 @@ export const SimpleInvoiceFormWithVAT = ({
   type = 'facture',
   initialData 
 }: SimpleInvoiceFormWithVATProps) => {
-  const facturesHook = useFacturesProfessionnelles();
-  const devisHook = useDevisProfessionnels();
-  const dataHook = type === 'facture' ? facturesHook : devisHook;
-  
+
+  const [loading, setLoading] = useState(false);
+  const [produits, setProduits] = useState<ProductItem[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [selectedClientName, setSelectedClientName] = useState('');
+  const [clientTelephone, setClientTelephone] = useState('');
+  const [clientAdresse, setClientAdresse] = useState('');
+  const [dateDocument, setDateDocument] = useState(new Date().toISOString().split('T')[0]);
+  const [dateEcheance, setDateEcheance] = useState('');
+  const [tvaApplicable, setTvaApplicable] = useState(false);
+  const [tauxTva, setTauxTva] = useState(18);
+  const [fraisLivraison, setFraisLivraison] = useState(0);
+  const [modeLivraison, setModeLivraison] = useState('retrait_usine');
+  const [adresseLivraison, setAdresseLivraison] = useState('');
+  const [remiseGlobale, setRemiseGlobale] = useState(0);
+  const [commentaires, setCommentaires] = useState('');
+  const [statut, setStatut] = useState('brouillon');
+  const [numeroDocument, setNumeroDocument] = useState('');
+
+  const { create } = useFacturesProfessionnelles();
   const { toast } = useToast();
 
-  // États principaux
-  const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const [selectedClientName, setSelectedClientName] = useState<string>('');
-  const [clientTelephone, setClientTelephone] = useState<string>('');
-  const [clientAdresse, setClientAdresse] = useState<string>('');
-  
-  const [numeroDocument, setNumeroDocument] = useState<string>('');
-  const [dateDocument, setDateDocument] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [dateEcheance, setDateEcheance] = useState<string>('');
-  const [statut, setStatut] = useState<string>('brouillon');
-  const [commentaires, setCommentaires] = useState<string>('');
-  
-  // États TVA et calculs
-  const [tvaApplicable, setTvaApplicable] = useState<boolean>(false);
-  const [tauxTva, setTauxTva] = useState<number>(18);
-  const [fraisLivraison, setFraisLivraison] = useState<number>(0);
-  const [remiseGlobale, setRemiseGlobale] = useState<number>(0);
-  const [modeLivraison, setModeLivraison] = useState<string>('retrait_usine');
-  const [adresseLivraison, setAdresseLivraison] = useState<string>('');
-  
-  const [produits, setProduits] = useState<ProductItem[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // Calculs automatiques
-  const sousTotal = produits.reduce((sum, produit) => sum + produit.total_ligne, 0);
-  const montantTva = tvaApplicable ? (sousTotal * tauxTva / 100) : 0;
-  const montantTotal = sousTotal + montantTva + fraisLivraison - remiseGlobale;
-
-  // Chargement des données initiales pour édition
+  // Générer le numéro de document
   useEffect(() => {
-    if (initialData) {
-      console.log('🔄 Chargement données initiales:', initialData);
-      
-      setSelectedClientId(initialData.client_id || '');
-      setSelectedClientName(initialData.client_nom || '');
-      setClientTelephone(initialData.client_telephone || '');
-      setClientAdresse(initialData.client_adresse || '');
-      
-      setNumeroDocument(type === 'facture' ? initialData.numero_facture : initialData.numero_devis);
-      setDateDocument(type === 'facture' ? initialData.date_facture : initialData.date_devis);
-      setDateEcheance(initialData.date_echeance || '');
-      setStatut(initialData.statut || 'brouillon');
-      setCommentaires(initialData.commentaires || '');
-      
-      setTvaApplicable(initialData.tva_applicable || false);
-      setTauxTva(initialData.taux_tva || 18);
-      setFraisLivraison(initialData.frais_livraison || 0);
-      setRemiseGlobale(initialData.remise_globale_montant || 0);
-      setModeLivraison(initialData.mode_livraison || 'retrait_usine');
-      setAdresseLivraison(initialData.adresse_livraison || '');
-      
-      // Charger les produits
-      if (type === 'devis' && initialData.devis_produits) {
-        setProduits(initialData.devis_produits.map((p: any) => ({
-          id: p.id,
-          nom: p.nom_produit,
-          quantite: p.quantite,
-          prix_unitaire: p.prix_unitaire,
-          total_ligne: p.total_ligne,
-          isCustom: false
-        })));
-      } else if (type === 'facture' && initialData.facture_items) {
-        setProduits(initialData.facture_items.map((item: any) => ({
-          id: item.id,
-          nom: item.nom_produit,
-          quantite: item.quantite,
-          prix_unitaire: item.prix_unitaire,
-          total_ligne: item.total_ligne,
-          isCustom: false
-        })));
-      }
-    } else {
-      // Générer un numéro automatique pour nouveau document
-      const prefix = type === 'facture' ? 'FAC' : 'DEV';
-      const numero = `${prefix}-${Date.now().toString().slice(-6)}`;
-      setNumeroDocument(numero);
+    if (!numeroDocument) {
+      const prefix = type === 'facture' ? 'FAC-' : 'DEV-';
+      const timestamp = Date.now().toString().slice(-6);
+      setNumeroDocument(`${prefix}${timestamp}`);
     }
-  }, [initialData, type]);
+  }, [type, numeroDocument]);
 
-  // Gestion de la sélection client
-  const handleClientSelect = (client: { id?: string; nom: string; telephone?: string; adresse?: string }) => {
-    console.log('🎯 Client sélectionné:', client);
-    setSelectedClientId(client.id || '');
-    setSelectedClientName(client.nom);
-    setClientTelephone(client.telephone || '');
-    setClientAdresse(client.adresse || '');
+  // Calculs
+  const sousTotal = produits.reduce((sum, produit) => sum + produit.total_ligne, 0);
+  const montantTva = tvaApplicable ? (sousTotal * tauxTva) / 100 : 0;
+  const fraisLivraisonActuels = modeLivraison === 'livraison_payante' ? fraisLivraison : 0;
+  const montantTotal = sousTotal + montantTva + fraisLivraisonActuels - remiseGlobale;
+
+  // Validation simplifiée - TVA vraiment optionnelle
+  const estValide = () => {
+    const erreurs = [];
+    
+    if (!selectedClientName.trim()) {
+      erreurs.push('Le nom du client est requis');
+    }
+    
+    if (produits.length === 0) {
+      erreurs.push('Au moins un produit doit être ajouté');
+    }
+    
+    // Validation des produits
+    produits.forEach((produit, index) => {
+      if (!produit.nom.trim()) {
+        erreurs.push(`Le produit ${index + 1} doit avoir un nom`);
+      }
+      if (produit.quantite <= 0) {
+        erreurs.push(`Le produit ${index + 1} doit avoir une quantité > 0`);
+      }
+      if (produit.prix_unitaire < 0) {
+        erreurs.push(`Le produit ${index + 1} ne peut pas avoir un prix négatif`);
+      }
+    });
+
+    if (erreurs.length > 0) {
+      toast({
+        title: "Erreurs de validation",
+        description: erreurs.join(', '),
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
   };
 
-  // Soumission du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedClientName.trim()) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner ou saisir un client",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (produits.length === 0) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez ajouter au moins un produit",
-        variant: "destructive",
-      });
+    if (!estValide()) {
       return;
     }
 
@@ -174,7 +139,7 @@ export const SimpleInvoiceFormWithVAT = ({
           tva_applicable: tvaApplicable,
           taux_tva: tauxTva,
           montant_tva: montantTva,
-          frais_livraison: fraisLivraison,
+          frais_livraison: fraisLivraisonActuels,
           remise_globale_montant: remiseGlobale,
           mode_livraison: modeLivraison,
           adresse_livraison: adresseLivraison
@@ -195,7 +160,7 @@ export const SimpleInvoiceFormWithVAT = ({
           tva_applicable: tvaApplicable,
           taux_tva: tauxTva,
           montant_tva: montantTva,
-          frais_livraison: fraisLivraison,
+          frais_livraison: fraisLivraisonActuels,
           remise_globale_montant: remiseGlobale,
           mode_livraison: modeLivraison,
           adresse_livraison: adresseLivraison
@@ -205,25 +170,44 @@ export const SimpleInvoiceFormWithVAT = ({
       console.log(`Création ${type}:`, documentData);
       console.log('Produits:', produits);
 
-      // Convert products to match the expected format for the database
-      const produitsFormatted = produits.map(produit => ({
-        ...produit,
-        nom_produit: produit.nom // Map nom to nom_produit for database compatibility
+      // Convertir les produits au format attendu
+      const produitsFormates = produits.map(p => ({
+        nom_produit: p.nom,
+        quantite: p.quantite,
+        prix_unitaire: p.prix_unitaire,
+        total_ligne: p.total_ligne,
+        product_id: p.product_id || null
       }));
-      
-      await dataHook.create(documentData, produitsFormatted);
-      
+
+      await create(documentData, produitsFormates);
+
       toast({
         title: "Succès",
-        description: `${type === 'facture' ? 'Facture' : 'Devis'} créé${type === 'facture' ? 'e' : ''} avec succès !`,
+        description: `${type === 'facture' ? 'Facture' : 'Devis'} créé(e) avec succès !`,
       });
+
+      // Réinitialiser le formulaire
+      setProduits([]);
+      setSelectedClientId('');
+      setSelectedClientName('');
+      setClientTelephone('');
+      setClientAdresse('');
+      setCommentaires('');
+      setRemiseGlobale(0);
+      setFraisLivraison(0);
+      setTvaApplicable(false);
+      
+      // Générer un nouveau numéro
+      const prefix = type === 'facture' ? 'FAC-' : 'DEV-';
+      const timestamp = Date.now().toString().slice(-6);
+      setNumeroDocument(`${prefix}${timestamp}`);
 
       if (onInvoiceCreated) {
         onInvoiceCreated();
       }
 
     } catch (error: any) {
-      console.error(`Erreur création ${type}:`, error);
+      console.error('Erreur création document:', error);
       toast({
         title: "Erreur",
         description: error.message || `Impossible de créer ${type === 'facture' ? 'la facture' : 'le devis'}`,
@@ -234,325 +218,307 @@ export const SimpleInvoiceFormWithVAT = ({
     }
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'XOF',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 p-4">
-      <div className="max-w-5xl mx-auto">
-        {/* En-tête */}
-        <Card className="mb-6 border-2 border-orange-200 shadow-lg bg-gradient-to-r from-orange-500 to-amber-500">
-          <CardHeader className="text-center py-6">
-            <CardTitle className="text-3xl font-bold text-white flex items-center justify-center gap-3">
-              <FileText className="h-8 w-8" />
-              {type === 'facture' ? 'Nouvelle Facture' : 'Nouveau Devis'}
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                Cornerstone
-              </Badge>
+    <div className="space-y-6 max-w-6xl mx-auto p-6">
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-primary flex items-center justify-center gap-3">
+          <FileText className="h-8 w-8" />
+          {type === 'facture' ? 'Nouvelle Facture' : 'Nouveau Devis'}
+        </h1>
+        <p className="text-muted-foreground">
+          Créez {type === 'facture' ? 'une facture' : 'un devis'} professionnel en quelques clics
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Informations de base */}
+        <Card className="border-primary/20">
+          <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
+            <CardTitle className="text-primary flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Informations générales
             </CardTitle>
           </CardHeader>
-        </Card>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Section Client */}
-          <Card className="border-2 border-orange-200 shadow-md">
-            <CardHeader className="bg-gradient-to-r from-orange-100 to-amber-100">
-              <CardTitle className="text-orange-700 flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Informations Client
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <ClientSelector
-                selectedClientId={selectedClientId}
-                selectedClientName={selectedClientName}
-                onClientSelect={handleClientSelect}
-              />
-              
-              {/* Informations complémentaires client */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Téléphone</Label>
-                  <Input
-                    value={clientTelephone}
-                    onChange={(e) => setClientTelephone(e.target.value)}
-                    placeholder="Téléphone du client"
-                    className="border-orange-100 focus:border-orange-400"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Adresse</Label>
-                  <Input
-                    value={clientAdresse}
-                    onChange={(e) => setClientAdresse(e.target.value)}
-                    placeholder="Adresse du client"
-                    className="border-orange-100 focus:border-orange-400"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section Document */}
-          <Card className="border-2 border-orange-200 shadow-md">
-            <CardHeader className="bg-gradient-to-r from-orange-100 to-amber-100">
-              <CardTitle className="text-orange-700 flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5" />
-                Détails du Document
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">
-                    Numéro {type === 'facture' ? 'Facture' : 'Devis'} *
-                  </Label>
-                  <Input
-                    value={numeroDocument}
-                    onChange={(e) => setNumeroDocument(e.target.value)}
-                    className="border-orange-100 focus:border-orange-400 font-mono"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">
-                    Date {type === 'facture' ? 'Facture' : 'Devis'} *
-                  </Label>
-                  <Input
-                    type="date"
-                    value={dateDocument}
-                    onChange={(e) => setDateDocument(e.target.value)}
-                    className="border-orange-100 focus:border-orange-400"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Date d'échéance</Label>
-                  <Input
-                    type="date"
-                    value={dateEcheance}
-                    onChange={(e) => setDateEcheance(e.target.value)}
-                    className="border-orange-100 focus:border-orange-400"
-                  />
-                </div>
-              </div>
-              
+          <CardContent className="pt-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label className="text-sm font-medium text-gray-700">Statut</Label>
-                <Select value={statut} onValueChange={setStatut}>
-                  <SelectTrigger className="border-orange-100 focus:border-orange-400">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="brouillon">Brouillon</SelectItem>
-                    <SelectItem value="valide">Validé</SelectItem>
-                    <SelectItem value="envoye">Envoyé</SelectItem>
-                    {type === 'devis' && (
-                      <>
-                        <SelectItem value="accepte">Accepté</SelectItem>
-                        <SelectItem value="refuse">Refusé</SelectItem>
-                      </>
-                    )}
-                    {type === 'facture' && <SelectItem value="payee">Payée</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section Produits */}
-          <Card className="border-2 border-orange-200 shadow-md">
-            <CardHeader className="bg-gradient-to-r from-orange-100 to-amber-100">
-              <CardTitle className="text-orange-700 flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Produits & Services
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <SimpleProductSelector
-                products={produits}
-                onProductsChange={setProduits}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Section Calculs et TVA */}
-          <Card className="border-2 border-orange-200 shadow-md">
-            <CardHeader className="bg-gradient-to-r from-orange-100 to-amber-100">
-              <CardTitle className="text-orange-700 flex items-center gap-2">
-                <Percent className="h-5 w-5" />
-                Calculs & TVA
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              {/* TVA */}
-              <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">TVA applicable</Label>
-                  <p className="text-xs text-gray-500">Appliquer la TVA sur cette {type}</p>
-                </div>
-                <Switch
-                  checked={tvaApplicable}
-                  onCheckedChange={setTvaApplicable}
+                <Label htmlFor="numero_document" className="text-muted-foreground">
+                  Numéro de {type === 'facture' ? 'facture' : 'devis'} *
+                </Label>
+                <Input
+                  id="numero_document"
+                  value={numeroDocument}
+                  onChange={(e) => setNumeroDocument(e.target.value)}
+                  required
+                  className="border-primary/30 focus:border-primary"
                 />
               </div>
-              
-              {tvaApplicable && (
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Taux TVA (%)</Label>
-                  <Input
-                    type="number"
-                    value={tauxTva}
-                    onChange={(e) => setTauxTva(Number(e.target.value))}
-                    className="border-orange-100 focus:border-orange-400"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                  />
-                </div>
-              )}
-              
-              {/* Frais et remises */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Frais de livraison (FCFA)</Label>
-                  <Input
-                    type="number"
-                    value={fraisLivraison}
-                    onChange={(e) => setFraisLivraison(Number(e.target.value))}
-                    className="border-orange-100 focus:border-orange-400"
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Remise globale (FCFA)</Label>
-                  <Input
-                    type="number"
-                    value={remiseGlobale}
-                    onChange={(e) => setRemiseGlobale(Number(e.target.value))}
-                    className="border-orange-100 focus:border-orange-400"
-                    min="0"
-                  />
-                </div>
-              </div>
-              
-              {/* Récapitulatif */}
-              <div className="bg-gradient-to-r from-orange-100 to-amber-100 p-4 rounded-lg border-2 border-orange-200">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Sous-total :</span>
-                    <span className="font-medium">{sousTotal.toLocaleString()} FCFA</span>
-                  </div>
-                  {tvaApplicable && (
-                    <div className="flex justify-between text-orange-600">
-                      <span>TVA ({tauxTva}%) :</span>
-                      <span className="font-medium">{montantTva.toLocaleString()} FCFA</span>
-                    </div>
-                  )}
-                  {fraisLivraison > 0 && (
-                    <div className="flex justify-between">
-                      <span>Frais de livraison :</span>
-                      <span className="font-medium">{fraisLivraison.toLocaleString()} FCFA</span>
-                    </div>
-                  )}
-                  {remiseGlobale > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Remise :</span>
-                      <span className="font-medium">-{remiseGlobale.toLocaleString()} FCFA</span>
-                    </div>
-                  )}
-                  <Separator className="my-2" />
-                  <div className="flex justify-between text-lg font-bold text-orange-600">
-                    <span>TOTAL :</span>
-                    <span>{montantTotal.toLocaleString()} FCFA</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Section Livraison */}
-          <Card className="border-2 border-orange-200 shadow-md">
-            <CardHeader className="bg-gradient-to-r from-orange-100 to-amber-100">
-              <CardTitle className="text-orange-700 flex items-center gap-2">
-                <Truck className="h-5 w-5" />
-                Modalités de Livraison
+              <div>
+                <Label htmlFor="date_document" className="text-muted-foreground">
+                  Date *
+                </Label>
+                <Input
+                  id="date_document"
+                  type="date"
+                  value={dateDocument}
+                  onChange={(e) => setDateDocument(e.target.value)}
+                  required
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="date_echeance" className="text-muted-foreground">
+                  Date d'échéance
+                </Label>
+                <Input
+                  id="date_echeance"
+                  type="date"
+                  value={dateEcheance}
+                  onChange={(e) => setDateEcheance(e.target.value)}
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sélection du client */}
+        <ClientSelector
+          selectedClientId={selectedClientId}
+          selectedClientName={selectedClientName}
+          clientTelephone={clientTelephone}
+          clientAdresse={clientAdresse}
+          onClientSelect={(client) => {
+            if (client) {
+              setSelectedClientId(client.id);
+              setSelectedClientName(client.nom_complet);
+              setClientTelephone(client.telephone || '');
+              setClientAdresse(client.adresse || '');
+            }
+          }}
+          onManualClientChange={(nom, telephone, adresse) => {
+            setSelectedClientName(nom);
+            setClientTelephone(telephone);
+            setClientAdresse(adresse);
+            setSelectedClientId('');
+          }}
+        />
+
+        {/* Sélection des produits */}
+        <ProductSelectorWithDatabase
+          products={produits}
+          onProductsChange={setProduits}
+        />
+
+        {/* Options de facturation */}
+        {produits.length > 0 && (
+          <Card className="border-secondary/20">
+            <CardHeader className="bg-gradient-to-r from-secondary/10 to-secondary/5">
+              <CardTitle className="text-secondary-foreground flex items-center gap-2">
+                <Calculator className="h-5 w-5" />
+                Options de facturation
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Mode de livraison</Label>
-                <Select value={modeLivraison} onValueChange={setModeLivraison}>
-                  <SelectTrigger className="border-orange-100 focus:border-orange-400">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="retrait_usine">Retrait à l'usine</SelectItem>
-                    <SelectItem value="livraison_domicile">Livraison à domicile</SelectItem>
-                    <SelectItem value="livraison_chantier">Livraison sur chantier</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {modeLivraison !== 'retrait_usine' && (
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Adresse de livraison</Label>
-                  <Textarea
-                    value={adresseLivraison}
-                    onChange={(e) => setAdresseLivraison(e.target.value)}
-                    placeholder="Adresse complète de livraison..."
-                    className="border-orange-100 focus:border-orange-400"
-                    rows={3}
+            <CardContent className="pt-6 space-y-6">
+              {/* TVA - Optionnelle */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-base font-medium">TVA (Taxe sur la Valeur Ajoutée)</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Activez si votre entreprise est assujettie à la TVA
+                    </p>
+                  </div>
+                  <Switch
+                    checked={tvaApplicable}
+                    onCheckedChange={setTvaApplicable}
                   />
                 </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Commentaires */}
-          <Card className="border-2 border-orange-200 shadow-md">
-            <CardContent className="p-6">
-              <Label className="text-sm font-medium text-gray-700">Commentaires & Notes</Label>
-              <Textarea
-                value={commentaires}
-                onChange={(e) => setCommentaires(e.target.value)}
-                placeholder="Commentaires, conditions particulières, informations additionnelles..."
-                className="border-orange-100 focus:border-orange-400 mt-2"
-                rows={4}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Boutons d'action */}
-          <Card className="border-2 border-orange-200 shadow-md">
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-2 border-gray-300 hover:border-gray-400"
-                >
-                  Annuler
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={loading || produits.length === 0 || !selectedClientName}
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold px-8 py-2 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Création en cours...
+                {tvaApplicable && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-secondary/10 rounded-lg">
+                    <div>
+                      <Label htmlFor="taux_tva">Taux de TVA (%)</Label>
+                      <Input
+                        id="taux_tva"
+                        type="number"
+                        value={tauxTva}
+                        onChange={(e) => setTauxTva(Number(e.target.value))}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        className="border-secondary/30 focus:border-secondary"
+                      />
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Créer {type === 'facture' ? 'la Facture' : 'le Devis'}
+                    <div className="flex items-end">
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Montant TVA: </span>
+                        <span className="font-semibold text-secondary-foreground">
+                          {formatCurrency(montantTva)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Livraison */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Truck className="h-5 w-5 text-accent" />
+                  <Label className="text-base font-medium">Mode de livraison</Label>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Select value={modeLivraison} onValueChange={setModeLivraison}>
+                      <SelectTrigger className="border-accent/30 focus:border-accent">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="retrait_usine">Retrait à l'usine</SelectItem>
+                        <SelectItem value="livraison_gratuite">Livraison gratuite</SelectItem>
+                        <SelectItem value="livraison_payante">Livraison payante</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {modeLivraison === 'livraison_payante' && (
+                    <div>
+                      <Label htmlFor="frais_livraison">Frais de livraison (FCFA)</Label>
+                      <Input
+                        id="frais_livraison"
+                        type="number"
+                        value={fraisLivraison}
+                        onChange={(e) => setFraisLivraison(Number(e.target.value))}
+                        min="0"
+                        className="border-accent/30 focus:border-accent"
+                      />
                     </div>
                   )}
-                </Button>
+
+                  <div>
+                    <Label htmlFor="remise_globale">Remise globale (FCFA)</Label>
+                    <Input
+                      id="remise_globale"
+                      type="number"
+                      value={remiseGlobale}
+                      onChange={(e) => setRemiseGlobale(Number(e.target.value))}
+                      min="0"
+                      className="border-accent/30 focus:border-accent"
+                    />
+                  </div>
+                </div>
+
+                {(modeLivraison === 'livraison_gratuite' || modeLivraison === 'livraison_payante') && (
+                  <div>
+                    <Label htmlFor="adresse_livraison" className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Adresse de livraison
+                    </Label>
+                    <Input
+                      id="adresse_livraison"
+                      value={adresseLivraison}
+                      onChange={(e) => setAdresseLivraison(e.target.value)}
+                      placeholder="Adresse complète de livraison"
+                      className="border-accent/30 focus:border-accent"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Résumé des totaux */}
+              <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-6 rounded-lg border border-primary/20">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Sous-total (HT):</span>
+                    <span className="font-medium">{formatCurrency(sousTotal)}</span>
+                  </div>
+                  
+                  {tvaApplicable && montantTva > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">TVA ({tauxTva}%):</span>
+                      <span className="text-secondary-foreground font-medium">{formatCurrency(montantTva)}</span>
+                    </div>
+                  )}
+                  
+                  {fraisLivraisonActuels > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Frais de livraison:</span>
+                      <span className="font-medium">{formatCurrency(fraisLivraisonActuels)}</span>
+                    </div>
+                  )}
+                  
+                  {remiseGlobale > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Remise globale:</span>
+                      <span className="text-destructive font-medium">-{formatCurrency(remiseGlobale)}</span>
+                    </div>
+                  )}
+                  
+                  <Separator />
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-primary">TOTAL:</span>
+                    <span className="text-2xl font-bold text-primary">{formatCurrency(montantTotal)}</span>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </form>
-      </div>
+        )}
+
+        {/* Commentaires */}
+        <Card className="border-muted/50">
+          <CardHeader>
+            <CardTitle className="text-muted-foreground flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Commentaires et Notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={commentaires}
+              onChange={(e) => setCommentaires(e.target.value)}
+              placeholder="Notes supplémentaires, conditions de paiement, etc..."
+              rows={3}
+              className="border-muted/50 focus:border-primary"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Boutons d'action */}
+        <div className="flex justify-end gap-3 pt-4">
+          <Button
+            type="submit"
+            disabled={loading || produits.length === 0}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 text-lg"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                Création...
+              </>
+            ) : (
+              <>
+                <Save className="h-5 w-5 mr-2" />
+                Créer {type === 'facture' ? 'la facture' : 'le devis'}
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

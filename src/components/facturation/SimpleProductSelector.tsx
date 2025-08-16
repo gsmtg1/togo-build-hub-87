@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Trash2, Package } from 'lucide-react';
-import { useDatabase } from '@/hooks/useDatabase';
+import { useLocalStorage } from '@/hooks/useDatabase';
 
 interface ProductItem {
   id: string;
@@ -28,7 +28,7 @@ export const SimpleProductSelector = ({ products, onProductsChange }: SimpleProd
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
   
-  const { data: productsData } = useDatabase('products');
+  const { data: productsData } = useLocalStorage<any>('products');
 
   useEffect(() => {
     if (productsData) {

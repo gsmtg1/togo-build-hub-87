@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,7 +45,11 @@ export const SimpleInvoiceFormWithVAT = ({ onSubmit, onCancel, initialData }: Si
   // Générer le numéro de facture au chargement
   useEffect(() => {
     if (!initialData) {
-      setNumeroFacture(NumberGenerator.generateInvoiceNumber());
+      const generateNumber = async () => {
+        const number = await NumberGenerator.generateInvoiceNumber();
+        setNumeroFacture(number);
+      };
+      generateNumber();
     }
   }, [initialData]);
 
@@ -121,7 +124,7 @@ export const SimpleInvoiceFormWithVAT = ({ onSubmit, onCancel, initialData }: Si
       adresse_livraison: adresseLivraison
     };
 
-    // Formatage des produits pour la base de données
+    // Formatage des produits pour la base de données avec les propriétés françaises
     const formattedProducts = products.map(product => ({
       nom_produit: product.nom,
       quantite: product.quantite,

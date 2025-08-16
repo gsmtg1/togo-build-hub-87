@@ -394,6 +394,54 @@ export type Database = {
           },
         ]
       }
+      devis_produits: {
+        Row: {
+          created_at: string
+          devis_id: string
+          id: string
+          nom_produit: string
+          prix_unitaire: number
+          product_id: string | null
+          quantite: number
+          total_ligne: number
+        }
+        Insert: {
+          created_at?: string
+          devis_id: string
+          id?: string
+          nom_produit: string
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          total_ligne?: number
+        }
+        Update: {
+          created_at?: string
+          devis_id?: string
+          id?: string
+          nom_produit?: string
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          total_ligne?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_produits_devis_id_fkey"
+            columns: ["devis_id"]
+            isOneToOne: false
+            referencedRelation: "devis_professionnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_produits_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devis_professionnels: {
         Row: {
           client_adresse: string | null
@@ -588,6 +636,54 @@ export type Database = {
           },
           {
             foreignKeyName: "facture_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facture_produits: {
+        Row: {
+          created_at: string
+          facture_id: string
+          id: string
+          nom_produit: string
+          prix_unitaire: number
+          product_id: string | null
+          quantite: number
+          total_ligne: number
+        }
+        Insert: {
+          created_at?: string
+          facture_id: string
+          id?: string
+          nom_produit: string
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          total_ligne?: number
+        }
+        Update: {
+          created_at?: string
+          facture_id?: string
+          id?: string
+          nom_produit?: string
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          total_ligne?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facture_produits_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures_professionnelles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facture_produits_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"

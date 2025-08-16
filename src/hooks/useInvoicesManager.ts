@@ -34,7 +34,7 @@ export const useInvoicesManager = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Charger toutes les factures
+  // Charger toutes les factures avec leurs produits
   const loadInvoices = async () => {
     try {
       setIsLoading(true);
@@ -44,7 +44,7 @@ export const useInvoicesManager = () => {
         .from('factures_professionnelles')
         .select(`
           *,
-          facture_items (
+          facture_produits (
             id,
             nom_produit,
             quantite,
@@ -144,8 +144,8 @@ export const useInvoicesManager = () => {
 
       console.log('✅ Facture créée:', newInvoice.id);
 
-      // Créer les items de facture
-      const itemsPayload = products.map(product => ({
+      // Créer les produits de facture dans la nouvelle table facture_produits
+      const productsPayload = products.map(product => ({
         facture_id: newInvoice.id,
         nom_produit: product.nom_produit.trim(),
         quantite: Number(product.quantite),
@@ -154,23 +154,23 @@ export const useInvoicesManager = () => {
         product_id: product.product_id || null
       }));
 
-      console.log('📦 Items à insérer:', itemsPayload);
+      console.log('📦 Produits à insérer:', productsPayload);
 
-      const { error: itemsError } = await supabase
-        .from('facture_items')
-        .insert(itemsPayload);
+      const { error: productsError } = await supabase
+        .from('facture_produits')
+        .insert(productsPayload);
 
-      if (itemsError) {
-        console.error('❌ Erreur création items:', itemsError);
+      if (productsError) {
+        console.error('❌ Erreur création produits:', productsError);
         // Supprimer la facture créée en cas d'échec
         await supabase
           .from('factures_professionnelles')
           .delete()
           .eq('id', newInvoice.id);
-        throw new Error(`Erreur création produits: ${itemsError.message}`);
+        throw new Error(`Erreur création produits: ${productsError.message}`);
       }
 
-      console.log('✅ Items créés avec succès');
+      console.log('✅ Produits créés avec succès');
       
       // Recharger les factures
       await loadInvoices();
@@ -200,17 +200,7 @@ export const useInvoicesManager = () => {
       setIsLoading(true);
       console.log('🗑️ Suppression facture:', id);
 
-      // Supprimer les items en premier
-      const { error: itemsError } = await supabase
-        .from('facture_items')
-        .delete()
-        .eq('facture_id', id);
-
-      if (itemsError) {
-        console.error('❌ Erreur suppression items:', itemsError);
-      }
-
-      // Supprimer la facture
+      // Les produits sont supprimés automatiquement grâce à ON DELETE CASCADE
       const { error } = await supabase
         .from('factures_professionnelles')
         .delete()

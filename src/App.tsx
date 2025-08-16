@@ -23,9 +23,9 @@ import Notifications from '@/pages/Notifications';
 import Parametres from '@/pages/Parametres';
 import NotFound from '@/pages/NotFound';
 
-// Nouveaux modules
-import { FacturesProfessionnelles } from '@/pages/FacturesProfessionnelles';
-import { DevisProfessionnels } from '@/pages/DevisProfessionnels';
+// Nouveaux modules - imports par défaut corrects
+import FacturesProfessionnelles from '@/pages/FacturesProfessionnelles';
+import DevisProfessionnels from '@/pages/DevisProfessionnels';
 import { GestionClients } from '@/pages/GestionClients';
 import { VentesAméliorées } from '@/pages/VentesAméliorées';
 import { GestionProductionBriques } from '@/components/production/GestionProductionBriques';
